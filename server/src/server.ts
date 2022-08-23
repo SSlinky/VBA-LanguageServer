@@ -14,12 +14,14 @@ import {
 	CompletionItemKind,
 	TextDocumentPositionParams,
 	TextDocumentSyncKind,
-	InitializeResult
+	InitializeResult,
+	integer
 } from 'vscode-languageserver/node';
 
 import {
 	TextDocument
 } from 'vscode-languageserver-textdocument';
+import { getFoldingRanges } from './capabilities/vbaFolding';
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -55,7 +57,8 @@ connection.onInitialize((params: InitializeParams) => {
 			// Tell the client that this server supports code completion.
 			completionProvider: {
 				resolveProvider: true
-			}
+			},
+			foldingRangeProvider: true
 		}
 	};
 	if (hasWorkspaceFolderCapability) {
@@ -244,3 +247,11 @@ documents.listen(connection);
 
 // Listen on the connection
 connection.listen();
+
+// Event handler for folding ranges.
+connection.onFoldingRanges((params) => {
+	const doc = documents.get(params.textDocument.uri);
+	if (doc) {
+		return getFoldingRanges(doc, Number.MAX_VALUE);
+	}
+});
