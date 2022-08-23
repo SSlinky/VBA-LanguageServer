@@ -135,50 +135,66 @@ documents.onDidChangeContent(change => {
 });
 
 async function validateTextDocument(textDocument: TextDocument): Promise<void> {
-	// In this simple example we get the settings for every validate run.
 	const settings = await getDocumentSettings(textDocument.uri);
+	const v = new DocumentValidator(textDocument, settings.maxNumberOfProblems);
+	
+	// Validate use of .Select
+	v.validate(/\.Select/g, "Don't use `Select`. Please.", DiagnosticSeverity.Warning);
+	
+	
+	// Send the computed diagnostics to VSCode.
+	const diagnostics: Diagnostic[] = v.diagnostics;
+	connection.sendDiagnostics({ uri: textDocument.uri, diagnostics });
+}
 
-	// The validator creates diagnostics for all uppercase words length 2 and more
-	const text = textDocument.getText();
-	const pattern = /\b[A-Z]{2,}\b/g;
-	let m: RegExpExecArray | null;
+class DocumentValidator {
+	_doc: TextDocument;
+	_text: string;
+	_problemLimit: integer;
+	diagnostics: Diagnostic[];
 
-	let problems = 0;
-	const diagnostics: Diagnostic[] = [];
-	while ((m = pattern.exec(text)) && problems < settings.maxNumberOfProblems) {
-		problems++;
-		const diagnostic: Diagnostic = {
-			severity: DiagnosticSeverity.Warning,
-			range: {
-				start: textDocument.positionAt(m.index),
-				end: textDocument.positionAt(m.index + m[0].length)
-			},
-			message: `${m[0]} is all uppercase.`,
-			source: 'ex'
-		};
-		if (hasDiagnosticRelatedInformationCapability) {
-			diagnostic.relatedInformation = [
-				{
-					location: {
-						uri: textDocument.uri,
-						range: Object.assign({}, diagnostic.range)
-					},
-					message: 'Spelling matters'
-				},
-				{
-					location: {
-						uri: textDocument.uri,
-						range: Object.assign({}, diagnostic.range)
-					},
-					message: 'Particularly for names'
-				}
-			];
-		}
-		diagnostics.push(diagnostic);
+	constructor(textDocument: TextDocument, problemLimit: integer) {
+		this._doc = textDocument;
+		this._text = textDocument.getText();
+		this._problemLimit = problemLimit;
+		this.diagnostics = [];
 	}
 
-	// Send the computed diagnostics to VSCode.
-	connection.sendDiagnostics({ uri: textDocument.uri, diagnostics });
+	validate(pattern: RegExp, description: string, severity: DiagnosticSeverity) {
+		let m: RegExpExecArray | null;
+		while ((m = pattern.exec(this._text)) && this._problemLimit > 0) {
+			this._problemLimit--;
+			const d: Diagnostic = {
+				severity: severity,
+				range: {
+					start: this._doc.positionAt(m.index + 1),
+					end: this._doc.positionAt(m.index + m[0].length)
+				},
+				message: description,
+				source: 'sslinky-vba',
+				code: 666
+			};
+			if (hasDiagnosticRelatedInformationCapability) {
+				d.relatedInformation = [
+					{
+						location: {
+							uri: this._doc.uri,
+							range: Object.assign({}, d.range)
+						},
+						message: 'Seriously though, don\'t use it.'
+					},
+					{
+						location: {
+							uri: this._doc.uri,
+							range: Object.assign({}, d.range)
+						},
+						message: 'Ever.'
+					}
+				];
+			}
+			this.diagnostics.push(d);
+		}
+	}
 }
 
 connection.onDidChangeWatchedFiles(_change => {
