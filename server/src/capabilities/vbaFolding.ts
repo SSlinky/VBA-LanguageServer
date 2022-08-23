@@ -19,6 +19,7 @@ export function getFoldingRanges(doc: TextDocument, maxRanges: number): FoldingR
 		if (startIdx === -1) { return results; }
 		const pairedStart = starts[startIdx];
 		starts.splice(startIdx, 1);
+		if (pairedEnd === pairedStart) { continue; }
 
 		results.push(
 			FoldingRange.create(
