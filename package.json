@@ -9,7 +9,12 @@
 		"url": "https://github.com/SSlinky/TBC"
 	},
 	"publisher": "SSlinky",
-	"categories": [],
+	"categories": [
+		"Programming Languages",
+		"Snippets",
+		"Linters",
+		"Formatters"
+	],
 	"keywords": [
 		"multi-root ready"
 	],
@@ -21,6 +26,20 @@
 	],
 	"main": "./client/out/extension",
 	"contributes": {
+		"languages": [
+			{
+				"id": "vba",
+				"aliases": [
+					"VBA",
+					"vba"
+				],
+				"extensions": [
+					".bas",
+					".cls",
+					".frm"
+				]
+			}
+		],
 		"configuration": {
 			"type": "object",
 			"title": "Default configuration",
@@ -43,7 +62,13 @@
 					"description": "Traces the communication between VS Code and the language server."
 				}
 			}
-		}
+		},
+		"grammars": [
+			{
+				"language": "vba",
+				"scopeName": "source.vba",
+				"path": "./syntaxes/vba.json"
+			}
 		],
 		"snippets": [
 			{

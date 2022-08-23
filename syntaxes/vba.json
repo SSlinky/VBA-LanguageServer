@@ -1,0 +1,258 @@
+{
+  "comment":
+    "Modified from the original ASP bundle. Originally modified by Thomas Aylott subtleGradient.com",
+  "fileTypes": ["bas", "cls", "frm", "sht", "wbk"],
+  "foldingStartMarker":
+    "(<(?i:(head|table|div|style|script|ul|ol|form|dl))\\b.*?>|\\{|^\\s*<?%?\\s*'?\\s*(?i:(sub|private\\s+Sub|public\\s+Sub|function|if|while|For))\\s*.*$)",
+  "foldingStopMarker":
+    "(</(?i:(head|table|div|style|script|ul|ol|form|dl))>?|\\}|^\\s*<?%?\\s*\\s*'?\\s*(?i:(end|Next))\\s*.*$)",
+
+  "folding": {
+    "markers": {
+      "start": "(?i:^\\s*(((public|private|protected|friend|protected friend|private protected)\\s+)?(sub|property|function)|if|while|for|do|loop)\\s+.*$)",
+      "end": "(?i:^\\s*(end|next|wend)\\s+.*$)"
+    }
+  },
+  
+  "keyEquivalent": "^~A",
+  "name": "VBA",
+  "patterns": [
+    {
+      "match": "\\n",
+      "name": "meta.ending-space"
+    },
+    {
+      "include": "#round-brackets"
+    },
+    {
+      "begin": "^(?=\\t)",
+      "end": "(?=[^\\t])",
+      "name": "meta.leading-space",
+      "patterns": [
+        {
+          "captures": {
+            "1": {
+              "name": "meta.odd-tab.tabs"
+            },
+            "2": {
+              "name": "meta.even-tab.tabs"
+            }
+          },
+          "match": "(\\t)(\\t)?"
+        }
+      ]
+    },
+    {
+      "begin": "^(?= )",
+      "end": "(?=[^ ])",
+      "name": "meta.leading-space",
+      "patterns": [
+        {
+          "captures": {
+            "1": {
+              "name": "meta.odd-tab.spaces"
+            },
+            "2": {
+              "name": "meta.even-tab.spaces"
+            }
+          },
+          "match": "(  )(  )?"
+        }
+      ]
+    },
+    {
+      "comment":"This particular syntax allows for multi-line comments with _",
+      "begin": "'|(?i:(?<=(:|^)(\\s)*)rem\\b)",
+      "beginCaptures": {
+        "0": { "name": "COMMENT_OPEN" }
+      },
+      "end":"\\n",
+      "endCaptures": { 
+        "0": {"name": "END_COMMENT"}
+      },
+      "name": "comment.line.apostrophe.vba",
+      "patterns": [
+        {
+          "match": "\\s_\\s*\\n",
+          "name": "comment.line.escape.apostrophe.vba"
+        }
+      ]
+    },
+    {
+      "match": "(?i:\\b(Mod|And|Not|Is|Or|Xor|as)\\b)",
+      "name": "keyword.control.vba"
+    },
+    {
+      "match": "(\\b([a-zA-Z][a-zA-Z0-9_]*)\\.)",
+      "name": "variable.parameter"
+    },
+    {
+      "match":
+        "(?i:\\b(Is|If|Then|Else|ElseIf|End If|While|Wend|For|To|Each|In|Step|Case|Select|End Select|Return|Continue|Do|Until|Loop|Next|With|End With|Exit Do|Exit For|Exit Function|Exit Property|Exit Sub|IIf)\\b)",
+      "name": "keyword.control.vba"
+    },
+    {
+      "captures": {
+        "1": {
+          "name": "storage.type.vba"
+        },
+        "2": {
+          "name": "variable.other.bfeac.vba"
+        },
+        "3": {
+          "name": "meta.separator.comma.vba"
+        }
+      },
+      "match":
+        "(?i:(dim)\\s*(?:(\\b[a-zA-Z_x7f-xff][a-zA-Z0-9_x7f-xff]*?\\b)\\s*(,?)))",
+      "name": "variable.other.dim.vba"
+    },
+    {
+      "match":
+        "(?i:\\s*\\b(Const|Dim|As|ReDim|Function|Property|Sub|End|Enum|Type|Public|Private|Friend|Implements|Call|Set|Let|Get|New|Randomize|Option Explicit|On Error Resume Next|On Error GoTo|ByRef|ByVal|Public Function|Private Function|Preserve)\\b\\s*)",
+      "name": "storage.type.vba"
+    },
+    {
+      "match": "(?i:\\b(Private|Public|Optional)\\b)",
+      "name": "storage.modifier.vba"
+    },
+    {
+      "match": "(?i:\\s*\\b(Empty|False|Nothing|Null|True)\\b)",
+      "name": "constant.language.vba"
+    },
+    {
+      "begin": "\"",
+      "beginCaptures": [
+        {
+          "name": "punctuation.definition.string.begin.vba"
+        }
+      ],
+      "end": "\"",
+      "endCaptures": [
+        {
+          "name": "punctuation.definition.string.end.vba"
+        }
+      ],
+      "name": "string.quoted.double.vba",
+      "patterns": [
+        {
+          "match": "\"\"",
+          "name": "constant.character.escape.apostrophe.vba"
+        }
+      ]
+    },
+    {
+      "captures": {
+        "1": {
+          "name": "punctuation.definition.variable.vba"
+        }
+      },
+      "match": "(\\$)[a-zA-Z_xf-xff][a-zA-Z0-9_xf-xff]*?\\b\\s*",
+      "name": "variable.other.vba"
+    },
+    {
+      "match":
+        "(?i:\\b(Application|ObjectContext|Request|Response|Server|Session)\\b)",
+      "name": "support.class.vba"
+    },
+    {
+      "match":
+        "(?i:\\b(Contents|StaticObjects|ClientCertificate|Cookies|Form|QueryString|ServerVariables)\\b)",
+      "name": "support.class.collection.vba"
+    },
+    {
+      "match":
+        "(?i:\\b(TotalBytes|Buffer|CacheControl|Charset|ContentType|Expires|ExpiresAbsolute|IsClientConnected|PICS|Status|ScriptTimeout|CodePage|LCID|SessionID|Timeout)\\b)",
+      "name": "support.constant.vba"
+    },
+    {
+      "match":
+        "(?i:\\b(Lock|Unlock|SetAbort|SetComplete|BinaryRead|AddHeader|AppendToLog|BinaryWrite|Clear|End|Flush|Redirect|Write|CreateObject|HTMLEncode|MapPath|URLEncode|Abandon|Convert|Regex)\\b)",
+      "name": "support.function.vba"
+    },
+    {
+      "match":
+        "(?i:\\b(Application_OnEnd|Application_OnStart|OnTransactionAbort|OnTransactionCommit|Session_OnEnd|Session_OnStart)\\b)",
+      "name": "support.function.event.vba"
+    },
+    {
+      "match":
+        "(?i:(?<=as )(\\b[a-zA-Z_x7f-xff][a-zA-Z0-9_x7f-xff]*?\\b))",
+      "name": "support.type.vb.vba"
+    },
+    {
+      "captures": {
+        "1": {"name": "markup.italic.vba"},
+        "2": {"name": "support.function.vba"}
+      },
+      "match": "(?i:^(Attribute ([A-Z_]+)\\..*)$)"
+    },
+    {
+      "match":
+        "(?i:\\b(Array|Add|Asc|Atn|CBool|CByte|CCur|CDate|CDbl|Chr|CInt|CLng|Conversions|Cos|CreateObject|CSng|CStr|Date|DateAdd|DateDiff|DatePart|DateSerial|DateValue|Day|Derived|Math|Escape|Eval|Exists|Exp|Filter|FormatCurrency|FormatDateTime|FormatNumber|FormatPercent|GetLocale|GetObject|GetRef|Hex|Hour|InputBox|InStr|InStrRev|Int|Fix|IsArray|IsDate|IsEmpty|IsNull|IsNumeric|IsObject|Item|Items|Join|Keys|LBound|LCase|Left|Len|LoadPicture|Log|LTrim|RTrim|Trim|Maths|Mid|Minute|Month|MonthName|MsgBox|Now|Oct|Remove|RemoveAll|Replace|RGB|Right|Rnd|Round|ScriptEngine|ScriptEngineBuildVersion|ScriptEngineMajorVersion|ScriptEngineMinorVersion|Second|SetLocale|Sgn|Sin|Space|Split|Sqr|StrComp|String|StrReverse|Tan|Time|Timer|TimeSerial|TimeValue|TypeName|UBound|UCase|Unescape|VarType|Weekday|WeekdayName|Year)\\b)",
+      "name": "support.function.vb.vba"
+    },
+    {
+      "match":
+        "-?\\b((0(x|X)[0-9a-fA-F]*)|(([0-9]+\\.?[0-9]*)|(\\.[0-9]+))((e|E)(\\+|-)?[0-9]+)?)(L|l|UL|ul|u|U|F|f)?\\b",
+      "name": "constant.numeric.vba"
+    },
+    {
+      "match":
+        "(?i:\\s*\\b(vbtrue|vbfalse|vbcr|vbcrlf|vbformfeed|vblf|vbnewline|vbnullchar|vbnullstring|int32|vbtab|vbverticaltab|vbbinarycompare|vbtextcompare|vbsunday|vbmonday|vbtuesday|vbwednesday|vbthursday|vbfriday|vbsaturday|vbusesystemdayofweek|vbfirstjan1|vbfirstfourdays|vbfirstfullweek|vbgeneraldate|vblongdate|vbshortdate|vblongtime|vbshorttime|vbobjecterror|vbEmpty|vbNull|vbInteger|vbLong|vbSingle|vbDouble|vbCurrency|vbDate|vbString|vbObject|vbError|vbBoolean|vbVariant|vbDataObject|vbDecimal|vbByte|vbArray)\\b\\s*)",
+      "name": "support.type.vb.vba"
+    },
+    {
+      "captures": {
+        "1": {
+          "name": "entity.name.function.vba"
+        }
+      },
+      "match":
+        "(?i:(\\b[a-zA-Z_x7f-xff][a-zA-Z0-9_x7f-xff]*?\\b)(?=\\(\\)?))",
+      "name": "support.function.vba"
+    },
+    {
+      "match":
+        "(?i:(?<=\\.)([a-zA-Zx7f-xff][a-zA-Z0-9_x7f-xff]*))",
+      "name": "entity.name.function"
+    },
+    {
+      "match":
+        "(?i:(?<=(\\+|=|-|\\&|\\\\|/|<|>|\\(|,))\\s*(?>(Not)\\s+)?\\b([a-zA-Z_xf-xff][a-zA-Z0-9_xf-xff]*?)?\\b(?!(\\(|\\.))|\\b([a-zA-Z_xf-xff][a-zA-Z0-9_xf-xff]*?)\\b(?=\\s*(\\+|=|-|\\&|\\\\|/|<|>|\\(|\\))))",
+      "captures": {
+        "2": {"name": "keyword.control.vba" },
+        "3": {"name": "variable.other.vba" }
+      }
+    },
+    {
+      "match":
+        "!|\\$|%|&|=|<=|>=|<>|<|>|!|^|&&|\\|\\b(mod|in|new|delete|typeof)\\b",
+      "name": "keyword.operator.js"
+    }
+  ],
+  "repository": {
+    "round-brackets": {
+      "begin": "\\(",
+      "beginCaptures": [
+        {
+          "name": "punctuation.section.round-brackets.begin.vba"
+        }
+      ],
+      "end": "\\)",
+      "endCaptures": [
+        {
+          "name": "punctuation.section.round-brackets.end.vba"
+        }
+      ],
+      "name": "meta.round-brackets",
+      "patterns": [
+        {
+          "include": "source.vba"
+        }
+      ]
+    }
+  },
+  "scopeName": "source.vba",
+  "uuid": "7F9C9343-D48E-4E7D-BFE8-F680714DCD3E"
+}

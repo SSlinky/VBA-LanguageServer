@@ -1,0 +1,17 @@
+{
+    "comments": {
+        "lineComment": "'"
+    },
+    "brackets": [
+        ["{", "}"],
+        ["[", "]"],
+        ["(", ")"]
+    ],
+    "folding": {
+        "markers": {
+            "start": "^\\s*(Private|Protected|Friend|Public|Sub|Function|If|While|Do|For|Loop)\\b",
+            "end": "^\\s*(End|Next|Wend)\\b"
+        }
+    },
+    "wordPattern": "(-?\\d*\\.\\d\\w*)|([^\\`\\~\\!\\@\\#\\%\\^\\&\\*\\(\\)\\-\\=\\+\\[\\{\\]\\}\\\\\\|\\;\\:\\'\\\"\\,\\.\\<\\>\\/\\?\\s]+)",
+}
