@@ -15,13 +15,16 @@ import {
 	TextDocumentPositionParams,
 	TextDocumentSyncKind,
 	InitializeResult,
-	integer
+	integer,
+	Hover,
 } from 'vscode-languageserver/node';
 
 import {
 	TextDocument
 } from 'vscode-languageserver-textdocument';
 import { getFoldingRanges } from './capabilities/vbaFolding';
+import { LanguageTools } from './capabilities/ast';
+import { activateSemanticTokenProvider } from './capabilities/vbaSemanticTokens';
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -29,6 +32,9 @@ const connection = createConnection(ProposedFeatures.all);
 
 // Create a simple text document manager.
 const documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
+
+// Create the AST tools.
+const service = new LanguageTools();
 
 let hasConfigurationCapability = false;
 let hasWorkspaceFolderCapability = false;
@@ -58,9 +64,12 @@ connection.onInitialize((params: InitializeParams) => {
 			completionProvider: {
 				resolveProvider: true
 			},
-			foldingRangeProvider: true
+			foldingRangeProvider: true,
+			hoverProvider: true,
+			documentSymbolProvider: true
 		}
 	};
+	activateSemanticTokenProvider(result);
 	if (hasWorkspaceFolderCapability) {
 		result.capabilities.workspace = {
 			workspaceFolders: {
@@ -77,10 +86,18 @@ connection.onInitialized(() => {
 		connection.client.register(DidChangeConfigurationNotification.type, undefined);
 	}
 	if (hasWorkspaceFolderCapability) {
-		connection.workspace.onDidChangeWorkspaceFolders(_event => {
+		connection.workspace.onDidChangeWorkspaceFolders(e => {
 			connection.console.log('Workspace folder change event received.');
 		});
 	}
+});
+
+
+connection.onHover(({textDocument, position}): Hover => {
+	// Can make this into a proper hover provider later.
+	return {
+		contents: "Hello, HOVER world!"
+	};
 });
 
 // The example settings
@@ -131,15 +148,22 @@ documents.onDidClose(e => {
 	documentSettings.delete(e.document.uri);
 });
 
+documents.onDidOpen(e => {
+	service.evaluate(e.document);
+});
+
 // The content of a text document has changed. This event is emitted
 // when the text document first opened or when its content has changed.
 documents.onDidChangeContent(change => {
-	validateTextDocument(change.document);
+	// validateTextDocument(change.document);
+	service.evaluate(change.document);
 });
 
 async function validateTextDocument(textDocument: TextDocument): Promise<void> {
 	const settings = await getDocumentSettings(textDocument.uri);
 	const v = new DocumentValidator(textDocument, settings.maxNumberOfProblems);
+
+	service.evaluate(textDocument);
 	
 	// Validate use of .Select
 	v.validate(/\.Select/g, "Don't use `Select`. Please.", DiagnosticSeverity.Warning);
@@ -151,27 +175,27 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
 }
 
 class DocumentValidator {
-	_doc: TextDocument;
-	_text: string;
-	_problemLimit: integer;
+	doc: TextDocument;
+	text: string;
+	problemLimit: integer;
 	diagnostics: Diagnostic[];
 
 	constructor(textDocument: TextDocument, problemLimit: integer) {
-		this._doc = textDocument;
-		this._text = textDocument.getText();
-		this._problemLimit = problemLimit;
+		this.doc = textDocument;
+		this.text = textDocument.getText();
+		this.problemLimit = problemLimit;
 		this.diagnostics = [];
 	}
 
 	validate(pattern: RegExp, description: string, severity: DiagnosticSeverity) {
 		let m: RegExpExecArray | null;
-		while ((m = pattern.exec(this._text)) && this._problemLimit > 0) {
-			this._problemLimit--;
+		while ((m = pattern.exec(this.text)) && this.problemLimit > 0) {
+			this.problemLimit--;
 			const d: Diagnostic = {
 				severity: severity,
 				range: {
-					start: this._doc.positionAt(m.index + 1),
-					end: this._doc.positionAt(m.index + m[0].length)
+					start: this.doc.positionAt(m.index + 1),
+					end: this.doc.positionAt(m.index + m[0].length)
 				},
 				message: description,
 				source: 'sslinky-vba',
@@ -181,14 +205,14 @@ class DocumentValidator {
 				d.relatedInformation = [
 					{
 						location: {
-							uri: this._doc.uri,
+							uri: this.doc.uri,
 							range: Object.assign({}, d.range)
 						},
 						message: 'Seriously though, don\'t use it.'
 					},
 					{
 						location: {
-							uri: this._doc.uri,
+							uri: this.doc.uri,
 							range: Object.assign({}, d.range)
 						},
 						message: 'Ever.'
@@ -200,7 +224,7 @@ class DocumentValidator {
 	}
 }
 
-connection.onDidChangeWatchedFiles(_change => {
+connection.onDidChangeWatchedFiles(c => {
 	// Monitored files have change in VSCode
 	connection.console.log('We received an file change event');
 });
@@ -253,5 +277,15 @@ connection.onFoldingRanges((params) => {
 	const doc = documents.get(params.textDocument.uri);
 	if (doc) {
 		return getFoldingRanges(doc, Number.MAX_VALUE);
+	}
+});
+
+connection.onCodeAction;
+
+
+connection.onDocumentSymbol((params) => {
+	const doc = documents.get(params.textDocument.uri);
+	if (doc) {
+		return service.symbolProvider.Symbols();
 	}
 });
