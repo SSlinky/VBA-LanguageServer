@@ -83,7 +83,8 @@
 		"watch": "tsc -b -w",
 		"lint": "eslint ./client/src ./server/src --ext .ts,.tsx",
 		"postinstall": "cd client && npm install && cd ../server && npm install && cd ..",
-		"test": "sh ./scripts/e2e.sh"
+		"test": "sh ./scripts/e2e.sh",
+		"antlr4ts": "antlr4ts -visitor ./server/src/antlr/vba.g4 -o ./server/src/antlr/out/"
 	},
 	"devDependencies": {
 		"@types/mocha": "^9.1.0",
