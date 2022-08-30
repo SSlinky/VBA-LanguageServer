@@ -4,34 +4,24 @@
  * ------------------------------------------------------------------------------------------ */
 import {
 	createConnection,
-	TextDocuments,
-	Diagnostic,
-	DiagnosticSeverity,
 	ProposedFeatures,
 	InitializeParams,
 	DidChangeConfigurationNotification,
-	CompletionItem,
-	CompletionItemKind,
-	TextDocumentPositionParams,
 	TextDocumentSyncKind,
 	InitializeResult,
-	integer,
 	Hover,
 } from 'vscode-languageserver/node';
 
-import {
-	TextDocument
-} from 'vscode-languageserver-textdocument';
-import { getFoldingRanges } from './capabilities/vbaFolding';
 import { LanguageTools } from './capabilities/ast';
 import { activateSemanticTokenProvider } from './capabilities/vbaSemanticTokens';
+import { ProjectInformation } from './docInfo';
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
 const connection = createConnection(ProposedFeatures.all);
 
 // Create a simple text document manager.
-const documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
+// const documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
 
 // Create the AST tools.
 const service = new LanguageTools();
@@ -39,6 +29,8 @@ const service = new LanguageTools();
 let hasConfigurationCapability = false;
 let hasWorkspaceFolderCapability = false;
 let hasDiagnosticRelatedInformationCapability = false;
+
+let docInfo: ProjectInformation;
 
 connection.onInitialize((params: InitializeParams) => {
 	const capabilities = params.capabilities;
@@ -56,6 +48,12 @@ connection.onInitialize((params: InitializeParams) => {
 		capabilities.textDocument.publishDiagnostics &&
 		capabilities.textDocument.publishDiagnostics.relatedInformation
 	);
+
+	docInfo = new ProjectInformation(
+		connection,
+		hasConfigurationCapability,
+		hasWorkspaceFolderCapability,
+		hasDiagnosticRelatedInformationCapability);
 
 	const result: InitializeResult = {
 		capabilities: {
@@ -93,12 +91,12 @@ connection.onInitialized(() => {
 });
 
 
-connection.onHover(({textDocument, position}): Hover => {
-	// Can make this into a proper hover provider later.
-	return {
-		contents: "Hello, HOVER world!"
-	};
-});
+// connection.onHover(({textDocument, position}): Hover => {
+// 	// Can make this into a proper hover provider later.
+// 	return {
+// 		contents: "Hello, HOVER world!"
+// 	};
+// });
 
 // The example settings
 interface ExampleSettings {
@@ -108,184 +106,178 @@ interface ExampleSettings {
 // The global settings, used when the `workspace/configuration` request is not supported by the client.
 // Please note that this is not the case when using this server with the client provided in this example
 // but could happen with other clients.
-const defaultSettings: ExampleSettings = { maxNumberOfProblems: 1000 };
-let globalSettings: ExampleSettings = defaultSettings;
+// const defaultSettings: ExampleSettings = { maxNumberOfProblems: 1000 };
+// let globalSettings: ExampleSettings = defaultSettings;
 
 // Cache the settings of all open documents
-const documentSettings: Map<string, Thenable<ExampleSettings>> = new Map();
+// const documentSettings: Map<string, Thenable<ExampleSettings>> = new Map();
 
-connection.onDidChangeConfiguration(change => {
-	if (hasConfigurationCapability) {
-		// Reset all cached document settings
-		documentSettings.clear();
-	} else {
-		globalSettings = <ExampleSettings>(
-			(change.settings.languageServerExample || defaultSettings)
-		);
-	}
+// connection.onDidChangeConfiguration(change => {
+// 	if (hasConfigurationCapability) {
+// 		// Reset all cached document settings
+// 		documentSettings.clear();
+// 	} else {
+// 		globalSettings = <ExampleSettings>(
+// 			(change.settings.languageServerExample || defaultSettings)
+// 		);
+// 	}
 
-	// Revalidate all open text documents
-	documents.all().forEach(validateTextDocument);
-});
+// 	// Revalidate all open text documents
+// 	docInfo.docs.all().forEach(validateTextDocument);
+// });
 
-function getDocumentSettings(resource: string): Thenable<ExampleSettings> {
-	if (!hasConfigurationCapability) {
-		return Promise.resolve(globalSettings);
-	}
-	let result = documentSettings.get(resource);
-	if (!result) {
-		result = connection.workspace.getConfiguration({
-			scopeUri: resource,
-			section: 'vbaLanguageServer'
-		});
-		documentSettings.set(resource, result);
-	}
-	return result;
-}
 
-// Only keep settings for open documents
-documents.onDidClose(e => {
-	documentSettings.delete(e.document.uri);
-});
 
-documents.onDidOpen(e => {
-	service.evaluate(e.document);
-});
 
-// The content of a text document has changed. This event is emitted
-// when the text document first opened or when its content has changed.
-documents.onDidChangeContent(change => {
-	// validateTextDocument(change.document);
-	service.evaluate(change.document);
-});
+// // Only keep settings for open documents
+// documents.onDidClose(e => {
+// 	documentSettings.delete(e.document.uri);
+// });
 
-async function validateTextDocument(textDocument: TextDocument): Promise<void> {
-	const settings = await getDocumentSettings(textDocument.uri);
-	const v = new DocumentValidator(textDocument, settings.maxNumberOfProblems);
+// documents.onDidOpen(e => {
+// 	service.evaluate(e.document);
+// });
 
-	service.evaluate(textDocument);
+// // The content of a text document has changed. This event is emitted
+// // when the text document first opened or when its content has changed.
+// documents.onDidChangeContent(change => {
+// 	// validateTextDocument(change.document);
+// 	service.evaluate(change.document);
+// });
+
+// async function validateTextDocument(textDocument: TextDocument): Promise<void> {
+// 	const settings = await getDocumentSettings(textDocument.uri);
+// 	const v = new DocumentValidator(textDocument, settings.maxNumberOfProblems);
+
+// 	service.evaluate(textDocument);
 	
-	// Validate use of .Select
-	v.validate(/\.Select/g, "Don't use `Select`. Please.", DiagnosticSeverity.Warning);
+// 	// Validate use of .Select
+// 	v.validate(/\.Select/g, "Don't use `Select`. Please.", DiagnosticSeverity.Warning);
 	
 	
-	// Send the computed diagnostics to VSCode.
-	const diagnostics: Diagnostic[] = v.diagnostics;
-	connection.sendDiagnostics({ uri: textDocument.uri, diagnostics });
-}
+// 	// Send the computed diagnostics to VSCode.
+// 	const diagnostics: Diagnostic[] = v.diagnostics;
+// 	connection.sendDiagnostics({ uri: textDocument.uri, diagnostics });
+// }
 
-class DocumentValidator {
-	doc: TextDocument;
-	text: string;
-	problemLimit: integer;
-	diagnostics: Diagnostic[];
+// class DocumentValidator {
+// 	doc: TextDocument;
+// 	text: string;
+// 	problemLimit: integer;
+// 	diagnostics: Diagnostic[];
 
-	constructor(textDocument: TextDocument, problemLimit: integer) {
-		this.doc = textDocument;
-		this.text = textDocument.getText();
-		this.problemLimit = problemLimit;
-		this.diagnostics = [];
-	}
+// 	constructor(textDocument: TextDocument, problemLimit: integer) {
+// 		this.doc = textDocument;
+// 		this.text = textDocument.getText();
+// 		this.problemLimit = problemLimit;
+// 		this.diagnostics = [];
+// 	}
 
-	validate(pattern: RegExp, description: string, severity: DiagnosticSeverity) {
-		let m: RegExpExecArray | null;
-		while ((m = pattern.exec(this.text)) && this.problemLimit > 0) {
-			this.problemLimit--;
-			const d: Diagnostic = {
-				severity: severity,
-				range: {
-					start: this.doc.positionAt(m.index + 1),
-					end: this.doc.positionAt(m.index + m[0].length)
-				},
-				message: description,
-				source: 'sslinky-vba',
-				code: 666
-			};
-			if (hasDiagnosticRelatedInformationCapability) {
-				d.relatedInformation = [
-					{
-						location: {
-							uri: this.doc.uri,
-							range: Object.assign({}, d.range)
-						},
-						message: 'Seriously though, don\'t use it.'
-					},
-					{
-						location: {
-							uri: this.doc.uri,
-							range: Object.assign({}, d.range)
-						},
-						message: 'Ever.'
-					}
-				];
-			}
-			this.diagnostics.push(d);
-		}
-	}
-}
+// 	validate(pattern: RegExp, description: string, severity: DiagnosticSeverity) {
+// 		let m: RegExpExecArray | null;
+// 		while ((m = pattern.exec(this.text)) && this.problemLimit > 0) {
+// 			this.problemLimit--;
+// 			const d: Diagnostic = {
+// 				severity: severity,
+// 				range: {
+// 					start: this.doc.positionAt(m.index + 1),
+// 					end: this.doc.positionAt(m.index + m[0].length)
+// 				},
+// 				message: description,
+// 				source: 'sslinky-vba',
+// 				code: 666
+// 			};
+// 			if (hasDiagnosticRelatedInformationCapability) {
+// 				d.relatedInformation = [
+// 					{
+// 						location: {
+// 							uri: this.doc.uri,
+// 							range: Object.assign({}, d.range)
+// 						},
+// 						message: 'Seriously though, don\'t use it.'
+// 					},
+// 					{
+// 						location: {
+// 							uri: this.doc.uri,
+// 							range: Object.assign({}, d.range)
+// 						},
+// 						message: 'Ever.'
+// 					}
+// 				];
+// 			}
+// 			this.diagnostics.push(d);
+// 		}
+// 	}
+// }
 
-connection.onDidChangeWatchedFiles(c => {
-	// Monitored files have change in VSCode
-	connection.console.log('We received an file change event');
-});
 
 // This handler provides the initial list of the completion items.
-connection.onCompletion(
-	(_textDocumentPosition: TextDocumentPositionParams): CompletionItem[] => {
-		// The pass parameter contains the position of the text document in
-		// which code complete got requested. For the example we ignore this
-		// info and always provide the same completion items.
-		return [
-			{
-				label: 'TypeScript',
-				kind: CompletionItemKind.Text,
-				data: 1
-			},
-			{
-				label: 'JavaScript',
-				kind: CompletionItemKind.Text,
-				data: 2
-			}
-		];
-	}
-);
+// connection.onCompletion(
+// 	(_textDocumentPosition: TextDocumentPositionParams): CompletionItem[] => {
+// 		// The pass parameter contains the position of the text document in
+// 		// which code complete got requested. For the example we ignore this
+// 		// info and always provide the same completion items.
+// 		return [
+// 			{
+// 				label: 'TypeScript',
+// 				kind: CompletionItemKind.Text,
+// 				data: 1
+// 			},
+// 			{
+// 				label: 'JavaScript',
+// 				kind: CompletionItemKind.Text,
+// 				data: 2
+// 			}
+// 		];
+// 	}
+// );
 
 // This handler resolves additional information for the item selected in
 // the completion list.
-connection.onCompletionResolve(
-	(item: CompletionItem): CompletionItem => {
-		if (item.data === 1) {
-			item.detail = 'TypeScript details';
-			item.documentation = 'TypeScript documentation';
-		} else if (item.data === 2) {
-			item.detail = 'JavaScript details';
-			item.documentation = 'JavaScript documentation';
-		}
-		return item;
-	}
-);
+// connection.onCompletionResolve(
+// 	(item: CompletionItem): CompletionItem => {
+// 		if (item.data === 1) {
+// 			item.detail = 'TypeScript details';
+// 			item.documentation = 'TypeScript documentation';
+// 		} else if (item.data === 2) {
+// 			item.detail = 'JavaScript details';
+// 			item.documentation = 'JavaScript documentation';
+// 		}
+// 		return item;
+// 	}
+// );
 
 // Make the text document manager listen on the connection
 // for open, change and close text document events
-documents.listen(connection);
+// documents.listen(connection);
 
 // Listen on the connection
 connection.listen();
 
-// Event handler for folding ranges.
-connection.onFoldingRanges((params) => {
-	const doc = documents.get(params.textDocument.uri);
-	if (doc) {
-		return getFoldingRanges(doc, Number.MAX_VALUE);
-	}
-});
+// // Event handler for folding ranges.
+// connection.onFoldingRanges((params) => {
+// 	const doc = documents.get(params.textDocument.uri);
+// 	if (doc) {
+// 		return getFoldingRanges(doc, Number.MAX_VALUE);
+// 	}
+// });
 
-connection.onCodeAction;
+// Event pass-through to keep server.ts simple.
+connection.onDidChangeWatchedFiles(c => docInfo.onDidChangeWatchedFiles(c));
+connection.onDidChangeConfiguration((change => docInfo.onDidChangeConfiguration(change)));
+
+connection.onHover((params) => docInfo.getHover(params));
+connection.onCompletion((params) => docInfo.getCompletion(params));
+connection.onFoldingRanges((params) => docInfo.getFoldingRanges(params.textDocument.uri));
+connection.onDocumentSymbol((params) => docInfo.getDocumentSymbols(params.textDocument.uri));
+connection.onCompletionResolve((item) => docInfo.getCompletionResolve(item));
+
+// connection.onCodeAction;
 
 
-connection.onDocumentSymbol((params) => {
-	const doc = documents.get(params.textDocument.uri);
-	if (doc) {
-		return service.symbolProvider.Symbols();
-	}
-});
+// connection.onDocumentSymbol((params) => {
+// 	const doc = documents.get(params.textDocument.uri);
+// 	if (doc) {
+// 		return service.symbolProvider.Symbols();
+// 	}
+// });

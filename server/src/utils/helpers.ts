@@ -24,8 +24,6 @@ function stripQuotes(text: string): string {
 	return exp.exec(text)![1];
 }
 
-
-
 function groupIndex(reExec: RegExpExecArray, i: number) {
 	return reExec.index + reExec[0].indexOf(reExec[i]);
 }
