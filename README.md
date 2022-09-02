@@ -3,7 +3,7 @@
 Adds VBA language support to VSCode via LSP compliant Language Server.
 
 ## Features
-* Syntax highlighting
+* Syntax highlighting (resolved on client)
 * Folding ranges
 * Document symbols
 
