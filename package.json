@@ -67,7 +67,7 @@
 			{
 				"language": "vba",
 				"scopeName": "source.vba",
-				"path": "./syntaxes/vba.json"
+				"path": "./client/out/vba.tmLanguage.json"
 			}
 		],
 		"snippets": [
@@ -84,6 +84,7 @@
 		"lint": "eslint ./client/src ./server/src --ext .ts,.tsx",
 		"postinstall": "cd client && npm install && cd ../server && npm install && cd ..",
 		"test": "sh ./scripts/e2e.sh",
+		"textMate": "npx js-yaml client/src/syntaxes/vba.tmLanguage.yaml > client/out/vba.tmLanguage.json",
 		"antlr4ts": "antlr4ts -visitor ./server/src/antlr/vba.g4 -o ./server/src/antlr/out/"
 	},
 	"devDependencies": {
@@ -93,6 +94,7 @@
 		"@typescript-eslint/parser": "^5.30.0",
 		"antlr4ts-cli": "^0.5.0-alpha.4",
 		"eslint": "^8.13.0",
+		"js-yaml": "^4.1.0",
 		"mocha": "^9.2.1",
 		"typescript": "^4.7.2"
 	},

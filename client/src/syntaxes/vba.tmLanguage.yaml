@@ -1,0 +1,536 @@
+name: vba
+scopeName: source.vba
+fileTypes:
+  - .bas
+  - .cls
+  - .frm
+
+patterns:
+  - inclide: "#blockFlow"
+  - include: "#vba"
+
+repository:
+  vba:
+    patterns:
+      - include: "#comments"
+      - include: "#moduleLines"
+      - include: "#moduleHeader"
+      - include: "#method"
+      - include: "#variableDeclarations"
+      - include: "#testing"    
+    repository:
+      moduleLines:
+        match: "(.*):"
+        captures:
+          1:
+            patterns:
+              - include: "#vba"
+
+  language:
+    patterns:
+      - include: "#comments"
+      - include: "#literals"
+      - include: "#operators"
+      - include: "#keywords"
+      
+  literals:
+    patterns:
+      - include: "#string"
+      - include: "#boolean"
+      - include: "#number"
+    repository:
+      string:
+        name: string.quoted.double.vba
+        begin: "\""
+        end: "\""
+      boolean:
+        name: constant.boolean.vba
+        match: "(?i)(true|false)"
+      number:
+        name: constant.numeric.vba
+        match: "-?\\d+\\.?\\d*"
+
+  operators:
+    patterns:
+      - include: "#opsArithmetic"
+      - include: "#opsComparison"
+      - include: "#opsConcatenation"
+      - include: "#opsLogical"
+      - include: "#opsOther"
+    repository:
+      opsArithmetic:
+        name: keyword.operator.arithmetic.vba
+        match: "(?i)([*&/\\+-]|\\bMod\\b)"
+      opsComparison:
+        name: keyword.operator.comparison.vba
+        match: "(?i)([<>=]|\\b(is|like)\\b)"
+      opsConcatenation:
+        name: keyword.operator.concatenation.vba
+        match: "(?i)[&+]"
+      opsLogical:
+        name: keyword.operator.logical.vba
+        match: "(?i)\\b(and|eqv|imp|not|or|xor)\\b"
+      opsOther:
+        name: keyword.operator.concatenation.vba
+        match: "(?i)\\b(addressof|typeof)\\b"
+
+  keywords:
+    patterns:
+      - include: "#as"
+    repository:
+      as:
+        name: keyword.control.as.vba
+        match: "(?i)\\bas\\b"
+
+  types:
+    patterns:
+      - include: "#language"
+      - include: "#primativeType"
+      - include: "#objectType"
+    repository:
+      primativeType:
+        name: support.type.primitive.vba
+        match: "(?i)(?<=\\bAs)\\s+(boolean|byte|currency|date|decimal|double|integer|long(long|ptr)?|single|string|variant)\\b"
+      objectType:
+        name: entity.name.type.vba
+        match: "(?i)(?<=\\bAs)\\s+([A-Z][A-Z0-9_]*)\\b"
+
+  arguments:
+    match: "(?i)[,]?\\s*([A-Z][A-Z0-9_]*)\\s*(\\bas\\s+[A-Z][A-Z0-9_]*)?\\s*"
+    captures:
+      1:
+        name: variable.parameter.vba
+      2:
+        patterns:
+          - include: "#types"
+
+  comments:
+    patterns:
+      - include: "#remarkComments"
+      - include: "#blockComments"
+      - include: "#apostropheComments"
+    repository:
+      blockComments:
+        # The sub-pattern consumes the \n if preceded by line continuation.
+        # Capturing it there prevents the end pattern being matched.
+        name: comment.block.vba
+        begin: "'.*\\s_\\s*"
+        end: "\\n"
+        patterns:
+          - name: comment.block.continuation.vba
+            match: "\\s_\\s*\\n"
+      apostropheComments:
+        name: comment.line.apostrophe.vba
+        match: "'.*"
+      remarkComments:
+        name: comment.line.remark.vba
+        match: "(?i)(?<=^|:)\\s*Rem\\b.*"
+
+  attribute:
+    name: entity.other.attribute-name.vba
+    match: "(?i)^Attribute(.*)"
+    captures:
+      0:
+        patterns:
+          - include: "#language"
+
+  moduleHeader:
+    patterns:
+      - include: "#moduleAttributeBlock"
+      - include: "#moduleAttribute"
+      - include: "#moduleOption"
+    repository:
+      moduleAttribute:
+        patterns:
+          - include: "#attribute"
+      moduleAttributeBlock:
+        name: entity.other.attribute-name.block.vba
+        begin: "(?i)^VERSION"
+        end: "^(?i)End"
+        patterns:
+          - include: "#comments"
+          - include: "#literals"
+
+      moduleOption:
+        name: keyword.control.vba
+        match: "(?i)^\\s*Option\\s+(Explicit|Private\\s+Module)"
+
+  method:
+    name: source.method.vba
+    begin: "(?i)^\\s*((?:Public|Private)?\\b\\s*(?:Sub|Function))\\s+([A-Z][A-Z0-9_]*)\\s*(\\()(.*)(\\))\\s+(as\\s+[A-Z][A-Z0-9_]*)?"
+    beginCaptures:
+      #TODO move this to a method signature pattern
+      1:
+        name: storage.type.method.vba
+      2: # name
+        name: entity.name.function.vba
+      3:
+        name: punctuation.definition.parameters.begin.vba
+      4: # args
+        patterns:
+          - include: "#arguments"
+      5:
+        name: punctuation.definition.parameters.end.vba
+      6: # return type
+        patterns:
+          - include: "#types"
+
+    end: "(?i)^End (Sub|Function)\\b"
+    endCaptures:
+      0:
+        name: storage.type.method.vba
+    patterns:
+      - include: "#block"
+
+  block:
+    patterns:
+      - include: "#blockFlow"
+      - include: "#comments"
+      - include: "#blockAttribute"
+      - include: "#blockLines"
+      - include: "#variableDeclarations"
+      - include: "#variableAssignment"
+      - include: "#language"
+
+    repository:
+      blockLines:
+        name: source.methodlines.vba
+        match: "(.*):"
+        captures:
+          1:
+            patterns:
+              - include: "#block"
+
+      blockAttribute:
+        patterns:
+          - include: "#attribute"
+
+      blockFlow:
+        patterns:
+          - include: "#ifStatements"
+          - include: "#forStatements"
+        repository:
+          ifStatements:
+            patterns:
+              - include: "#ifStatementsInline"
+              - include: "#ifStatementsBlock"
+            repository:
+              ifStatementsInline:
+                name: source.inlineif.vba
+                match: "(?i)\\s+(if)\\s+(.*)\\s+(then)\\s+([^:']+)"
+                captures:
+                  1:
+                    name: keyword.flow.vba
+                  2:
+                    patterns:
+                      - include: "#block"
+                  3:
+                    name: keyword.flow.vba
+                  4:
+                    patterns:
+                      - include: "#block"
+              ifStatementsBlock:
+                name: source.flow.ifblock.vba
+                begin: "(?i)\\s+(if)\\s+(.*)\\s+(then)"
+                beginCaptures:
+                  1:
+                    name: keyword.flow.vba
+                  2:
+                    name: source.look.at.me
+                    patterns:
+                      - include: "#block"
+                  3:
+                    name: keyword.flow.vba
+                end: "(?i)end\\s+if"
+                endCaptures:
+                  0:
+                    name: keyword.flow.vba
+                patterns:
+                  - include: "#block"
+          forStatements:
+            name: source.flow.forloop.vba
+            begin: "(?i)\\s+(for)\\s+(.*)"
+            beginCaptures:
+              1:
+                name: keyword.flow.vba
+              2:
+                patterns:
+                  - include: "#block"
+            end: "(?i)next"
+            endCaptures:
+              0:
+                name: keyword.flow.vba
+            patterns:
+              - include: "#block"
+
+  variableDeclarations:
+    patterns:
+      - include: "#constDeclaration"
+      - include: "#variableDeclaration"
+    repository:
+      variableDeclaration:
+        name: storage.var-declaration.vba
+        match: "(?i)^\\s*(Dim|Public|Private)\\s+([a-z][a-z0-9_]*)(\\s+As\\s+[A-Z][A-Z0-9_]*)?"
+        captures:
+          1:
+            # Dim|Private
+            name: storage.type.vba
+          2:
+            # varName
+            name: variable.other.readwrite.vba
+          3:
+            # As Type
+            patterns:
+              - include: "#types"
+      constDeclaration:
+        name: storage.const-declaration.vba
+        match: "^\\s*((?i)(?:(?:Public|Private)\\s+)?Const)\\s+([A-Z][A-Z0-9_]*)((?i)\\s+As\\s+[A-Z][A-Z0-9_]*)?(.*)"
+        captures:
+          1:
+            # Public|Private Const
+            name: constant.language.vba
+          2:
+            # CONSTNAME
+            name: variable.other.constant.property
+          3:
+            # As Type
+            patterns:
+              - include: "#types"
+          4:
+            # = "some value"
+            patterns:
+              - include: "#language"
+
+  variableAssignment:
+    name: variable.other.assignment.vba
+    match: "(?i)[a-z][a-z0-9_]* = .*"
+    captures:
+      0:
+        patterns:
+          - include: "#language"
+
+
+  testing:
+    patterns:
+      - name: constant.numeric
+        match: ^constant.numeric$
+      - name: comment
+        match: ^comment$
+      - name: punctuation.definition.comment
+        match: ^punctuation.definition.comment$
+      - name: string.comment
+        match: ^string.comment$
+      - name: support.type.property-name.json.comments
+        match: ^support.type.property-name.json.comments$
+      - name: support.type.property-name.json
+        match: ^support.type.property-name.json$
+      - name: support.type.primitive
+        match: ^support.type.primitive$
+      - name: punctuation.definition.heading.markdown
+        match: ^punctuation.definition.heading.markdown$
+      - name: entity.name.section.markdown
+        match: ^entity.name.section.markdown$
+      - name: constant
+        match: ^constant$
+      - name: variable.other.constant
+        match: ^variable.other.constant$
+      - name: variable.language
+        match: ^variable.language$
+      - name: constant.language
+        match: ^constant.language$
+      - name: variable.language.this
+        match: ^variable.language.this$
+      - name: entity
+        match: ^entity$
+      - name: entity.name
+        match: ^entity.name$
+      - name: entity.other.attribute-name
+        match: ^entity.other.attribute-name$
+      - name: entity.name.function
+        match: ^entity.name.function$
+      - name: entity.name.function.member
+        match: ^entity.name.function.member$
+      - name: entity.name.tag
+        match: ^entity.name.tag$
+      - name: entity.name.import
+        match: ^entity.name.import$
+      - name: keyword
+        match: ^keyword$
+      - name: keyword.operator.assignment
+        match: ^keyword.operator.assignment$
+      - name: keyword.operator.relational
+        match: ^keyword.operator.relational$
+      - name: keyword.operator.comparison
+        match: ^keyword.operator.comparison$
+      - name: storage.type.function.arrow
+        match: ^storage.type.function.arrow$
+      - name: storage
+        match: ^storage$
+      - name: storage.type
+        match: ^storage.type$
+      - name: storage.modifier.package
+        match: ^storage.modifier.package$
+      - name: storage.modifier.import
+        match: ^storage.modifier.import$
+      - name: storage.type.java
+        match: ^storage.type.java$
+      - name: string
+        match: ^string$
+      - name: punctuation.definition.string
+        match: ^punctuation.definition.string$
+      - name: string punctuation.section.embedded source
+        match: ^string punctuation.section.embedded source$
+      - name: support
+        match: ^support$
+      - name: meta.property-name
+        match: ^meta.property-name$
+      - name: variable
+        match: ^variable$
+      - name: variable.parameter.function
+        match: ^variable.parameter.function$
+      - name: variable.other
+        match: ^variable.other$
+      - name: variable.other.readwrite
+        match: ^variable.other.readwrite$
+      - name: variable.other.assignment
+        match: ^variable.other.assignment$
+      - name: variable.other.constant.property
+        match: ^variable.other.constant.property$
+      - name: invalid.broken
+        match: ^invalid.broken$
+      - name: invalid.deprecated
+        match: ^invalid.deprecated$
+      - name: invalid.illegal
+        match: ^invalid.illegal$
+      - name: invalid.unimplemented
+        match: ^invalid.unimplemented$
+      - name: carriage-return
+        match: ^carriage-return$
+      - name: message.error
+        match: ^message.error$
+      - name: string source
+        match: ^string source$
+      - name: string variable
+        match: ^string variable$
+      - name: source.regexp
+        match: ^source.regexp$
+      - name: string.regexp
+        match: ^string.regexp$
+      - name: string.regexp.character-class
+        match: ^string.regexp.character-class$
+      - name: string.regexp constant.character.escape
+        match: ^string.regexp constant.character.escape$
+      - name: string.regexp source.ruby.embedded
+        match: ^string.regexp source.ruby.embedded$
+      - name: string.regexp string.regexp.arbitrary-repitition
+        match: ^string.regexp string.regexp.arbitrary-repitition$
+      - name: string.regexp constant.character.escape
+        match: ^string.regexp constant.character.escape$
+      - name: support.constant
+        match: ^support.constant$
+      - name: support.constant.property
+        match: ^support.constant.property$
+      - name: support.variable
+        match: ^support.variable$
+      - name: support.variable.property
+        match: ^support.variable.property$
+      - name: support.class
+        match: ^support.class$
+      - name: support.class.component
+        match: ^support.class.component$
+      - name: support.type.builtin
+        match: ^support.type.builtin$
+      - name: meta.module-reference
+        match: ^meta.module-reference$
+      - name: punctuation.definition.list.begin.markdown
+        match: ^punctuation.definition.list.begin.markdown$
+      - name: punctuation.definition.italic.markdown
+        match: ^punctuation.definition.italic.markdown$
+      - name: punctuation.definition.bold.markdown
+        match: ^punctuation.definition.bold.markdown$
+      - name: markup.heading
+        match: ^markup.heading$
+      - name: markup.heading entity.name
+        match: ^markup.heading entity.name$
+      - name: markup.quote
+        match: ^markup.quote$
+      - name: markup.italic
+        match: ^markup.italic$
+      - name: markup.bold
+        match: ^markup.bold$
+      - name: markup.raw
+        match: ^markup.raw$
+      - name: markup.deleted
+        match: ^markup.deleted$
+      - name: meta.diff.header.from-file
+        match: ^meta.diff.header.from-file$
+      - name: punctuation.definition.deleted
+        match: ^punctuation.definition.deleted$
+      - name: markup.inserted
+        match: ^markup.inserted$
+      - name: meta.diff.header.to-file
+        match: ^meta.diff.header.to-file$
+      - name: punctuation.definition.inserted
+        match: ^punctuation.definition.inserted$
+      - name: markup.changed
+        match: ^markup.changed$
+      - name: punctuation.definition.changed
+        match: ^punctuation.definition.changed$
+      - name: markup.ignored
+        match: ^markup.ignored$
+      - name: markup.untracked
+        match: ^markup.untracked$
+      - name: meta.diff.range
+        match: ^meta.diff.range$
+      - name: meta.diff.header
+        match: ^meta.diff.header$
+      - name: meta.separator
+        match: ^meta.separator$
+      - name: meta.output
+        match: ^meta.output$
+      - name: brackethighlighter.tag
+        match: ^brackethighlighter.tag$
+      - name: brackethighlighter.curly
+        match: ^brackethighlighter.curly$
+      - name: brackethighlighter.round
+        match: ^brackethighlighter.round$
+      - name: brackethighlighter.square
+        match: ^brackethighlighter.square$
+      - name: brackethighlighter.angle
+        match: ^brackethighlighter.angle$
+      - name: brackethighlighter.quote
+        match: ^brackethighlighter.quote$
+      - name: brackethighlighter.unmatched
+        match: ^brackethighlighter.unmatched$
+      - name: constant.other.reference.link
+        match: ^constant.other.reference.link$
+      - name: string.other.link
+        match: ^string.other.link$
+      - name: entity.name.tag.yaml
+        match: ^entity.name.tag.yaml$
+      - name: constant.numeric.float.yaml
+        match: ^constant.numeric.float.yaml$
+      - name: constant.numeric.integer.yaml
+        match: ^constant.numeric.integer.yaml$
+      - name: constant.numeric.hex.yaml
+        match: ^constant.numeric.hex.yaml$
+      - name: constant.numeric.octal.yaml
+        match: ^constant.numeric.octal.yaml$
+      - name: constant.numeric.binary.yaml
+        match: ^constant.numeric.binary.yaml$
+      - name: constant.numeric.decimal.yaml
+        match: ^constant.numeric.decimal.yaml$
+      - name: string.unquoted.plain.out.yaml
+        match: ^string.unquoted.plain.out.yaml$
+      - name: string.unquoted.plain.in.yaml
+        match: ^string.unquoted.plain.in.yaml$
+      - name: string.unquoted.block.yaml
+        match: ^string.unquoted.block.yaml$
+      - name: string.quoted.block.yaml
+        match: ^string.quoted.block.yaml$
+      - name: string.quoted.single.block.yaml
+        match: ^string.quoted.single.block.yaml$
+      - name: constant.language.null.yaml
+        match: ^constant.language.null.yaml$
+      - name: constant.language.boolean.yaml
+        match: ^constant.language.boolean.yaml$
