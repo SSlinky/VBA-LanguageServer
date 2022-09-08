@@ -208,7 +208,8 @@ repository:
       blockFlow:
         patterns:
           - include: "#ifStatements"
-          - include: "#forStatements"
+          - include: "#forStatementBlocks"
+          - include: "#withStatementBlocks"
         repository:
           ifStatements:
             patterns:
@@ -256,7 +257,20 @@ repository:
               2:
                 patterns:
                   - include: "#block"
-            end: "(?i)next"
+              0:
+                name: keyword.flow.vba
+            end: "(?i)\\bnext\\b"
+            endCaptures:
+            patterns:
+              - include: "#block"
+
+          withStatementBlocks:
+            name: source.flow.withblock.vba
+            begin: "(?i)\\b(with)\\b"
+            beginCaptures:
+              1:
+                name: keyword.flow.vba
+            end: "(?i)\\bend\\s+with\\b"
             endCaptures:
               0:
                 name: keyword.flow.vba
