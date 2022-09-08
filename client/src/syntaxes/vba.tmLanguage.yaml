@@ -184,10 +184,10 @@ repository:
 
   block:
     patterns:
-      - include: "#blockFlow"
       - include: "#comments"
       - include: "#blockAttribute"
       - include: "#blockLines"
+      - include: "#blockFlow"
       - include: "#variableDeclarations"
       - include: "#variableAssignment"
       - include: "#language"
@@ -259,8 +259,12 @@ repository:
                   - include: "#block"
               0:
                 name: keyword.flow.vba
-            end: "(?i)\\bnext\\b"
+            end: "(?i)\\b(next)\\b(\\s+[a-z][a-z0-9_]*)"
             endCaptures:
+              1:
+                name: keyword.flow.vba
+              2:
+                name: variable.other.assignment.vba
             patterns:
               - include: "#block"
 
