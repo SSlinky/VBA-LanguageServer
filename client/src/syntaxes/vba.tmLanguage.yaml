@@ -231,7 +231,7 @@ repository:
                       - include: "#block"
               ifStatementsBlock:
                 name: source.flow.ifblock.vba
-                begin: "(?i)\\s+(if)\\s+(.*)\\s+(then)"
+                begin: "(?i)\\s+(if)\\s+(.*)\\s+(then)\\b"
                 beginCaptures:
                   1:
                     name: keyword.flow.vba
@@ -241,13 +241,13 @@ repository:
                       - include: "#block"
                   3:
                     name: keyword.flow.vba
-                end: "(?i)end\\s+if"
+                end: "(?i)\\bend\\s+if\\b"
                 endCaptures:
                   0:
                     name: keyword.flow.vba
                 patterns:
                   - include: "#block"
-          forStatements:
+          forStatementBlocks:
             name: source.flow.forloop.vba
             begin: "(?i)\\s+(for)\\s+(.*)"
             beginCaptures:
