@@ -31,6 +31,7 @@ repository:
       - include: "#literals"
       - include: "#operators"
       - include: "#keywords"
+      - include: "#builtins"
       - include: "#objectModel"
       
   literals:
@@ -76,15 +77,91 @@ repository:
 
   keywords:
     patterns:
-      - include: "#flow"
-      - include: "#as"
+      - include: "#kw-controlAs"
+      - include: "#kw-flow"
+      - include: "#kw-array"
+      - include: "#kw-directives"
     repository:
-      flow:
-        name: keyword.flow.vba
-        match: "(?i)\\b(do|while|until|loop|for|next|with|if|then|elseif|else|end)\\b"
-      as:
+      kw-controlAs:
         name: keyword.control.as.vba
         match: "(?i)\\bas\\b"
+
+      kw-flow:
+        patterns:
+          - include: "#flowLoop"
+          - include: "#flowBranch"
+        repository:
+          flowLoop:
+            name: keyword.flow.loop.vba
+            match: "(?i)\\b(do|while|until|loop|for|next|with|if|then|elseif|else|end)\\b"
+            
+          flowBranch:
+            patterns:
+              - include: "#flowBranchOnGos"
+              - include: "#flowBranchSimple"
+            repository:
+              flowBranchOnGos:
+                match: "(?i)\\b(on\\s+error|on)\\s+(.*\\s+)?(goto|gosub)\\s+([a-z][a-z0-9_]*|\\d+)\\b"
+                captures:
+                  1:
+                    name: keyword.flow.branch.vba
+                  2:
+                    patterns:
+                      - include: "#language"
+                  3:
+                    name: keyword.flow.branch.vba
+                  4:
+                    name: variable.other.constant.label.vba
+
+              flowBranchSimple:
+                name: keyword.flow.branch.vba
+                match: "(?i)\\b(gosub|return|goto)(?:\\s+([a-z][a-z0-9_]*|\\d+))?\\b"
+                captures:
+                  1:
+                    name: keyword.flow.branch.vba
+                  2:
+                    name: variable.other.constant.label.vba
+
+      kw-array:
+        name: keyword.array.vba
+        match: "(?i)\\b(isarray|array|redim|erase)\\b"
+
+      kw-directives:
+        patterns:
+          - include: "#directiveIf"
+          - include: "#directiveConst"
+          - include: "#directiveIllegal"
+        repository:
+          directiveIf:
+            name: keyword.directive.vba
+            match: "(?i)^(#if|#then|#elseif|#else)\\b"
+            
+          directiveConst:
+            match: "(?i)^\\s*(#const)\\s+([a-z][a-z0-9_]*)(\\s+=.*)"
+            captures:
+              1:
+                name: constant.language.vba
+              2:
+                name: variable.other.constant.property
+              3:
+                patterns:
+                  - include: "#language"
+          
+          directiveIllegal:
+            name: invalid.illegal.vba
+            match: "^#.*"
+
+  labels:
+    name: variable.other.constant.label.vba
+    match: "(?i)^([a-z][a-z0-9_]*|\\d+):"
+
+  builtins:
+    patterns:
+      - include: "#bi-array"
+    repository:
+      kw-array:
+        name: entity.name.function.vba
+        match: "(?i)\\b(lbound|ubound)\\b"
 
   objectModel:
     patterns:
@@ -209,7 +286,7 @@ repository:
 
       moduleOption:
         name: keyword.control.vba
-        match: "(?i)^\\s*Option\\s+(Explicit|Private\\s+Module)"
+        match: "(?i)^\\s*Option\\s+(Explicit|Base|Private\\s+Module)\\b"
 
   method:
     name: source.method.vba
@@ -240,6 +317,7 @@ repository:
 
   block:
     patterns:
+      - include: "#labels"
       - include: "#comments"
       - include: "#blockAttribute"
       - include: "#blockLines"
