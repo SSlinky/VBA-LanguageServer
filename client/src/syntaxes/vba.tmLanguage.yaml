@@ -43,7 +43,7 @@ repository:
         begin: "\""
         end: "\""
       boolean:
-        name: constant.boolean.vba
+        name: constant.language.boolean.vba
         match: "(?i)(true|false)"
       number:
         name: constant.numeric.vba
