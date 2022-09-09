@@ -248,25 +248,52 @@ repository:
                     name: keyword.flow.vba
                 patterns:
                   - include: "#block"
+          
           forStatementBlocks:
-            name: source.flow.forloop.vba
-            begin: "(?i)\\s+(for)\\s+(.*)"
-            beginCaptures:
-              1:
-                name: keyword.flow.vba
-              2:
+            patterns:
+              - include: "#explicitStepForStatementBlocks"
+              - include: "#implicitStepForStatementBlocks"
+            repository:
+              explicitStepForStatementBlocks:
+                name: source.flow.forloop.vba
+                begin: "(?i)\\s*(for)\\s+(.*?)(\\bstep)(\\s+-?\\s*\\d+?)(?:\\s+'|:|$)"
+                beginCaptures:
+                  1:
+                    name: keyword.flow.vba
+                  2:
+                    patterns:
+                      - include: "#block"
+                  3:
+                    name: keyword.flow.vba
+                  4:
+                    patterns:
+                      - include: "#block"
+                end: "(?i)\\b(next)\\b(\\s+[a-z][a-z0-9_]*)"
+                endCaptures:
+                  1:
+                    name: keyword.flow.vba
+                  2:
+                    name: variable.other.assignment.vba
                 patterns:
                   - include: "#block"
-              0:
-                name: keyword.flow.vba
-            end: "(?i)\\b(next)\\b(\\s+[a-z][a-z0-9_]*)"
-            endCaptures:
-              1:
-                name: keyword.flow.vba
-              2:
-                name: variable.other.assignment.vba
-            patterns:
-              - include: "#block"
+
+              implicitStepForStatementBlocks:
+                name: source.flow.forloop.vba
+                begin: "(?i)\\s*(for)\\s+(.*?)"
+                beginCaptures:
+                  1:
+                    name: keyword.flow.vba
+                  2:
+                    patterns:
+                      - include: "#block"
+                end: "(?i)\\b(next)\\b(\\s+[a-z][a-z0-9_]*)"
+                endCaptures:
+                  1:
+                    name: keyword.flow.vba
+                  2:
+                    name: variable.other.assignment.vba
+                patterns:
+                  - include: "#block"
 
           withStatementBlocks:
             name: source.flow.withblock.vba
