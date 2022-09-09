@@ -6,7 +6,6 @@ fileTypes:
   - .frm
 
 patterns:
-  - inclide: "#blockFlow"
   - include: "#vba"
 
 repository:
@@ -76,8 +75,12 @@ repository:
 
   keywords:
     patterns:
+      - include: "#flow"
       - include: "#as"
     repository:
+      flow:
+        name: keyword.flow.vba
+        match: "(?i)\\b(do|while|until|loop|for|next|with|if|then|elseif|else|end)\\b"
       as:
         name: keyword.control.as.vba
         match: "(?i)\\bas\\b"
@@ -187,7 +190,6 @@ repository:
       - include: "#comments"
       - include: "#blockAttribute"
       - include: "#blockLines"
-      - include: "#blockFlow"
       - include: "#variableDeclarations"
       - include: "#variableAssignment"
       - include: "#language"
@@ -204,109 +206,6 @@ repository:
       blockAttribute:
         patterns:
           - include: "#attribute"
-
-      blockFlow:
-        patterns:
-          - include: "#ifStatements"
-          - include: "#forStatementBlocks"
-          - include: "#withStatementBlocks"
-        repository:
-          ifStatements:
-            patterns:
-              - include: "#ifStatementsInline"
-              - include: "#ifStatementsBlock"
-            repository:
-              ifStatementsInline:
-                name: source.inlineif.vba
-                match: "(?i)\\s+(if)\\s+(.*)\\s+(then)\\s+([^:']+)"
-                captures:
-                  1:
-                    name: keyword.flow.vba
-                  2:
-                    patterns:
-                      - include: "#block"
-                  3:
-                    name: keyword.flow.vba
-                  4:
-                    patterns:
-                      - include: "#block"
-              ifStatementsBlock:
-                name: source.flow.ifblock.vba
-                begin: "(?i)\\s+(if)\\s+(.*)\\s+(then)\\b"
-                beginCaptures:
-                  1:
-                    name: keyword.flow.vba
-                  2:
-                    name: source.look.at.me
-                    patterns:
-                      - include: "#block"
-                  3:
-                    name: keyword.flow.vba
-                end: "(?i)\\bend\\s+if\\b"
-                endCaptures:
-                  0:
-                    name: keyword.flow.vba
-                patterns:
-                  - include: "#block"
-          
-          forStatementBlocks:
-            patterns:
-              - include: "#explicitStepForStatementBlocks"
-              - include: "#implicitStepForStatementBlocks"
-            repository:
-              explicitStepForStatementBlocks:
-                name: source.flow.forloop.vba
-                begin: "(?i)\\s*(for)\\s+(.*?)(\\bstep)(\\s+-?\\s*\\d+?)(?:\\s+'|:|$)"
-                beginCaptures:
-                  1:
-                    name: keyword.flow.vba
-                  2:
-                    patterns:
-                      - include: "#block"
-                  3:
-                    name: keyword.flow.vba
-                  4:
-                    patterns:
-                      - include: "#block"
-                end: "(?i)\\b(next)\\b(\\s+[a-z][a-z0-9_]*)"
-                endCaptures:
-                  1:
-                    name: keyword.flow.vba
-                  2:
-                    name: variable.other.assignment.vba
-                patterns:
-                  - include: "#block"
-
-              implicitStepForStatementBlocks:
-                name: source.flow.forloop.vba
-                begin: "(?i)\\s*(for)\\s+(.*?)"
-                beginCaptures:
-                  1:
-                    name: keyword.flow.vba
-                  2:
-                    patterns:
-                      - include: "#block"
-                end: "(?i)\\b(next)\\b(\\s+[a-z][a-z0-9_]*)"
-                endCaptures:
-                  1:
-                    name: keyword.flow.vba
-                  2:
-                    name: variable.other.assignment.vba
-                patterns:
-                  - include: "#block"
-
-          withStatementBlocks:
-            name: source.flow.withblock.vba
-            begin: "(?i)\\b(with)\\b"
-            beginCaptures:
-              1:
-                name: keyword.flow.vba
-            end: "(?i)\\bend\\s+with\\b"
-            endCaptures:
-              0:
-                name: keyword.flow.vba
-            patterns:
-              - include: "#block"
 
   variableDeclarations:
     patterns:
