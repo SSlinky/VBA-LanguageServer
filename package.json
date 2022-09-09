@@ -37,7 +37,8 @@
 					".bas",
 					".cls",
 					".frm"
-				]
+				],
+				"configuration": "./vba.language-configuration.json"
 			}
 		],
 		"configuration": {
