@@ -79,6 +79,7 @@ repository:
     patterns:
       - include: "#kw-controlAs"
       - include: "#kw-flow"
+      - include: "#kw-pauseExit"
       - include: "#kw-array"
       - include: "#kw-directives"
     repository:
@@ -121,6 +122,10 @@ repository:
                     name: keyword.flow.branch.vba
                   2:
                     name: variable.other.constant.label.vba
+
+      kw-pauseExit:
+        name: "(?i)\\b(doevents|end|exit|stop)\\b"
+        match: keyword.control.pause-exit.vba
 
       kw-array:
         name: keyword.array.vba
