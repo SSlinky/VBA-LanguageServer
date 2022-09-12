@@ -26,13 +26,18 @@ repository:
               - include: "#vbaLang"
 
   language:
+    name: source.language.vba
     patterns:
       - include: "#comments"
+      - include: "#funcCall"
       - include: "#literals"
       - include: "#operators"
       - include: "#keywords"
-      - include: "#builtins"
       - include: "#objectModel"
+
+  lineContinuation:
+    name: support.vba
+    match: "\\s*_\\s*\\n"
       
   literals:
     patterns:
@@ -160,14 +165,6 @@ repository:
     name: variable.other.constant.label.vba
     match: "(?i)^([a-z][a-z0-9_]*|\\d+):"
 
-  builtins:
-    patterns:
-      - include: "#bi-array"
-    repository:
-      kw-array:
-        name: entity.name.function.vba
-        match: "(?i)\\b(lbound|ubound)\\b"
-
   objectModel:
     patterns:
       - include: "#application"
@@ -234,13 +231,28 @@ repository:
         match: "(?i)(?<=\\bAs)\\s+([A-Z][A-Z0-9_]*)\\b"
 
   arguments:
-    match: "(?i)[,]?\\s*([A-Z][A-Z0-9_]*)\\s*(\\bas\\s+[A-Z][A-Z0-9_]*)?\\s*"
-    captures:
-      1:
-        name: variable.parameter.vba
-      2:
-        patterns:
-          - include: "#types"
+    name: source.args.vba
+    patterns:
+      - include: "#funcCall"
+      - include: "#argsVariable"
+      - include: "#argsLiteral"
+      - include: "#language"
+    repository:
+      argsVariable:
+        match: "(?i),?\\s*([a-z][a-z0-9_]*)(?:\\s*(\\bas\\s+[a-z][a-z0-9_]*))?\\b"
+        captures:
+          1:
+            name: variable.parameter.vba
+          2:
+            patterns:
+              - include: "#types"
+
+      argsLiteral:
+        match: "(?i),?\\s*([a-z0-9\"]*)\\b"
+        captures:
+          1:
+            patterns:
+              - include: "#types"
 
   comments:
     patterns:
@@ -255,8 +267,7 @@ repository:
         begin: "'.*\\s_\\s*"
         end: "\\n"
         patterns:
-          - name: comment.block.continuation.vba
-            match: "\\s_\\s*\\n"
+          - include: "#lineContinuation"
       apostropheComments:
         name: comment.line.apostrophe.vba
         match: "'.*"
@@ -295,6 +306,7 @@ repository:
 
   method:
     name: source.method.vba
+    # TODO: rethink how this can be done to support line continuation.
     begin: "(?i)^\\s*((?:Public|Private)?\\b\\s*(?:Sub|Function))\\s+([A-Z][A-Z0-9_]*)\\s*(\\()(.*)(\\))\\s+(as\\s+[A-Z][A-Z0-9_]*)?"
     beginCaptures:
       #TODO move this to a method signature pattern
@@ -328,6 +340,7 @@ repository:
       - include: "#blockLines"
       - include: "#variableDeclarations"
       - include: "#variableAssignment"
+      - include: "#funcCall"
       - include: "#language"
 
     repository:
@@ -386,12 +399,58 @@ repository:
               - include: "#language"
 
   variableAssignment:
-    name: variable.other.assignment.vba
-    match: "(?i)[a-z][a-z0-9_]* = .*"
+    name: source.varassign.vba
+    match: "(?i)([a-z][a-z0-9_]*)(\\s*=\\s*)(.*)"
+    captures:
+      1:
+        name: variable.other.assignment.vba
+      2:
+        name: keyword.operator.assignment.vba
+      3:
+        name: source.varassign.grp3.vba
+        patterns:
+          - include: "#funcCall"
+          - include: "#language"
+
+  funcCall:
+    begin: "(?i)([a-z][a-z0-9_]*)\\("
+    beginCaptures:
+      1:
+        name: entity.name.function.call.vba
+    end: "\\)"
+    patterns:
+      # These calls need to be back to a top level group because
+      # textMate does not seem to support a repository in a begin/end
+      - include: "#args"
+      - include: "#arg"
+
+  args:
+    # The match gates gates an args list. It is not consumed by the
+    # match immediately because it is passed through captures which
+    # handles args separately.
+    match: ".*,.*"
     captures:
       0:
         patterns:
-          - include: "#language"
+          - include: "#argsHandler"
+        repository:
+          argsHandler:
+            name: variable.parameter.vba
+            begin: "[^,]+"
+            beginCaptures:
+              0:
+                patterns:
+                  - include: "#lineConcat"
+                  - include: "#language"
+            end: ","
+            patterns:
+              - include: "#lineConcat"
+              - include: "#language"
+
+  arg:
+    name: variable.parameter.vba
+    patterns:
+      - include: "#language"
 
 
   testing:
