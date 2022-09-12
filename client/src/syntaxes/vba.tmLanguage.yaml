@@ -29,10 +29,10 @@ repository:
     name: source.language.vba
     patterns:
       - include: "#comments"
-      - include: "#funcCall"
       - include: "#literals"
       - include: "#operators"
       - include: "#keywords"
+      - include: "#funcCall"
       - include: "#objectModel"
 
   lineContinuation:
@@ -399,7 +399,6 @@ repository:
               - include: "#language"
 
   variableAssignment:
-    name: source.varassign.vba
     match: "(?i)([a-z][a-z0-9_]*)(\\s*=\\s*)(.*)"
     captures:
       1:
@@ -407,7 +406,6 @@ repository:
       2:
         name: keyword.operator.assignment.vba
       3:
-        name: source.varassign.grp3.vba
         patterns:
           - include: "#funcCall"
           - include: "#language"
@@ -435,21 +433,19 @@ repository:
           - include: "#argsHandler"
         repository:
           argsHandler:
-            name: variable.parameter.vba
             begin: "[^,]+"
             beginCaptures:
               0:
+                name: variable.parameter.vba
                 patterns:
-                  - include: "#lineConcat"
-                  - include: "#language"
+                  - include: "#arg"
             end: ","
             patterns:
-              - include: "#lineConcat"
-              - include: "#language"
+              - include: "#arg"
 
   arg:
-    name: variable.parameter.vba
     patterns:
+      - include: "#lineConcat"
       - include: "#language"
 
 
