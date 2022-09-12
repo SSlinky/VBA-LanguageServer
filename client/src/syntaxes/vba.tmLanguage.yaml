@@ -455,6 +455,10 @@ repository:
 
   testing:
     patterns:
+      - name: keyword.control
+        match: ^keyword.control$
+      - name: keyword.control.flow
+        match: ^keyword.control.flow$
       - name: constant.numeric
         match: ^constant.numeric$
       - name: comment
