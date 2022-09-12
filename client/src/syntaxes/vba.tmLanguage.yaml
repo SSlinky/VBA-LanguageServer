@@ -350,7 +350,7 @@ repository:
     repository:
       variableDeclaration:
         name: storage.var-declaration.vba
-        match: "(?i)^\\s*(Dim|Public|Private)\\s+([a-z][a-z0-9_]*)(\\s+As\\s+[A-Z][A-Z0-9_]*)?"
+        match: "(?i)^\\s*(Dim|Public|Private)\\s+([a-z][a-z0-9_]*)(\\(.*\\))?(\\s+As\\s+[A-Z][A-Z0-9_]*)?"
         captures:
           1:
             # Dim|Private
@@ -359,6 +359,10 @@ repository:
             # varName
             name: variable.other.readwrite.vba
           3:
+            # Array bounds?
+            patterns:
+              - include: "#language"
+          4:
             # As Type
             patterns:
               - include: "#types"
