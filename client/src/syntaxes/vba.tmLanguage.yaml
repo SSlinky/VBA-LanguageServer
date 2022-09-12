@@ -84,7 +84,6 @@ repository:
     patterns:
       - include: "#kw-controlAs"
       - include: "#kw-flow"
-      - include: "#kw-pauseExit"
       - include: "#kw-array"
       - include: "#kw-directives"
     repository:
@@ -94,12 +93,28 @@ repository:
 
       kw-flow:
         patterns:
+          - include: "#flowDecision"
           - include: "#flowLoop"
+          - include: "#flowCall"
+          - include: "#flowPauseExit"
           - include: "#flowBranch"
         repository:
+          flowDecision:
+            # TODO make block versions
+            name: keyword.control.flow.decision.vba
+            match: "(?i)\\b(if|then|elseif|else|end if|select case|case|switch|end select)\\b"
+
           flowLoop:
-            name: keyword.flow.loop.vba
-            match: "(?i)\\b(do|while|until|loop|for|next|with|if|then|elseif|else|end)\\b"
+            name: keyword.control.flow.loop.vba
+            match: "(?i)\\b(do|exit\\s+do|while|until|loop|for|exit\\s+for|next|with)\\b"
+
+          flowCall:
+            name: keyword.control.flow.call.vba
+            match: "(?i)\\bcall\\b"
+
+          flowPauseExit:
+            name: keyword.control.flow.other.vba
+            match: "(?i)\\b(doevents|end|exit\\s+sub|exit\\s+function|exit\\s+property|stop)\\b"
             
           flowBranch:
             patterns:
@@ -110,31 +125,27 @@ repository:
                 match: "(?i)\\b(on\\s+error|on)\\s+(.*\\s+)?(goto|gosub)\\s+([a-z][a-z0-9_]*|\\d+)\\b"
                 captures:
                   1:
-                    name: keyword.flow.branch.vba
+                    name: keyword.control.flow.branch.vba
                   2:
                     patterns:
                       - include: "#language"
                   3:
-                    name: keyword.flow.branch.vba
+                    name: keyword.control.flow.branch.vba
                   4:
                     name: variable.other.constant.label.vba
 
               flowBranchSimple:
-                name: keyword.flow.branch.vba
+                name: keyword.control.flow.branch.vba
                 match: "(?i)\\b(gosub|return|goto)(?:\\s+([a-z][a-z0-9_]*|\\d+))?\\b"
                 captures:
                   1:
-                    name: keyword.flow.branch.vba
+                    name: keyword.control.flow.branch.vba
                   2:
                     name: variable.other.constant.label.vba
 
-      kw-pauseExit:
-        name: "(?i)\\b(doevents|end|exit|stop)\\b"
-        match: keyword.control.pause-exit.vba
-
       kw-array:
         name: keyword.array.vba
-        match: "(?i)\\b(isarray|array|redim|erase)\\b"
+        match: "(?i)\\b(redim|erase)\\b"
 
       kw-directives:
         patterns:
