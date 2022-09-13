@@ -1,3 +1,5 @@
+import { Range } from 'vscode-languageserver';
+import { SyntaxElement } from './vbaSyntaxElements';
 
 function indexOfNearestUnder(arr: Array<number>, n: number) {
 	if (arr.length === 0) { return -1; }
@@ -28,4 +30,27 @@ function groupIndex(reExec: RegExpExecArray, i: number) {
 	return reExec.index + reExec[0].indexOf(reExec[i]);
 }
 
-export { stripQuotes, indexOfNearestUnder, getMatchIndices};
+function rangeIsChildOfElement(tr: Range, element: SyntaxElement): boolean {
+	const pr = element.range;
+	
+	const psl = pr.start.line;
+	const psc = pr.start.character;
+	const tsl = tr.start.line;
+	const tsc = tr.start.character;
+
+	const pel = pr.end.line;
+	const pec = pr.end.character;
+	const tel = tr.end.line;
+	const tec = tr.end.character;		
+
+	const prStartEarlier = (psl < tsl) || (psl === tsl && psc <= tsc);
+	const prEndsAfter = (pel > tel) || (pel === tel && pec >= tec);
+
+	return prStartEarlier && prEndsAfter;
+}
+
+function sleep(ms: number): Promise<unknown> {
+	return new Promise(resolve => setTimeout(resolve, ms) );
+}
+
+export { stripQuotes, indexOfNearestUnder, getMatchIndices, rangeIsChildOfElement, sleep};
