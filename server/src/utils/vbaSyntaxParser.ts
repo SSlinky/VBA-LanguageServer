@@ -1,28 +1,35 @@
-import { ANTLRInputStream, CommonTokenStream } from 'antlr4ts';
+import { ANTLRErrorListener, ANTLRInputStream, CommonTokenStream, ConsoleErrorListener, DefaultErrorStrategy, Parser, ParserRuleContext, RecognitionException, Recognizer } from 'antlr4ts';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { vbaListener } from '../antlr/out/vbaListener';
-import { AttributeStmtContext, FunctionStmtContext, ModuleContext, ModuleHeaderContext, StartRuleContext, SubStmtContext, vbaParser } from '../antlr/out/vbaParser';
+import { AttributeStmtContext, CommentContext, ConstStmtContext, EndOfLineContext, EnumerationStmtContext, EnumerationStmt_ConstantContext, ErrorStmtContext, ErrorWordsContext, FunctionStmtContext, ImplicitCallStmt_InBlockContext, ImplicitCallStmt_InStmtContext, LetStmtContext, ModuleContext, ModuleHeaderContext, SetStmtContext, StartRuleContext, SubStmtContext, VariableStmtContext, vbaParser } from '../antlr/out/vbaParser';
 import { vbaLexer as VbaLexer } from '../antlr/out/vbaLexer';
 import { ParseTreeWalker } from 'antlr4ts/tree/ParseTreeWalker';
 import { ErrorNode } from 'antlr4ts/tree/ErrorNode';
-import { MethodElement, ModuleAttribute, ModuleElement, SyntaxElement } from './vbaSyntaxElements';
+import { MethodElement, ModuleAttribute, ModuleElement, SyntaxElement, EnumElement, EnumConstant as EnumConstantElement, VariableStatementElement, IdentifierElement, VariableAssignElement, VariableDeclarationElement } from './vbaSyntaxElements';
 import { SymbolKind } from 'vscode-languageserver';
+import { basename } from 'path';
 
 
 export interface ResultsContainer {
+	module?: ModuleElement;
 	addModule(element: ModuleElement): void;
 	addElement(element: SyntaxElement): void;
-	identifyElement(identifier: string): void;
 	setModuleAttribute(attr: ModuleAttribute): void;
-	setModuleSymbol(symbol: SymbolKind): void;
+	addScopeReference(emt: VariableAssignElement): void;
+	addScopeDeclaration(emt: MethodElement | VariableDeclarationElement): void;
 }
 
 
 export class SyntaxParser {
 	parse(doc: TextDocument, resultsContainer: ResultsContainer) {
+		const listener = new VbaTreeWalkListener(doc, resultsContainer);
+		const parserEntry = this.getParseEntryPoint(doc);
+
+		console.log(listener.doc.uri);
+		console.log(parserEntry.toString());
 		ParseTreeWalker.DEFAULT.walk(
-			new VbaTreeWalkListener(doc, resultsContainer),
-			this.getParseEntryPoint(doc)
+			listener,
+			parserEntry
 		);
 	}
 
@@ -30,6 +37,11 @@ export class SyntaxParser {
 		const uText = doc.getText().toUpperCase();
 		const lexer = new VbaLexer(new ANTLRInputStream(uText));
 		const parser = new vbaParser(new CommonTokenStream(lexer));
+		
+		parser.removeErrorListeners();
+		parser.addErrorListener(new VbaErrorListener());
+		
+
 		return parser.startRule();
 	}
 }
@@ -43,8 +55,19 @@ class VbaTreeWalkListener implements vbaListener {
 		this.resultsContainer = resultsContainer;
 	}
 
+	enterErrorWords(ctx: ErrorWordsContext) {
+		console.log(`${ctx.text}`);
+	}
+
 	// TODO: Implement this.
-	visitErrorNode?: ((node: ErrorNode) => void) | undefined;
+	visitErrorNode(node: ErrorNode) {
+		console.log(`${node.symbol.toString()} -- ${node.text}`);
+	}
+
+	enterComment = (ctx: CommentContext) => {
+		console.log(ctx.text);
+	};
+
 
 	enterModule = (ctx: ModuleContext) =>
 		this.resultsContainer.addModule(
@@ -52,25 +75,69 @@ class VbaTreeWalkListener implements vbaListener {
 
 	// Only classes have a header. TODO: Test this for forms.
 	enterModuleHeader = (_: ModuleHeaderContext) =>
-		this.resultsContainer.setModuleSymbol(SymbolKind.Class);
+		this.resultsContainer.module!.symbolKind = SymbolKind.Class;
 
-	enterAttributeStmt = (ctx: AttributeStmtContext) =>
-		this.resultsContainer.setModuleAttribute(
-			new ModuleAttribute(ctx, this.doc));
-
-	// enterAmbiguousIdentifier = (ctx: AmbiguousIdentifierContext) => {
-	// 	if (this.resultsContainer.elementRequiresIdentifier) {
-	// 		this.resultsContainer.identifyElement(
-	// 			getCtxOriginalText(ctx, this.doc));
-	// 	}
-	// };
+	enterAttributeStmt = (ctx: AttributeStmtContext) => {
+		const attr = new ModuleAttribute(ctx, this.doc);
+		this.resultsContainer.setModuleAttribute(attr);
+		if (attr.identifier?.text === 'VB_Name') {
+			const module = this.resultsContainer.module;
+			if (module) {
+				module.identifier = attr.literal;
+			}
+		}
+	};
 
 	enterSubStmt = (ctx: SubStmtContext) =>
 		this.resultsContainer.addElement(
 			new MethodElement(ctx, this.doc));
 
-	enterFunctionStmt = (ctx: FunctionStmtContext) =>
+	enterFunctionStmt = (ctx: FunctionStmtContext) => {
+		const e = new MethodElement(ctx, this.doc);
+		this.resultsContainer.addScopeDeclaration(e);
+	};
+
+	enterEnumerationStmt = (ctx: EnumerationStmtContext) =>
 		this.resultsContainer.addElement(
-			new MethodElement(ctx, this.doc));
+			new EnumElement(ctx, this.doc));
+
+	enterEnumerationStmt_Constant = (ctx: EnumerationStmt_ConstantContext) =>
+		this.resultsContainer.addElement(
+			new EnumConstantElement(ctx, this.doc));
+
+	enterVariableStmt = (ctx: VariableStmtContext) => this.enterVarOrConstStmt(ctx);
+	enterConstStmt = (ctx: ConstStmtContext) => this.enterVarOrConstStmt(ctx);
+
+	private enterVarOrConstStmt(ctx: VariableStmtContext | ConstStmtContext) {
+		const declaration = new VariableStatementElement(ctx, this.doc);
+		this.resultsContainer.addElement(declaration);
+		declaration.variableList.forEach((v) => this.resultsContainer.addScopeDeclaration(v));
+	}
+
+	enterImplicitCallStmt_InStmt = (ctx: ImplicitCallStmt_InStmtContext) => this.enterImplicitCallStmt(ctx);
+	enterImplicitCallStmt_InBlock = (ctx: ImplicitCallStmt_InBlockContext) => this.enterImplicitCallStmt(ctx);
+
+	private enterImplicitCallStmt(ctx: ImplicitCallStmt_InStmtContext | ImplicitCallStmt_InBlockContext) {
+		// console.log('imp call ' + ctx.text);
+	}
+
+	enterLetStmt = (ctx: LetStmtContext) => this.enterAssignStmt(ctx);
+	enterSetStmt = (ctx: SetStmtContext) => this.enterAssignStmt(ctx);
+
+	private enterAssignStmt(ctx: LetStmtContext | SetStmtContext) {
+		const assignment = new VariableAssignElement(ctx, this.doc);
+		this.resultsContainer.addScopeReference(assignment);
+	}
 }
 
+class VbaErrorListener extends ConsoleErrorListener {
+	syntaxError<T>(recognizer: Recognizer<T, any>, offendingSymbol: T, line: number, charPositionInLine: number, msg: string, e: RecognitionException | undefined): void {
+		super.syntaxError(recognizer, offendingSymbol, line, charPositionInLine, msg, e);
+		console.error(e);
+		if (e) {
+			const y = recognizer.getErrorHeader(e);
+			console.log(y);
+		}
+		recognizer.inputStream?.consume();
+	}
+}

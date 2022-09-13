@@ -10,9 +10,10 @@ import {
 	TextDocumentSyncKind,
 	InitializeResult,
 	Hover,
+	SemanticTokensParams,
 } from 'vscode-languageserver/node';
 
-import { LanguageTools } from './capabilities/ast';
+// import { LanguageTools } from './capabilities/ast';
 import { activateSemanticTokenProvider } from './capabilities/vbaSemanticTokens';
 import { ProjectInformation } from './docInfo';
 
@@ -24,7 +25,7 @@ const connection = createConnection(ProposedFeatures.all);
 // const documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
 
 // Create the AST tools.
-const service = new LanguageTools();
+// const service = new LanguageTools();
 
 let hasConfigurationCapability = false;
 let hasWorkspaceFolderCapability = false;
@@ -60,7 +61,7 @@ connection.onInitialize((params: InitializeParams) => {
 			textDocumentSync: TextDocumentSyncKind.Incremental,
 			// Tell the client that this server supports code completion.
 			completionProvider: {
-				resolveProvider: true
+				resolveProvider: false
 			},
 			foldingRangeProvider: true,
 			hoverProvider: true,
@@ -271,6 +272,19 @@ connection.onCompletion((params) => docInfo.getCompletion(params));
 connection.onFoldingRanges((params) => docInfo.getFoldingRanges(params.textDocument.uri));
 connection.onDocumentSymbol((params) => docInfo.getDocumentSymbols(params.textDocument.uri));
 connection.onCompletionResolve((item) => docInfo.getCompletionResolve(item));
+
+connection.onRequest((method: string, params: object | object[] | any) => {
+	switch (method) {
+		case 'textDocument/semanticTokens/full': {
+			const stp = params as SemanticTokensParams;
+			return docInfo.getSemanticTokens(stp);
+		}
+		case 'textDocument/semanticTokens/range':
+			return docInfo.getSemanticTokens(params);
+		default:
+			console.error(`Unresolved request path: ${method}`);
+	}
+});
 
 // connection.onCodeAction;
 
