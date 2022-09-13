@@ -4,6 +4,13 @@ import { attachPartialResult } from 'vscode-languageserver/lib/common/progress';
 import { ModuleAttribute, ModuleElement, SyntaxElement } from './utils/vbaSyntaxElements';
 import { ResultsContainer, SyntaxParser } from './utils/vbaSyntaxParser';
 
+
+declare global {
+	interface Map<K, V> {
+		has<P extends K>(key: P): this is { get(key: P): V } & this
+	}
+}
+
 interface ExampleSettings {
 	maxNumberOfProblems: number;
 }
