@@ -93,7 +93,7 @@
 
 grammar vba;
 
-options { caseInsensitive = true; }
+// options { caseInsensitive = true; }
 
 // module ----------------------------------
 
@@ -101,18 +101,16 @@ startRule : module EOF;
 
 module :
 	WS?
-	endOfLine*
-	(moduleHeader endOfLine* | errorWords)?
-	(moduleConfig? endOfLine* | errorWords)
+	(endOfLine | unknownLine)*
+	(moduleHeader endOfLine*)?
+	moduleConfig? endOfLine*
 	moduleAttributes? endOfLine*
 	moduleDeclarations? endOfLine*
 	moduleBody? endOfLine*
 	WS?
 ;
 
-errorWords : EW;
-
-moduleHeader : errorWords? VERSION WS DOUBLELITERAL WS CLASS;
+moduleHeader : VERSION WS DOUBLELITERAL WS CLASS;
 
 moduleConfig :
 	BEGIN endOfLine*
@@ -146,6 +144,7 @@ moduleDeclarationsElement :
 	| moduleOption
 	| typeStmt
 	| macroStmt
+	| unknownLine
 ;
 
 macroStmt :
@@ -162,7 +161,6 @@ moduleBodyElement :
 	| propertyLetStmt
 	| subStmt
 	| macroStmt
-	| errorWords
 ;
 
 
@@ -241,7 +239,7 @@ blockStmt :
 	| writeStmt
 	| implicitCallStmt_InBlock
     | implicitCallStmt_InStmt
-	| errorWords
+	| unknownLine
 ;
 
 
@@ -720,6 +718,13 @@ endOfLine : WS? (NEWLINE | comment | remComment) WS?;
 
 endOfStatement : (endOfLine | WS? COLON WS?)*;
 
+unknownToken : (IDENTIFIER | NWS)+ ;
+
+anyValidToken : (DIM | visibility | ambiguousIdentifier | AS | literal | baseType | complexType | '!' | '.');
+
+unknownLine : ((anyValidToken WS?)* WS? unknownToken WS? (anyValidToken WS?)*)+ ;
+
+
 
 // lexer rules --------------------------------------------------------------------------------
 
@@ -957,10 +962,10 @@ WS : ([ \t] | LINE_CONTINUATION)+;
 
 // identifier
 IDENTIFIER :  ~[\]()\r\n\t.,'"|!@#$%^&*\-+:=; ]+ | L_SQUARE_BRACKET (~[!\]\r\n])+ R_SQUARE_BRACKET;
-EW : (.* LINE_CONTINUATION)*? WS;
-
 
 // letters
 fragment LETTER : [A-Z_\p{L}];
 fragment DIGIT : [0-9];
 fragment LETTERORDIGIT : [A-Z0-9_\p{L}];
+
+NWS : . ;
