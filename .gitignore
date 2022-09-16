@@ -1,4 +1,5 @@
 out
+.antlr
 node_modules
 client/server
 .vscode-test
