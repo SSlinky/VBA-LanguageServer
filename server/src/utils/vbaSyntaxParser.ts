@@ -100,8 +100,6 @@ class VbaTreeWalkListener implements vbaListener {
 		const declaration = new VariableStatementElement(ctx, this.doc);
 		this.resultsContainer.addElement(declaration);
 		declaration.variableList.forEach((v) => this.resultsContainer.addScopeDeclaration(v));
-		const vars = declaration.variableList;
-		vars.forEach((x) => this.resultsContainer.addElement(x));
 	}
 
 	enterImplicitCallStmt_InStmt = (ctx: ImplicitCallStmt_InStmtContext) => this.enterImplicitCallStmt(ctx);
