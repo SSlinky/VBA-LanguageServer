@@ -323,6 +323,7 @@ class VariableAssignElement extends BaseElement {
 			return;
 		}
 	}
+	symbolInformation = (_: string) => undefined;
 }
 
 class ModuleAttribute {
