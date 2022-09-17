@@ -22,6 +22,7 @@ interface SyntaxElement {
 	parent?: SyntaxElement;
 	children: SyntaxElement[];
 	
+	getAncestorCount(): number;
 	hover(): Hover | undefined;
 	isChildOf(element: SyntaxElement): boolean;
 	symbolInformation(uri: string): SymbolInformation | undefined;
@@ -108,6 +109,27 @@ abstract class BaseElement implements SyntaxElement {
 
 	private isIdentifiable = (o: any): o is Identifiable =>
 		'ambiguousIdentifier' in o;
+
+	private getParent(): BaseElement | undefined {
+		if (this.parent) {
+			if (this.parent instanceof BaseElement) {
+				return this.parent;
+			}
+		}
+	}
+
+	getAncestorCount(n = 0): number {
+		if (this._countAncestors === 0) {
+			const pnt = this.getParent();
+			if (pnt) {
+				this._countAncestors = pnt.getAncestorCount(n + 1);
+				return this._countAncestors;
+			}
+		}
+		return this._countAncestors + n;
+	} 
+
+	toString = () => `${"-".repeat(this.getAncestorCount())} ${this.constructor.name}: ${this.context.text}`;
 }
 
 class UnknownElement extends BaseElement {
