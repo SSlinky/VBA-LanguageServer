@@ -1,5 +1,5 @@
 import { ParserRuleContext } from 'antlr4ts';
-import { FoldingRange, Hover, Location, Range, SemanticTokenModifiers, SemanticTokenTypes, SymbolInformation, SymbolKind, uinteger } from 'vscode-languageserver';
+import { Diagnostic, FoldingRange, Hover, Location, Range, SemanticTokenModifiers, SemanticTokenTypes, SymbolInformation, SymbolKind, uinteger } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { AmbiguousIdentifierContext, AttributeStmtContext, BaseTypeContext, ComplexTypeContext, ConstStmtContext, ConstSubStmtContext, EnumerationStmtContext, EnumerationStmt_ConstantContext, FunctionStmtContext, LetStmtContext, LiteralContext, ModuleContext, SetStmtContext, SubStmtContext, VariableStmtContext, VariableSubStmtContext } from '../antlr/out/vbaParser';
 import { SemanticToken } from '../capabilities/vbaSemanticTokens';
@@ -16,6 +16,7 @@ interface SyntaxElement {
 	context: ParserRuleContext;
 	symbolKind: SymbolKind;
 	semanticToken?: SemanticToken;
+	diagnostics: Diagnostic[];
 	hoverText: string;
 	fqName?: string;
 	
@@ -28,6 +29,7 @@ interface SyntaxElement {
 	symbolInformation(uri: string): SymbolInformation | undefined;
 	foldingRange(): FoldingRange | undefined;
 	location(): Location;
+	addDiagnostics(diagnostics: Diagnostic[]): void;
 }
 
 interface Identifiable {
@@ -43,11 +45,14 @@ abstract class BaseElement implements SyntaxElement {
 	context: ParserRuleContext;
 	symbolKind: SymbolKind;
 	semanticToken?: SemanticToken;
+	diagnostics: Diagnostic[] = [];
 	hoverText: string;
 	fqName?: string;
 	
 	parent?: SyntaxElement;
+
 	children: SyntaxElement[] = [];
+	private _countAncestors = 0;
 
 	constructor(ctx: ParserRuleContext, doc: TextDocument) {
 		this.uri = doc.uri;
@@ -97,6 +102,10 @@ abstract class BaseElement implements SyntaxElement {
 			this.range.start.character,
 			this.range.end.character
 		);
+
+	addDiagnostics(diagnostics: Diagnostic[]) {
+		this.diagnostics = this.diagnostics.concat(diagnostics);
+	}
 
 	private setIdentifierFromDoc(doc: TextDocument): void {
 		if (this.isIdentifiable(this.context)) {

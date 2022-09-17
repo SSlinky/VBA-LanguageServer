@@ -1,4 +1,4 @@
-import { CompletionItem, Diagnostic, DiagnosticRelatedInformation, DiagnosticSeverity, DidChangeConfigurationParams, DidChangeWatchedFilesParams, DocumentSymbol, FoldingRange, Hover, HoverParams, Location, NotificationHandler, Position, Range, SemanticTokenModifiers, SemanticTokens, SemanticTokensParams, SemanticTokensRangeParams, SemanticTokensRequest, SymbolInformation, SymbolKind, TextDocumentPositionParams, TextDocuments, uinteger, _Connection } from 'vscode-languageserver';
+import { CompletionItem, Diagnostic, DiagnosticRelatedInformation, DiagnosticSeverity, DidChangeConfigurationParams, DidChangeWatchedFilesParams, DocumentSymbol, FoldingRange, Hover, HoverParams, Location, NotificationHandler, Position, PublishDiagnosticsParams, Range, SemanticTokenModifiers, SemanticTokens, SemanticTokensParams, SemanticTokensRangeParams, SemanticTokensRequest, SymbolInformation, SymbolKind, TextDocumentPositionParams, TextDocuments, uinteger, _Connection } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { LiteralContext } from './antlr/out/vbaParser';
 import { SemanticToken, sortSemanticTokens } from './capabilities/vbaSemanticTokens';
@@ -105,7 +105,8 @@ export class ProjectInformation {
 		return this.docInfos.get(uri)?.getSemanticTokens(range) ?? null;
 	}
 
-
+	sendDiagnostics = (docInfo: DocumentInformation) =>
+		this.conn.sendDiagnostics(docInfo.getDiagnostics());
 
 	private getDocumentSettings(docUri: string): Thenable<ExampleSettings> {
 		if (!this.hasConfigurationCapability) {
@@ -136,9 +137,11 @@ export class ProjectInformation {
 		this.docs.onDidChangeContent(change => {
 			const doc = change.document;
 			const docInfo = new DocumentInformation(this.scopes, doc.uri);
+			this.scopes.getScope(`undeclared|${doc.uri}`).clear();
 			this.docInfos.set(doc.uri, docInfo);
 			this.syntaxUtil.parse(doc, docInfo);
 			docInfo.finalise();
+			this.sendDiagnostics(docInfo);
 		});
 	}
 }
@@ -148,11 +151,11 @@ export class DocumentInformation implements ResultsContainer {
 	elements: SyntaxElement[] = [];
 	attrubutes: Map<string, string> = new Map();
 	isBusy = true;
-
+	
+	private docUri: string;
 	private ancestors: SyntaxElement[] = [];
 	private localNames: Map<string, SyntaxElement> = new Map();
 	private documentScope: Scope;
-	private docUri: string;
 
 	constructor(scope: Scope, docUri: string) {
 		scope.links.set(docUri, new Map());
@@ -219,12 +222,14 @@ export class DocumentInformation implements ResultsContainer {
 			link.merge(undeclaredLink);
 			undeclaredScope.delete(elId);
 		}
+
+		this.addElement(emt);
 	}
 
 	addScopeReference(emt: VariableAssignElement) {
-		// this.addElement(emt);
 		const link = this.getNameLink(emt.identifier!.text, emt.parent?.fqName ?? '', false, true);
 		link.references.push(emt);
+		this.addElement(emt);
 	}
 
 	private getNameLink(identifier: string, fqName: string, isPrivate = false, searchScopes = false): NameLink {
@@ -257,7 +262,7 @@ export class DocumentInformation implements ResultsContainer {
 				return scope;
 			}
 		}
-		return this.documentScope.getScope(`undefined|${this.docUri}`);
+		return this.documentScope.getScope(`undeclared|${this.docUri}`);
 	}
 
 
@@ -341,6 +346,10 @@ export class DocumentInformation implements ResultsContainer {
 		return results;
 	}
 
+	getDiagnostics(): PublishDiagnosticsParams {
+		return {uri: this.docUri, diagnostics: this.elements.map((e) => e.diagnostics).flat(1)};
+	}
+
 	getSymbols = (uri: string): SymbolInformation[] =>
 		this.elements
 			.filter((x) => (!!x.identifier) && (x.identifier.text !== ''))
@@ -371,7 +380,10 @@ class Scope {
 
 	processLinks(key: string, optExplicit = false) {
 		// TODO: check global for undeclareds
-		this.getScope(key).forEach((x) => x.process(optExplicit));
+		const undeclared = this.getScope(`undeclared|${key}`);
+		const docScopes = this.getScope(key);
+		undeclared.forEach((v, k) => docScopes.set(k, v));
+		docScopes.forEach((x) => x.process(optExplicit));
 	}
 }
 
@@ -404,7 +416,9 @@ class NameLink {
 		this.processDiagnosticRelatedInformation();
 		this.validateDeclarationCount(optExplicit);
 		this.validateMethodSignatures();
+
 		this.assignSemanticTokens();
+		this.assignDiagnostics();
 	}
 
 	private processDiagnosticRelatedInformation() {
@@ -417,7 +431,6 @@ class NameLink {
 	}
 
 	private validateDeclarationCount(optExplicit: boolean) {
-		// Base case.
 		if (this.declarations.length === 1) {
 			return;
 		}
@@ -452,10 +465,18 @@ class NameLink {
 			return;
 		}
 
-		this.references.forEach(
-			(x) => x.semanticToken = this.declarations[0]
-										.semanticToken
-										?.toNewRange(x.range));
+		this.references.forEach((x) => x.semanticToken = 
+			this.declarations[0]
+				.semanticToken
+				?.toNewRange(x.range));
+	}
+
+	private assignDiagnostics() {
+		if (this.diagnostics.length === 0) {
+			return;
+		}
+		const els = this.declarations.concat(this.references);
+		els.forEach((x) => x.addDiagnostics(this.diagnostics));
 	}
 
 	private validateMethodSignatures() {
