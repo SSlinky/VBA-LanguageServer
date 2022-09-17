@@ -1,13 +1,12 @@
-import { ANTLRErrorListener, ANTLRInputStream, CommonTokenStream, ConsoleErrorListener, DefaultErrorStrategy, Parser, ParserRuleContext, RecognitionException, Recognizer } from 'antlr4ts';
+import { ANTLRInputStream, CommonTokenStream, ConsoleErrorListener, RecognitionException, Recognizer } from 'antlr4ts';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { vbaListener } from '../antlr/out/vbaListener';
-import { AttributeStmtContext, CommentContext, ConstStmtContext, EndOfLineContext, EnumerationStmtContext, EnumerationStmt_ConstantContext, ErrorStmtContext, ErrorWordsContext, FunctionStmtContext, ImplicitCallStmt_InBlockContext, ImplicitCallStmt_InStmtContext, LetStmtContext, ModuleContext, ModuleHeaderContext, SetStmtContext, StartRuleContext, SubStmtContext, VariableStmtContext, vbaParser } from '../antlr/out/vbaParser';
+import { AttributeStmtContext, ConstStmtContext, EnumerationStmtContext, EnumerationStmt_ConstantContext, FunctionStmtContext, ImplicitCallStmt_InBlockContext, ImplicitCallStmt_InStmtContext, LetStmtContext, ModuleContext, ModuleHeaderContext, SetStmtContext, StartRuleContext, SubStmtContext, UnknownLineContext, VariableStmtContext, vbaParser } from '../antlr/out/vbaParser';
 import { vbaLexer as VbaLexer } from '../antlr/out/vbaLexer';
 import { ParseTreeWalker } from 'antlr4ts/tree/ParseTreeWalker';
 import { ErrorNode } from 'antlr4ts/tree/ErrorNode';
 import { MethodElement, ModuleAttribute, ModuleElement, SyntaxElement, EnumElement, EnumConstant as EnumConstantElement, VariableStatementElement, IdentifierElement, VariableAssignElement, VariableDeclarationElement } from './vbaSyntaxElements';
 import { SymbolKind } from 'vscode-languageserver';
-import { basename } from 'path';
 
 
 export interface ResultsContainer {
@@ -25,8 +24,6 @@ export class SyntaxParser {
 		const listener = new VbaTreeWalkListener(doc, resultsContainer);
 		const parserEntry = this.getParseEntryPoint(doc);
 
-		console.log(listener.doc.uri);
-		console.log(parserEntry.toString());
 		ParseTreeWalker.DEFAULT.walk(
 			listener,
 			parserEntry
@@ -39,8 +36,6 @@ export class SyntaxParser {
 		
 		parser.removeErrorListeners();
 		parser.addErrorListener(new VbaErrorListener());
-		
-
 		return parser.startRule();
 	}
 }
@@ -54,19 +49,13 @@ class VbaTreeWalkListener implements vbaListener {
 		this.resultsContainer = resultsContainer;
 	}
 
-	enterErrorWords(ctx: ErrorWordsContext) {
-		console.log(`${ctx.text}`);
-	}
-
-	// TODO: Implement this.
 	visitErrorNode(node: ErrorNode) {
-		console.log(`${node.symbol.toString()} -- ${node.text}`);
+		console.log(node.payload);
 	}
 
-	enterComment = (ctx: CommentContext) => {
+	enterUnknownLine = (ctx: UnknownLineContext) => {
 		console.log(ctx.text);
 	};
-
 
 	enterModule = (ctx: ModuleContext) =>
 		this.resultsContainer.addModule(
