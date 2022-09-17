@@ -33,6 +33,16 @@
 				"${workspaceRoot}/client/testFixture"
 			],
 			"outFiles": ["${workspaceRoot}/client/out/test/**/*.js"]
+		},
+		{
+			"name": "Debug ANTLR4 grammar",
+			"type": "antlr-debug",
+			"request": "launch",
+			"input": "${file}",
+			"grammar": "server/src/antlr/vba.g4",
+			"startRule": "startRule",
+			"printParseTree": true,
+			"visualParseTree": true
 		}
 	],
 	"compounds": [
