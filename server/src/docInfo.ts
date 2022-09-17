@@ -72,12 +72,13 @@ export class ProjectInformation {
 		return this.docInfos.get(docUri)?.getFoldingRanges() ?? [];
 	}
 
-	async getDocumentSymbols(docUri: string) {
+	async getDocumentSymbols(docUri: string): Promise<SymbolInformation[]> {
 		const docInfo = this.docInfos.get(docUri);
 		if (docInfo) {
 			while (docInfo.isBusy) {
 				await sleep(50);
 			}
+			return docInfo!.getSymbols(docUri);
 		}
 		return [];
 	}
@@ -166,6 +167,7 @@ export class DocumentInformation implements ResultsContainer {
 	}
 
 	addElement(emt: SyntaxElement) {
+		// Find the parent element.
 		while (this.ancestors) {
 			const pnt = this.ancestors.pop()!;
 			if (emt.isChildOf(pnt)) {
@@ -177,10 +179,12 @@ export class DocumentInformation implements ResultsContainer {
 				break;
 			}
 		}
+
+		// Add the element.
 		this.elements.push(emt);
 		this.ancestors.push(emt);
-		const x = 3;
 
+		// Also add identifier elements
 		if (emt.identifier) {
 			this.addElement(emt.identifier);
 			emt.fqName = `${(emt.fqName ?? '')}.${emt.identifier.text}`;
@@ -280,8 +284,8 @@ export class DocumentInformation implements ResultsContainer {
 
 		const semanticTokens = sortSemanticTokens(
 			this.getElementsInRange(r)
-				.filter((e) => !!e.semanticToken)
-				.map((e) => e.semanticToken!));
+				.filter((e) => !!e.identifier?.semanticToken)
+				.map((e) => e.identifier!.semanticToken!));
 
 		if (semanticTokens.length === 0)
 			return null;
