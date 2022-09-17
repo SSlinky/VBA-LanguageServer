@@ -34,8 +34,7 @@ export class SyntaxParser {
 	}
 
 	private getParseEntryPoint(doc: TextDocument): StartRuleContext {
-		const uText = doc.getText().toUpperCase();
-		const lexer = new VbaLexer(new ANTLRInputStream(uText));
+		const lexer = new VbaLexer(new ANTLRInputStream(doc.getText()));
 		const parser = new vbaParser(new CommonTokenStream(lexer));
 		
 		parser.removeErrorListeners();

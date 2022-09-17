@@ -6,7 +6,7 @@ import { SemanticToken } from '../capabilities/vbaSemanticTokens';
 import { vbaTypeToSymbolConverter } from './converters';
 import { stripQuotes } from './helpers';
 
-export {SyntaxElement, ModuleElement, ModuleAttribute, MethodElement, EnumElement, EnumConstant, VariableStatementElement, VariableDeclarationElement, VariableAssignElement, IdentifierElement, getCtxOriginalText};
+export {SyntaxElement, UnknownElement, ModuleElement, ModuleAttribute, MethodElement, EnumElement, EnumConstant, VariableStatementElement, VariableDeclarationElement, VariableAssignElement, IdentifierElement};
 
 interface SyntaxElement {
 	uri: string;
@@ -52,7 +52,7 @@ abstract class BaseElement implements SyntaxElement {
 		this.uri = doc.uri;
 		this.context = ctx;
 		this.range = getCtxRange(ctx, doc);
-		this.text = doc.getText(this.range);
+		this.text = ctx.text;
 		this.setIdentifierFromDoc(doc);
 		this.symbolKind = SymbolKind.Null;
 		this.hoverText = '';
@@ -108,6 +108,10 @@ abstract class BaseElement implements SyntaxElement {
 
 	private isIdentifiable = (o: any): o is Identifiable =>
 		'ambiguousIdentifier' in o;
+}
+
+class UnknownElement extends BaseElement {
+
 }
 
 class IdentifierElement extends BaseElement {
@@ -329,11 +333,6 @@ class TypeContext extends BaseElement {
 		const tCtx = xCtx?.baseType() ?? xCtx?.complexType();
 		if (tCtx) { return new TypeContext(tCtx, doc); }
 	}
-}
-
-function getCtxOriginalText(ctx: ParserRuleContext, doc: TextDocument): string {
-	const range = getCtxRange(ctx, doc);
-	return doc.getText(range);
 }
 
 function getCtxRange(ctx: ParserRuleContext, doc: TextDocument): Range {
