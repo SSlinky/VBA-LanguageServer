@@ -1,11 +1,11 @@
 import { ANTLRInputStream, CommonTokenStream, ConsoleErrorListener, RecognitionException, Recognizer } from 'antlr4ts';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { vbaListener } from '../antlr/out/vbaListener';
-import { AttributeStmtContext, ConstStmtContext, EnumerationStmtContext, EnumerationStmt_ConstantContext, FunctionStmtContext, ImplicitCallStmt_InBlockContext, ImplicitCallStmt_InStmtContext, LetStmtContext, ModuleContext, ModuleHeaderContext, SetStmtContext, StartRuleContext, SubStmtContext, UnknownLineContext, VariableStmtContext, vbaParser } from '../antlr/out/vbaParser';
+import { AmbiguousIdentifierContext, AttributeStmtContext, CertainIdentifierContext, ConstStmtContext, EnumerationStmtContext, EnumerationStmt_ConstantContext, FunctionStmtContext, ImplicitCallStmt_InBlockContext, ImplicitCallStmt_InStmtContext, LetStmtContext, ModuleContext, ModuleHeaderContext, SetStmtContext, StartRuleContext, SubStmtContext, UnknownLineContext, VariableStmtContext, vbaParser } from '../antlr/out/vbaParser';
 import { vbaLexer as VbaLexer } from '../antlr/out/vbaLexer';
 import { ParseTreeWalker } from 'antlr4ts/tree/ParseTreeWalker';
 import { ErrorNode } from 'antlr4ts/tree/ErrorNode';
-import { MethodElement, ModuleAttribute, ModuleElement, SyntaxElement, EnumElement, EnumConstant as EnumConstantElement, VariableStatementElement, IdentifierElement, VariableAssignElement, VariableDeclarationElement } from './vbaSyntaxElements';
+import { MethodElement, ModuleAttribute, ModuleElement, SyntaxElement, EnumElement, EnumConstant as EnumConstantElement, VariableStatementElement, VariableDeclarationElement, IdentifierElement } from './vbaSyntaxElements';
 import { SymbolKind } from 'vscode-languageserver';
 
 
@@ -14,8 +14,10 @@ export interface ResultsContainer {
 	addModule(element: ModuleElement): void;
 	addElement(element: SyntaxElement): void;
 	setModuleAttribute(attr: ModuleAttribute): void;
-	addScopeReference(emt: VariableAssignElement): void;
-	addScopeDeclaration(emt: MethodElement | VariableDeclarationElement): void;
+	addScopedReference(emt: IdentifierElement): void;
+	addScopedDeclaration(emt: MethodElement | VariableDeclarationElement): void;
+	pushScopeElement(emt: MethodElement): void;
+	popScopeElement(): void;
 }
 
 
@@ -80,10 +82,16 @@ class VbaTreeWalkListener implements vbaListener {
 		this.resultsContainer.addElement(
 			new MethodElement(ctx, this.doc));
 
+	exitSubStmt = (_: SubStmtContext) =>
+		this.resultsContainer.popScopeElement();
+
 	enterFunctionStmt = (ctx: FunctionStmtContext) => {
 		const e = new MethodElement(ctx, this.doc);
-		this.resultsContainer.addScopeDeclaration(e);
+		this.resultsContainer.addScopedDeclaration(e);
 	};
+
+	exitFunctionStmt = (_: FunctionStmtContext) =>
+		this.resultsContainer.popScopeElement();
 
 	enterEnumerationStmt = (ctx: EnumerationStmtContext) =>
 		this.resultsContainer.addElement(
@@ -99,23 +107,31 @@ class VbaTreeWalkListener implements vbaListener {
 	private enterVarOrConstStmt(ctx: VariableStmtContext | ConstStmtContext) {
 		const declaration = new VariableStatementElement(ctx, this.doc);
 		this.resultsContainer.addElement(declaration);
-		declaration.variableList.forEach((v) => this.resultsContainer.addScopeDeclaration(v));
+		declaration.variableList.forEach((v) => this.resultsContainer.addScopedDeclaration(v));
 	}
 
-	enterImplicitCallStmt_InStmt = (ctx: ImplicitCallStmt_InStmtContext) => this.enterImplicitCallStmt(ctx);
-	enterImplicitCallStmt_InBlock = (ctx: ImplicitCallStmt_InBlockContext) => this.enterImplicitCallStmt(ctx);
+	// enterImplicitCallStmt_InStmt = (ctx: ImplicitCallStmt_InStmtContext) => this.enterImplicitCallStmt(ctx);
+	// enterImplicitCallStmt_InBlock = (ctx: ImplicitCallStmt_InBlockContext) => this.enterImplicitCallStmt(ctx);
 
-	private enterImplicitCallStmt(ctx: ImplicitCallStmt_InStmtContext | ImplicitCallStmt_InBlockContext) {
-		// console.log('imp call ' + ctx.text);
+	// private enterImplicitCallStmt(ctx: ImplicitCallStmt_InStmtContext | ImplicitCallStmt_InBlockContext) {
+	// 	// console.log('imp call ' + ctx.text);
+	// }
+
+	enterCertainIdentifier = (ctx: CertainIdentifierContext) => this.enterIdentifier(ctx);
+	enterAmbiguousIdentifier = (ctx: AmbiguousIdentifierContext) => this.enterIdentifier(ctx);
+
+	private enterIdentifier(ctx: CertainIdentifierContext | AmbiguousIdentifierContext) {
+		const ident = new IdentifierElement(ctx, this.doc);
+		this.resultsContainer.addScopedReference(ident);
 	}
 
-	enterLetStmt = (ctx: LetStmtContext) => this.enterAssignStmt(ctx);
-	enterSetStmt = (ctx: SetStmtContext) => this.enterAssignStmt(ctx);
+	// enterLetStmt = (ctx: LetStmtContext) => this.enterAssignStmt(ctx);
+	// enterSetStmt = (ctx: SetStmtContext) => this.enterAssignStmt(ctx);
 
-	private enterAssignStmt(ctx: LetStmtContext | SetStmtContext) {
-		const assignment = new VariableAssignElement(ctx, this.doc);
-		this.resultsContainer.addScopeReference(assignment);
-	}
+	// private enterAssignStmt(ctx: LetStmtContext | SetStmtContext) {
+	// 	const assignment = new VariableAssignElement(ctx, this.doc);
+	// 	this.resultsContainer.addScopedReference(assignment);
+	// }
 }
 
 class VbaErrorListener extends ConsoleErrorListener {
