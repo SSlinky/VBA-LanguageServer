@@ -14,8 +14,11 @@ repository:
       - include: "#comments"
       - include: "#moduleLines"
       - include: "#moduleHeader"
-      - include: "#method"
+      - include: "#enum"
+      - include: "#struct"
+      - include: "#mthdSig"
       - include: "#variableDeclarations"
+      - include: "#block"
       - include: "#testing"    
     repository:
       moduleLines:
@@ -33,6 +36,7 @@ repository:
       - include: "#operators"
       - include: "#keywords"
       - include: "#funcCall"
+      - include: "#subCall"
       - include: "#objectModel"
 
   lineContinuation:
@@ -44,6 +48,7 @@ repository:
       - include: "#string"
       - include: "#boolean"
       - include: "#number"
+      - include: "#hexadecimal"
     repository:
       string:
         name: string.quoted.double.vba
@@ -55,6 +60,9 @@ repository:
       number:
         name: constant.numeric.vba
         match: "-?\\d+\\.?\\d*"
+      hexadecimal:
+        name: constant.numeric.hex.vba
+        match: "(?i)&H[0-9a-f]+(&)?"
 
   operators:
     patterns:
@@ -83,6 +91,8 @@ repository:
   keywords:
     patterns:
       - include: "#kw-controlAs"
+      - include: "#kw-controlAs"
+      - include: "#kw-storageMe"
       - include: "#kw-flow"
       - include: "#kw-array"
       - include: "#kw-directives"
@@ -90,6 +100,14 @@ repository:
       kw-controlAs:
         name: keyword.control.as.vba
         match: "(?i)\\bas\\b"
+
+      kw-controlTo:
+        name: keyword.control.as.vba
+        match: "(?i)\\bto\\b"
+
+      kw-storageMe:
+        name: keyword.storage.me.vba
+        match: "(?i)\\bme\\b"
 
       kw-flow:
         patterns:
@@ -100,7 +118,6 @@ repository:
           - include: "#flowBranch"
         repository:
           flowDecision:
-            # TODO make block versions
             name: keyword.control.flow.decision.vba
             match: "(?i)\\b(if|then|elseif|else|end if|select case|case|switch|end select)\\b"
 
@@ -114,7 +131,7 @@ repository:
 
           flowPauseExit:
             name: keyword.control.flow.other.vba
-            match: "(?i)\\b(doevents|end|exit\\s+sub|exit\\s+function|exit\\s+property|stop)\\b"
+            match: "(?i)\\b(doevents|end(?! property)|exit\\s+sub|exit\\s+function|exit\\s+property|stop)\\b"
             
           flowBranch:
             patterns:
@@ -145,7 +162,7 @@ repository:
 
       kw-array:
         name: keyword.array.vba
-        match: "(?i)\\b(redim|erase)\\b"
+        match: "(?i)\\b(redim|erase)(\\s+preserve)?\\b"
 
       kw-directives:
         patterns:
@@ -244,24 +261,45 @@ repository:
   arguments:
     name: source.args.vba
     patterns:
+      - include: "#lineContinuation"
+      - include: "#paramArray"
       - include: "#funcCall"
+      - include: "#subCall"
       - include: "#argsVariable"
       - include: "#argsLiteral"
       - include: "#language"
     repository:
       argsVariable:
-        match: "(?i),?\\s*([a-z][a-z0-9_]*)(?:\\s*(\\bas\\s+[a-z][a-z0-9_]*))?\\b"
+        match: "(?i),?\\s*(Optional\\s+)?((?:ByVal|ByRef)\\s+)?([a-z][a-z0-9_]*)(?:\\s*(\\bas\\s+[a-z][a-z0-9_]*))?\\b(\\s+=\\s+[^,)]*)?"
         captures:
           1:
-            name: variable.parameter.vba
+            name: storage.type.modifier.vba
           2:
+            name: storage.type.modifier.vba
+          3:
+            name: variable.parameter.vba
+          4:
             patterns:
               - include: "#types"
+          5:
+            patterns:
+              - include: "#language"
 
       argsLiteral:
         match: "(?i),?\\s*([a-z0-9\"]*)\\b"
         captures:
           1:
+            patterns:
+              - include: "#types"
+
+      paramArray:
+        match: "(?i)(ParamArray)\\s+([a-z][a-z0-9_]*)(\\(\\))(\\s+As\\s+Variant)"
+        captures:
+          1:
+            name: storage.type.array.vba
+          2:
+            name: variable.other.readwrite.vba
+          4:
             patterns:
               - include: "#types"
 
@@ -315,33 +353,88 @@ repository:
         name: keyword.control.vba
         match: "(?i)^\\s*Option\\s+(Explicit|Base|Private\\s+Module)\\b"
 
-  method:
-    name: source.method.vba
-    # TODO: rethink how this can be done to support line continuation.
-    begin: "(?i)^\\s*((?:Public|Private)?\\b\\s*(?:Sub|Function))\\s+([A-Z][A-Z0-9_]*)\\s*(\\()(.*)(\\))\\s+(as\\s+[A-Z][A-Z0-9_]*)?"
+  enum:
+    name: meta.enum.declaration.vba
+    begin: "(?i)^\\s*((?:(?:Public|Private) )?\\s*Enum)\\s+([a-z][a-z0-9_]*)"
     beginCaptures:
-      #TODO move this to a method signature pattern
+      1:
+        name: storage.type.enum.vba
+      2:
+        name: entity.name.type.enum.vba
+    patterns:
+      - include: "#enumDeclaration"
+    end: "(?i)^\\s*End\\s+Enum\\b"
+    endCaptures:
+      0:
+        name: storage.type.enum.vba
+  
+  enumDeclaration:
+    match: "(?i)^\\s*([a-z][a-z0-9_]*)(\\s+=.*)?('.*)?$"
+    captures:
+      1:
+        name: constant.numeric.enum.vba
+      2:
+        patterns:
+          - include: "#language"
+      3:
+        patterns:
+          - include: "#comment"
+
+  struct:
+    name: meta.struct.declaration.vba
+    begin: "(?i)^\\s*((?:(?:Public|Private) )?\\s*Type)\\s+([a-z][a-z0-9_]*)"
+    beginCaptures:
+      1:
+        name: storage.type.struct.vba
+      2:
+        name: entity.name.type.struct.vba
+    patterns:
+      - include: "#structProperty"
+
+    end: "(?i)^\\s*End\\s+Type\\b"
+    endCaptures:
+      0:
+        name: storage.type.struct.vba
+
+  structProperty:
+    match: "(?i)^\\s*([a-z][a-z0-9_]*)(\\(.*\\))?(\\s+As\\s+[a-z][a-z0-9_]*)?"
+    captures:
+      1:
+        # Property
+        name: variable.other.readwrite.vba
+      2:
+        # Array bounds?
+        patterns:
+          - include: "#language"
+      3:
+        # As Type
+        patterns:
+          - include: "#types"
+
+  mthdSig:
+    name: source.method.signature.vba
+    begin: "(?i)^\\s*((?:Public|Private)?\\b\\s*(?:(?:Sub|Function)|Property\\s+(?:Let|Get|Set)))\\s+([a-z][a-z0-9_]*)\\s*(\\()"
+    end: "(?i)(\\))\\s+(as\\s+[a-z][a-z0-9_]*)?"
+    beginCaptures:
       1:
         name: storage.type.method.vba
       2: # name
         name: entity.name.function.vba
       3:
         name: punctuation.definition.parameters.begin.vba
-      4: # args
-        patterns:
-          - include: "#arguments"
-      5:
+    endCaptures:
+      1:
         name: punctuation.definition.parameters.end.vba
-      6: # return type
+      2: # return type
         patterns:
           - include: "#types"
 
-    end: "(?i)^End (Sub|Function)\\b"
-    endCaptures:
-      0:
-        name: storage.type.method.vba
     patterns:
-      - include: "#block"
+      - include: "#arguments"
+    
+  mthdClose:
+    name: storage.type.method.vba
+    match: "(?i)^\\s*End\\s+(Sub|Function|Property)"
 
   block:
     patterns:
@@ -352,6 +445,8 @@ repository:
       - include: "#variableDeclarations"
       - include: "#variableAssignment"
       - include: "#funcCall"
+      - include: "#subCall"
+      - include: "#mthdClose"
       - include: "#language"
 
     repository:
@@ -419,22 +514,52 @@ repository:
       3:
         patterns:
           - include: "#funcCall"
+          - include: "#subCall"
           - include: "#language"
 
   funcCall:
+    name: meta.function.call.vba
     begin: "(?i)([a-z][a-z0-9_]*)\\("
+    end: "\\)"
     beginCaptures:
       1:
         name: entity.name.function.call.vba
-    end: "\\)"
     patterns:
       # These calls need to be back to a top level group because
       # textMate does not seem to support a repository in a begin/end
       - include: "#args"
       - include: "#arg"
+      - include: "#lineContinuation"
+
+  subCall:
+    # TODO: Better way to do this.
+    # Captures sub calls with two or more args.
+    # Required because they break properties somehow.
+    begin: "(?i)([a-z][a-z0-9_]*)\\s+(.*,.*)"
+    beginCaptures:
+      1:
+        name: entity.name.function.call.vba
+      2:
+        patterns:
+          - include: "#args"
+          - include: "#arg"
+    patterns:
+      - include: "#args"
+      - include: "#arg"
+    end: "\\n"
+
+  subCallMultiLine:
+    begin: "(?i)([a-z][a-z0-9_]*)\\s+_\\s*['\\n]"
+    beginCaptures:
+      1:
+        name: entity.name.function.call.vba
+    patterns:
+      - include: "#args"
+    end: "\\n"
+
 
   args:
-    # The match gates gates an args list. It is not consumed by the
+    # The match gates an args list. It is not consumed by the
     # match immediately because it is passed through captures which
     # handles args separately.
     match: ".*,.*"
@@ -456,9 +581,18 @@ repository:
 
   arg:
     patterns:
+      - include: "#kwarg"
       - include: "#lineConcat"
       - include: "#language"
 
+  kwarg:
+    match: "(?i)([a-z][a-z0-9_]*)(:=.*)"
+    captures:
+      1:
+        name: variable.parameter.function-call.vba
+      2:
+        patterns:
+          - include: "#arg"
 
   testing:
     patterns:
