@@ -242,8 +242,10 @@ forNextStmt:
 
 functionStmt:
 	(visibility WS)? (STATIC WS)? FUNCTION WS? ambiguousIdentifier typeHint? (
-		WS? argList
-	)? (WS? asTypeClause)? endOfStatement block? END_FUNCTION;
+		WS? argList )? (WS? asTypeClause)? endOfStatement
+	(attributeStmt endOfLine)?
+	(docstringStmt endOfLine)?
+	block? END_FUNCTION;
 
 getStmt:
 	GET WS fileNumber WS? ',' WS? valueStmt? WS? ',' WS? valueStmt;
@@ -360,20 +362,31 @@ outputList_Expression:
 
 printStmt: PRINT WS fileNumber WS? ',' (WS? outputList)?;
 
+// TODO: endOfStatement is consuming multiple endOfLines, including comments.
+// 		 If there are no attributes, the docstring is parsed in endOfLines.
 propertyGetStmt:
 	(visibility WS)? (STATIC WS)? PROPERTY_GET WS ambiguousIdentifier typeHint? (
 		WS? argList
-	)? (WS asTypeClause)? endOfStatement block? END_PROPERTY;
+	)? (WS asTypeClause)? endOfStatement
+	(attributeStmt endOfLine)?
+	(docstringStmt endOfLine)?
+	block? END_PROPERTY;
 
 propertySetStmt:
 	(visibility WS)? (STATIC WS)? PROPERTY_SET WS ambiguousIdentifier (
 		WS? argList
-	)? endOfStatement block? END_PROPERTY;
+	)? endOfStatement
+	(attributeStmt endOfLine)?
+	(docstringStmt endOfLine)?
+	block? END_PROPERTY;
 
 propertyLetStmt:
 	(visibility WS)? (STATIC WS)? PROPERTY_LET WS ambiguousIdentifier (
 		WS? argList
-	)? endOfStatement block? END_PROPERTY;
+	)? endOfStatement
+	(attributeStmt endOfLine)?
+	(docstringStmt endOfLine)?
+	block? END_PROPERTY;
 
 putStmt:
 	PUT WS fileNumber WS? ',' WS? valueStmt? WS? ',' WS? valueStmt;
@@ -438,7 +451,10 @@ stopStmt: STOP;
 subStmt:
 	(visibility WS)? (STATIC WS)? SUB WS? ambiguousIdentifier (
 		WS? argList
-	)? endOfStatement block? END_SUB;
+	)?
+	(attributeStmt endOfLine)?
+	(docstringStmt endOfLine)?
+	block? END_SUB;
 
 timeStmt: TIME WS? EQ WS? valueStmt;
 
@@ -805,7 +821,7 @@ ambiguousKeyword:
 remComment: REMCOMMENT;
 
 comment: COMMENT;
-
+docstringStmt: (WS? (COMMENT | REMCOMMENT) WS? NEWLINE*)+;
 endOfLine: WS? (NEWLINE | comment | remComment) WS?;
 
 endOfStatement: (endOfLine | WS? COLON WS?)*;
