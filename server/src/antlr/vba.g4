@@ -1112,7 +1112,8 @@ fragment AMPM: WS? (A M | P M | A | P);
 
 // whitespace, line breaks, comments, ...
 LINE_CONTINUATION: [ \t]+ UNDERSCORE '\r'? '\n' WS* -> skip;
-NEWLINE: [\r\n\u2028\u2029]+;
+SINGLENEWLINE: [\r\n\u2028\u2029];
+NEWLINE: (SINGLENEWLINE)+;
 REMCOMMENT:
 	COLON? REM WS (LINE_CONTINUATION | ~[\r\n\u2028\u2029])*;
 COMMENT: SINGLEQUOTE (LINE_CONTINUATION | ~[\r\n\u2028\u2029])*;
