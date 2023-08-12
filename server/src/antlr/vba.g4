@@ -148,7 +148,8 @@ foldingBlockStmt:
 	| forNextStmt
 	| selectCaseStmt
 	| whileWendStmt
-	| withStmt;
+	| withStmt
+	| ifThenElseStmt;
 
 // statements ----------------------------------
 
