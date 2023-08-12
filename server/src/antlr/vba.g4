@@ -541,7 +541,7 @@ iCS_B_MemberProcedureCall:
 // parantheses are forbidden in case of args variables cannot be called in blocks certainIdentifier
 // instead of ambiguousIdentifier for preventing ambiguity with statement keywords
 iCS_B_ProcedureCall:
-	certainIdentifier (WS argsCall)? (
+	certainIdentifier (WS? argsCall)? (
 		WS? LPAREN subscripts RPAREN
 	)*;
 
@@ -578,12 +578,12 @@ iCS_S_DictionaryCall: dictionaryCallStmt;
 
 // atomic call statements ----------------------------------
 
-argsCall: (argCall? WS? (',' | ';') WS?)* argCall (
+argsCall: (WS? argCall? WS? (',' | ';') WS?)* argCall (
 		WS? (',' | ';') WS? argCall?
 	)*;
 
 argCall:
-	LPAREN? ((BYVAL | BYREF | PARAMARRAY) WS)? RPAREN? valueStmt;
+	LINE_CONTINUATION? LPAREN? ((BYVAL | BYREF | PARAMARRAY) WS)? RPAREN? valueStmt;
 
 dictionaryCallStmt: '!' ambiguousIdentifier typeHint?;
 
@@ -1042,7 +1042,7 @@ XOR: X O R;
 
 // symbols
 AMPERSAND: '&';
-ASSIGN: ' :=';
+ASSIGN: ':=';
 DIV: '\\' | '/';
 EQ: '=';
 GEQ: '>=';
