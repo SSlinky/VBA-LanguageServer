@@ -60,11 +60,8 @@ moduleBody:
 	moduleBodyElement (endOfLine+ moduleBodyElement)* endOfLine*;
 
 moduleBodyElement:
-	functionStmt
-	| propertyGetStmt
-	| propertySetStmt
-	| propertyLetStmt
-	| subStmt
+	methodStmt
+	| propertyStmt
 	| macroStmt;
 
 // block ----------------------------------
@@ -240,12 +237,6 @@ forNextStmt:
 		WS STEP WS valueStmt
 	)? endOfStatement block? NEXT (WS ambiguousIdentifier)?;
 
-functionStmt:
-	(visibility WS)? (STATIC WS)? FUNCTION WS? ambiguousIdentifier typeHint? (
-		WS? argList )? (WS? asTypeClause)?
-		methodBlock
-		END_FUNCTION;
-
 getStmt:
 	GET WS fileNumber WS? ',' WS? valueStmt? WS? ',' WS? valueStmt;
 
@@ -361,33 +352,45 @@ outputList_Expression:
 
 printStmt: PRINT WS fileNumber WS? ',' (WS? outputList)?;
 
-methodBlock: (comment | remComment)? NEWLINE
-	(attributeStmt endOfLine)?
-	(docstringStmt endOfLine)?
-	block?;
-
-// TODO: endOfStatement is consuming multiple endOfLines, including comments.
-// 		 If there are no attributes, the docstring is parsed in endOfLines.
-propertyGetStmt:
-	(visibility WS)? (STATIC WS)? PROPERTY_GET WS ambiguousIdentifier typeHint? (
-		WS? argList
-	)? (WS asTypeClause)?
+methodStmt:
+	methodSignatureStmt
 	methodBlock
-	END_PROPERTY;
+	methodEndStmt
+	;
 
-propertySetStmt:
-	(visibility WS)? (STATIC WS)? PROPERTY_SET WS ambiguousIdentifier (
-		WS? argList
-	)?
+propertyStmt:
+	propertySignatureStmt
 	methodBlock
-	END_PROPERTY;
+	methodEndStmt
+	;
 
-propertyLetStmt:
-	(visibility WS)? (STATIC WS)? PROPERTY_LET WS ambiguousIdentifier (
-		WS? argList
-	)?
-	methodBlock
-	END_PROPERTY;
+methodSignatureStmt:
+	(visibility WS)?
+	(STATIC WS)?
+	(SUB|FUNCTION) WS?
+	ambiguousIdentifier typeHint?
+	(WS? argList)
+	(WS? asTypeClause)?
+	;
+
+propertySignatureStmt:
+	(visibility WS)?
+	(STATIC WS)?
+	(PROPERTY_GET|PROPERTY_LET|PROPERTY_SET) WS?
+	ambiguousIdentifier typeHint?
+	(WS? argList)
+	(WS? asTypeClause)?
+	;
+
+methodBlock: endOfStatement
+    (attributeStmt endOfLine)?   // Optional attribute statement
+    (docstringStmt endOfLine)?   // Optional docstring statement
+    block?                       // Optional method body
+    ;
+
+methodEndStmt:
+	(END_SUB | END_FUNCTION | END_PROPERTY)
+	;
 
 putStmt:
 	PUT WS fileNumber WS? ',' WS? valueStmt? WS? ',' WS? valueStmt;
@@ -448,13 +451,6 @@ setattrStmt: SETATTR WS valueStmt WS? ',' WS? valueStmt;
 setStmt: SET WS implicitCallStmt_InStmt WS? EQ WS? valueStmt;
 
 stopStmt: STOP;
-
-subStmt:
-	(visibility WS)? (STATIC WS)? SUB WS? ambiguousIdentifier (
-		WS? argList
-	)?
-	methodBlock
-	END_SUB;
 
 timeStmt: TIME WS? EQ WS? valueStmt;
 
