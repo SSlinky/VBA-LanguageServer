@@ -21,9 +21,6 @@
 	"engines": {
 		"vscode": "^1.63.0"
 	},
-	"activationEvents": [
-		"onLanguage:vba"
-	],
 	"main": "./client/out/extension",
 	"contributes": {
 		"languages": [
