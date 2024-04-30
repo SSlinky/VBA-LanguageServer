@@ -1,12 +1,12 @@
 import { ParserRuleContext } from 'antlr4ts';
 import { Diagnostic, FoldingRange, Hover, Location, Range, SemanticTokenModifiers, SemanticTokenTypes, SymbolInformation, SymbolKind, uinteger } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
-import { AmbiguousIdentifierContext, AttributeStmtContext, BaseTypeContext, ComplexTypeContext, ConstStmtContext, ConstSubStmtContext, EnumerationStmtContext, EnumerationStmt_ConstantContext, FunctionStmtContext, LetStmtContext, LiteralContext, ModuleContext, SetStmtContext, SubStmtContext, VariableStmtContext, VariableSubStmtContext } from '../antlr/out/vbaParser';
+import { AmbiguousIdentifierContext, AttributeStmtContext, BaseTypeContext, ComplexTypeContext, ConstStmtContext, ConstSubStmtContext, EnumerationStmtContext, EnumerationStmt_ConstantContext, FunctionStmtContext, ICS_S_VariableOrProcedureCallContext, LiteralContext, ModuleContext, SubStmtContext, VariableStmtContext, VariableSubStmtContext } from '../antlr/out/vbaParser';
 import { SemanticToken } from '../capabilities/vbaSemanticTokens';
 import { vbaTypeToSymbolConverter } from './converters';
 import { stripQuotes } from './helpers';
 
-export {SyntaxElement, UnknownElement, ModuleElement, ModuleAttribute, MethodElement, EnumElement, EnumConstant, VariableStatementElement, VariableDeclarationElement, VariableAssignElement, IdentifierElement};
+export {SyntaxElement, IdentifiableSyntaxElement, UnknownElement, ModuleElement, ModuleAttribute, MethodDeclarationElement as MethodElement, EnumElement, EnumConstant, VariableDeclarationStatementElement as VariableStatementElement, VariableDeclarationElement, IdentifierElement};
 
 interface SyntaxElement {
 	uri: string;
@@ -32,7 +32,8 @@ interface SyntaxElement {
 	addDiagnostics(diagnostics: Diagnostic[]): void;
 }
 
-interface Identifiable {
+interface IdentifiableSyntaxElement {
+	identifier: IdentifierElement;
 	ambiguousIdentifier(): AmbiguousIdentifierContext;
 	ambiguousIdentifier(i: number): AmbiguousIdentifierContext;
 }
@@ -59,7 +60,6 @@ abstract class BaseElement implements SyntaxElement {
 		this.context = ctx;
 		this.range = getCtxRange(ctx, doc);
 		this.text = ctx.text;
-		this.setIdentifierFromDoc(doc);
 		this.symbolKind = SymbolKind.Null;
 		this.hoverText = '';
 	}
@@ -107,17 +107,14 @@ abstract class BaseElement implements SyntaxElement {
 		this.diagnostics = this.diagnostics.concat(diagnostics);
 	}
 
-	private setIdentifierFromDoc(doc: TextDocument): void {
-		if (this.isIdentifiable(this.context)) {
-			const identCtx = this.context.ambiguousIdentifier(0);
-			if (identCtx) {
-				this.identifier = new IdentifierElement(identCtx, doc);
-			}
-		}
-	}
-
-	private isIdentifiable = (o: any): o is Identifiable =>
-		'ambiguousIdentifier' in o;
+	// protected setIdentifierFromDoc(doc: TextDocument): void {
+	// 	if (this.isIdentifiable(this.context)) {
+	// 		const identCtx = this.context.ambiguousIdentifier(0);
+	// 		if (identCtx) {
+	// 			this.identifier = new IdentifierElement(identCtx, doc);
+	// 		}
+	// 	}
+	// }
 
 	private getParent(): BaseElement | undefined {
 		if (this.parent) {
@@ -172,15 +169,15 @@ class ModuleElement extends BaseElement {
 	}
 }
 
-class MethodElement extends BaseElement {
+class MethodDeclarationElement extends BaseElement {
+	identifier: IdentifierElement;
 	returnType: TypeContext | undefined;
 	hasPrivateModifier = false;
-	private doc: TextDocument;
 
 	constructor(ctx: FunctionStmtContext | SubStmtContext, doc: TextDocument) {
 		super(ctx, doc);
-		this.doc = doc;
 		this.hasPrivateModifier = !!(ctx.visibility()?.PRIVATE());
+		this.identifier = getIdentifier(ctx, doc);
 		if (ctx instanceof FunctionStmtContext) {
 			this.returnType = this.getReturnType(doc);
 			this.symbolKind = SymbolKind.Function;
@@ -225,6 +222,16 @@ class MethodElement extends BaseElement {
 	}
 }
 
+class MethodCallElement extends BaseElement {
+	/**
+	 *
+	 */
+	constructor(ctx: ICS_S_VariableOrProcedureCallContext, doc: TextDocument) {
+		super(ctx, doc);
+		
+	}
+}
+
 class EnumElement extends BaseElement {
 	constructor(ctx: EnumerationStmtContext, doc: TextDocument) {
 		super(ctx, doc);
@@ -247,7 +254,7 @@ class EnumConstant extends BaseElement {
 	}
 }
 
-class VariableStatementElement extends BaseElement {
+class VariableDeclarationStatementElement extends BaseElement {
 	variableList: VariableDeclarationElement[] = [];
 	hasPrivateModifier = false;
 	foldingRange = () => undefined;
@@ -300,10 +307,12 @@ class VariableStatementElement extends BaseElement {
 
 class VariableDeclarationElement extends BaseElement {
 	asType: TypeContext | undefined;
+	identifier: IdentifierElement;
 	hasPrivateModifier = false;
 
 	constructor(ctx: VariableSubStmtContext | ConstSubStmtContext, doc: TextDocument, tokenModifiers: SemanticTokenModifiers[], hasPrivateModifier: boolean) {
 		super(ctx, doc);
+		this.identifier = getIdentifier(ctx, doc);
 		this.hasPrivateModifier = hasPrivateModifier;
 		this.asType = TypeContext.create(ctx, doc);
 		this.symbolKind = vbaTypeToSymbolConverter(this.asType?.text ?? 'variant');
@@ -322,18 +331,64 @@ class VariableDeclarationElement extends BaseElement {
 	}
 }
 
-class VariableAssignElement extends BaseElement {
-	constructor(ctx: LetStmtContext | SetStmtContext, doc: TextDocument) {
-		super(ctx, doc);
-		const callStmtContext = ctx.implicitCallStmt_InStmt();
-		const varOrProc = callStmtContext.iCS_S_VariableOrProcedureCall();
-		if (varOrProc) {
-			this.identifier = new IdentifierElement(varOrProc.ambiguousIdentifier(), doc);
-			return;
-		}
-	}
-	symbolInformation = (_: string) => undefined;
-}
+// class VariableElement extends BaseElement {
+// 	members: MemberElement[] = [];
+
+// 	constructor(ctx: ICS_S_VariableOrProcedureCallContext, doc: TextDocument) {
+// 		super(ctx, doc);
+		
+// 	}
+// }
+
+// class ValueElement extends BaseElement {
+// 	method?: MethodCallElement;
+// 	variable?: VariableElement;
+
+
+// 	constructor(ctx: ValueStmtContext, doc: TextDocument) {
+// 		super(ctx, doc);
+		
+// 	}
+// }
+
+// class VariableAssignElement extends BaseElement {
+// 	leftElement: VariableElement;
+// 	rightElement: ValueElement;
+
+// 	constructor(ctx: LetStmtContext | SetStmtContext, doc: TextDocument) {
+// 		super(ctx, doc);
+		
+// 		this.leftElement = this.getLeftHandVariable(doc);
+// 		this.rightElement = new ValueElement(ctx.valueStmt(), doc);
+		
+// 		const callStmtContext = ctx.implicitCallStmt_InStmt();
+// 		const varOrProc = callStmtContext.iCS_S_VariableOrProcedureCall();
+// 		const isProcedure = !!varOrProc?.subscripts();
+// 		if (isProcedure) {
+// 			//
+// 		} else {
+// 			this.rightElement = getVariableAssignment(ctx.valueStmt(), doc);
+// 		}
+// 	}
+
+// 	private getLeftHandVariable(doc: TextDocument): VariableElement {
+// 		const ctx = this.context as LetStmtContext | SetStmtContext;
+// 		const varElement = ctx.implicitCallStmt_InStmt().iCS_S_VariableOrProcedureCall();
+// 		if (!varElement) {
+// 			throw new Error('Context is not a variable.');
+// 		}
+// 		return new VariableElement(varElement, doc);
+// 	}
+
+// 	private getFromVpc(ctx: ICS_S_VariableOrProcedureCallContext, doc: TextDocument): VariableElement | MethodCallElement {
+// 		if (ctx.subscripts()) {
+// 			return new MethodCallElement(ctx, doc);
+// 		}
+// 		return new VariableElement(ctx, doc);
+// 	}
+
+// 	symbolInformation = (_: string) => undefined;
+// }
 
 class ModuleAttribute {
 	identifier?: IdentifierElement;
@@ -373,4 +428,16 @@ function getCtxRange(ctx: ParserRuleContext, doc: TextDocument): Range {
 	return Range.create(
 		doc.positionAt(start),
 		doc.positionAt(stop + 1));
+}
+
+function getIdentifier(ctx: ParserRuleContext, doc: TextDocument): IdentifierElement {
+	if (isIdentifiable(ctx)) {
+		return new IdentifierElement(
+			ctx.ambiguousIdentifier(0), doc);
+	}
+	throw new Error('Not an identifiable context');
+}
+
+function isIdentifiable(o: any): o is IdentifiableSyntaxElement {
+	return 'ambiguousIdentifier' in o;
 }

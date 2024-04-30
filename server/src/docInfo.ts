@@ -3,7 +3,7 @@ import { TextDocument } from 'vscode-languageserver-textdocument';
 import { LiteralContext } from './antlr/out/vbaParser';
 import { SemanticToken, sortSemanticTokens } from './capabilities/vbaSemanticTokens';
 import {  sleep, rangeIsChildOfElement } from './utils/helpers';
-import { IdentifierElement, MethodElement, ModuleAttribute, ModuleElement, SyntaxElement, VariableAssignElement, VariableDeclarationElement, VariableStatementElement } from './utils/vbaSyntaxElements';
+import { IdentifiableSyntaxElement, IdentifierElement, MethodElement, ModuleAttribute, ModuleElement, SyntaxElement, VariableDeclarationElement, VariableStatementElement } from './utils/vbaSyntaxElements';
 import { ResultsContainer, SyntaxParser } from './utils/vbaSyntaxParser';
 
 
@@ -151,15 +151,14 @@ export class DocumentInformation implements ResultsContainer {
 	elements: SyntaxElement[] = [];
 	attrubutes: Map<string, string> = new Map();
 	isBusy = true;
+	scope: Scope;
 	
 	private docUri: string;
 	private ancestors: SyntaxElement[] = [];
-	private localNames: Map<string, SyntaxElement> = new Map();
-	private documentScope: Scope;
 
 	constructor(scope: Scope, docUri: string) {
 		scope.links.set(docUri, new Map());
-		this.documentScope = scope;
+		this.scope = scope;
 		this.docUri = docUri;
 	}
 
@@ -208,7 +207,19 @@ export class DocumentInformation implements ResultsContainer {
 	// 	emt.hoverText = hoverText;
 	// }
 
-	addScopeDeclaration(emt: MethodElement | VariableDeclarationElement) {
+	/**
+	 * Use this method to set as the current scope.
+	 * @param emt The function, sub, or property to scope to.
+	 */
+	pushScopeElement(emt: MethodElement) {
+		this.addScopedDeclaration(emt);
+	}
+
+	popScopeElement() {
+		//
+	}
+
+	addScopedDeclaration(emt: MethodElement | VariableDeclarationElement) {
 		// Add a declared scope.
 		// this.addElement(emt);
 		const elId = emt.identifier!.text;
@@ -216,7 +227,7 @@ export class DocumentInformation implements ResultsContainer {
 		link.declarations.push(emt);
 
 		// Check the undeclared links and merge if found.
-		const undeclaredScope = this.documentScope.getScope(`undeclared|${this.docUri}`);
+		const undeclaredScope = this.scope.getScope(`undeclared|${this.docUri}`);
 		const undeclaredLink = undeclaredScope.get(elId);
 		if (undeclaredLink) {
 			link.merge(undeclaredLink);
@@ -226,7 +237,7 @@ export class DocumentInformation implements ResultsContainer {
 		this.addElement(emt);
 	}
 
-	addScopeReference(emt: VariableAssignElement) {
+	addScopedReference(emt: IdentifierElement) {
 		const link = this.getNameLink(emt.identifier!.text, emt.parent?.fqName ?? '', false, true);
 		link.references.push(emt);
 		this.addElement(emt);
@@ -247,8 +258,8 @@ export class DocumentInformation implements ResultsContainer {
 	}
 
 	private getScope(fqName: string, isPrivate: boolean): Map<string, NameLink> {
-		const globalScope = this.documentScope.getScope('global');
-		const localScope = this.documentScope.getScope(this.docUri);
+		const globalScope = this.scope.getScope('global');
+		const localScope = this.scope.getScope(this.docUri);
 
 		const isAtModuleLevel = (fqName ?? '') === this.docUri;
 		return (isAtModuleLevel && !isPrivate) ? globalScope : localScope;
@@ -257,17 +268,17 @@ export class DocumentInformation implements ResultsContainer {
 	private searchScopes(identifier: string): Map<string, NameLink> {
 		const scopeNames = [this.docUri, 'global'];
 		for (let i = 0; i < scopeNames.length; i++) {
-			const scope = this.documentScope.getScope(scopeNames[i]);
+			const scope = this.scope.getScope(scopeNames[i]);
 			if (scope.has(identifier)) {
 				return scope;
 			}
 		}
-		return this.documentScope.getScope(`undeclared|${this.docUri}`);
+		return this.scope.getScope(`undeclared|${this.docUri}`);
 	}
 
 
 	finalise() {
-		this.documentScope.processLinks(this.docUri, true);
+		this.scope.processLinks(this.docUri, true);
 		this.isBusy = false;
 	}
 
@@ -366,16 +377,30 @@ export class DocumentInformation implements ResultsContainer {
 class Scope {
 	// { docUri: { identifier: [ declarationElement, elementLink... ] } }
 	links: Map<string, Map<string, NameLink>> = new Map();
+	private subScopes: string[] = [];
+	private currentDoc = '';
 
 	constructor() {
 		this.links.set('global', new Map());
 	}
 
 	getScope(key: string): Map<string, NameLink> {
+		if (key !== this.currentDoc) {
+			this.currentDoc = key;
+			this.subScopes = ['module'];
+		}
 		if (!this.links.has(key)) {
 			this.links.set(key, new Map());
 		}
 		return this.links.get(key)!;
+	}
+
+	pushSubScope(namespace: string) {
+		this.subScopes.push(namespace);
+	}
+
+	popSubScope() {
+		this.subScopes.pop();
 	}
 
 	processLinks(key: string, optExplicit = false) {
@@ -481,5 +506,32 @@ class NameLink {
 
 	private validateMethodSignatures() {
 		// TODO: implement.
+	}
+}
+
+class Scope2 {
+	context: SyntaxElement;
+	parent?: Scope2;
+	nameRefs: Map<string, NameLink> = new Map();
+
+	constructor(ctx: SyntaxElement);
+	constructor(ctx: SyntaxElement, pnt: Scope2);
+	constructor(ctx: SyntaxElement, pnt?: Scope2) {
+		this.context = ctx;
+		this.parent = pnt;
+	}
+
+	addRef(ctx: IdentifiableSyntaxElement) {
+		const nameLink = this.getName(ctx.identifier.text);
+		// if dec
+
+		// if not dec
+	}
+
+	getName(identifier: string): NameLink {
+		if (!this.nameRefs.has(identifier)) {
+			this.nameRefs.set(identifier, new NameLink());
+		}
+		return this.nameRefs.get(identifier)!;
 	}
 }
