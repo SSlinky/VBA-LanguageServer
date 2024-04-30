@@ -9,7 +9,6 @@ import {
 	DidChangeConfigurationNotification,
 	TextDocumentSyncKind,
 	InitializeResult,
-	Hover,
 	SemanticTokensParams,
 } from 'vscode-languageserver/node';
 
@@ -90,14 +89,6 @@ connection.onInitialized(() => {
 		});
 	}
 });
-
-
-// connection.onHover(({textDocument, position}): Hover => {
-// 	// Can make this into a proper hover provider later.
-// 	return {
-// 		contents: "Hello, HOVER world!"
-// 	};
-// });
 
 // The example settings
 interface ExampleSettings {

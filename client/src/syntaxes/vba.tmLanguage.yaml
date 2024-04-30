@@ -582,6 +582,7 @@ repository:
   arg:
     patterns:
       - include: "#kwarg"
+      - include: "#literals"
       - include: "#lineConcat"
       - include: "#language"
 

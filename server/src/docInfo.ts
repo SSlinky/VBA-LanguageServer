@@ -1,11 +1,14 @@
-import { CompletionItem, Diagnostic, DiagnosticRelatedInformation, DiagnosticSeverity, DidChangeConfigurationParams, DidChangeWatchedFilesParams, DocumentSymbol, FoldingRange, Hover, HoverParams, Location, NotificationHandler, Position, PublishDiagnosticsParams, Range, SemanticTokenModifiers, SemanticTokens, SemanticTokensParams, SemanticTokensRangeParams, SemanticTokensRequest, SymbolInformation, SymbolKind, TextDocumentPositionParams, TextDocuments, uinteger, _Connection } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
-import { LiteralContext } from './antlr/out/vbaParser';
-import { SemanticToken, sortSemanticTokens } from './capabilities/vbaSemanticTokens';
-import {  sleep, rangeIsChildOfElement } from './utils/helpers';
-import { IdentifiableSyntaxElement, IdentifierElement, MethodElement, ModuleAttribute, ModuleElement, SyntaxElement, VariableDeclarationElement, VariableStatementElement } from './utils/vbaSyntaxElements';
-import { ResultsContainer, SyntaxParser } from './utils/vbaSyntaxParser';
 
+import { MethodElement } from './parser/elements/method';
+import { ModuleElement } from './parser/elements/module';
+import { sortSemanticTokens } from './capabilities/vbaSemanticTokens';
+import { sleep, rangeIsChildOfElement } from './utils/helpers';
+import { FoldableElement, SyntaxElement } from './parser/elements/base';
+import { ResultsContainer, SyntaxParser } from './parser/vbaSyntaxParser';
+import { VariableAssignElement, VariableDeclarationElement, VariableStatementElement } from './parser/elements/variable';
+
+import { CompletionItem, Diagnostic, DiagnosticRelatedInformation, DiagnosticSeverity, DidChangeConfigurationParams, DidChangeWatchedFilesParams, DocumentSymbol, FoldingRange, Hover, HoverParams, Location, NotificationHandler, Position, PublishDiagnosticsParams, Range, SemanticTokenModifiers, SemanticTokens, SemanticTokensParams, SemanticTokensRangeParams, SemanticTokensRequest, SymbolInformation, SymbolKind, TextDocumentPositionParams, TextDocuments, uinteger, _Connection } from 'vscode-languageserver';
 
 declare global {
 	interface Map<K, V> {
@@ -150,22 +153,28 @@ export class DocumentInformation implements ResultsContainer {
 	module?: ModuleElement;
 	elements: SyntaxElement[] = [];
 	attrubutes: Map<string, string> = new Map();
+	foldingRanges: FoldingRange[] = [];
 	isBusy = true;
-	scope: Scope;
-	
+
 	private docUri: string;
 	private ancestors: SyntaxElement[] = [];
+	private documentScope: Scope;
 
 	constructor(scope: Scope, docUri: string) {
-		scope.links.set(docUri, new Map());
-		this.scope = scope;
 		this.docUri = docUri;
+		scope.links.set(docUri, new Map());
+		this.docUri = docUri;
+		this.documentScope = scope;
 	}
 
 	addModule(emt: ModuleElement) {
 		this.module = emt;
 		this.elements.push(emt);
 		this.ancestors.push(emt);
+	}
+
+	addFoldingRange(emt: FoldableElement) {
+		this.foldingRanges.push(emt.foldingRange()!);
 	}
 
 	addElement(emt: SyntaxElement) {
@@ -177,7 +186,6 @@ export class DocumentInformation implements ResultsContainer {
 				pnt.children.push(emt);
 				this.ancestors.push(pnt);
 				this.ancestors.push(emt);
-				emt.fqName = pnt.fqName;
 				break;
 			}
 		}
@@ -189,23 +197,11 @@ export class DocumentInformation implements ResultsContainer {
 		// Also add identifier elements
 		if (emt.identifier) {
 			this.addElement(emt.identifier);
-			emt.fqName = `${(emt.fqName ?? '')}.${emt.identifier.text}`;
+			// emt.fqName = `${(emt.fqName ?? '')}.${emt.identifier.text}`;
 		}
-	}
 
-	// addName(ident: IdentifierElement, emt: MethodElement | VariableStatementElement) {
-	// 	const scope = this.documentScope.links.get(this.docUri)!;
-	// 	const hoverText = emt.getHoverText();
-	// 	if (scope.has(ident.text)) {
-	// 		const scopeEls = scope.get(ident.text)!;
-	// 		scopeEls[0] = emt;
-	// 		scopeEls.filter((x): x is SyntaxElement => !!(x))
-	// 			.forEach((x) => x.hoverText = hoverText);
-	// 		return;
-	// 	}
-	// 	scope.set(ident.text, [emt]);
-	// 	emt.hoverText = hoverText;
-	// }
+		return this;
+	}
 
 	/**
 	 * Use this method to set as the current scope.
@@ -221,9 +217,8 @@ export class DocumentInformation implements ResultsContainer {
 
 	addScopedDeclaration(emt: MethodElement | VariableDeclarationElement) {
 		// Add a declared scope.
-		// this.addElement(emt);
 		const elId = emt.identifier!.text;
-		const link = this.getNameLink(elId, emt.parent?.fqName ?? '', emt.hasPrivateModifier);
+		const link = this.getNameLink(elId, emt.parent?.namespace ?? '', emt.hasPrivateModifier);
 		link.declarations.push(emt);
 
 		// Check the undeclared links and merge if found.
@@ -233,14 +228,20 @@ export class DocumentInformation implements ResultsContainer {
 			link.merge(undeclaredLink);
 			undeclaredScope.delete(elId);
 		}
-
-		this.addElement(emt);
 	}
 
-	addScopedReference(emt: IdentifierElement) {
-		const link = this.getNameLink(emt.identifier!.text, emt.parent?.fqName ?? '', false, true);
-		link.references.push(emt);
-		this.addElement(emt);
+	// addScopeReference(emt: VariableAssignElement) {
+	// 	const link = this.getNameLink(emt.identifier!.text, emt.parent?.namespace ?? '', false, true);
+	// 	link.references.push(emt);
+	// }
+
+	/**
+	 * Creates scope references for the left and right sides
+	 * of the variable assignment if they exist.
+	 * @param emt the variable assignment element.
+	 */
+	addScopeReferences(emt: VariableAssignElement) {
+		throw new Error("Not implemented exception");
 	}
 
 	private getNameLink(identifier: string, fqName: string, isPrivate = false, searchScopes = false): NameLink {
@@ -261,7 +262,7 @@ export class DocumentInformation implements ResultsContainer {
 		const globalScope = this.scope.getScope('global');
 		const localScope = this.scope.getScope(this.docUri);
 
-		const isAtModuleLevel = (fqName ?? '') === this.docUri;
+		const isAtModuleLevel = !(fqName ?? '').includes('.');
 		return (isAtModuleLevel && !isPrivate) ? globalScope : localScope;
 	}
 
@@ -278,17 +279,18 @@ export class DocumentInformation implements ResultsContainer {
 
 
 	finalise() {
-		this.scope.processLinks(this.docUri, true);
+		// TODO: Intelligently pass opt. explicit.
+		this.documentScope.processLinks(this.docUri, true);
 		this.isBusy = false;
 	}
 
-	setModuleAttribute = (attr: ModuleAttribute) =>
-		this.attrubutes.set(attr.key(), attr.value());
+	// setModuleAttribute = (attr: ModuleAttribute) =>
+	// 	this.attrubutes.set(attr.key(), attr.value());
 
-	setModuleIdentifier(ctx: LiteralContext, doc: TextDocument) {
-		if (this.module)
-			this.module.identifier = new IdentifierElement(ctx, doc);
-	}
+	// setModuleIdentifier(ctx: LiteralContext, doc: TextDocument) {
+	// 	if (this.module)
+	// 		this.module.identifier = new IdentifierElement(ctx, doc);
+	// }
 
 	getHover = (p: Position) =>
 		this.getElementAtPosition(p)?.hover();
@@ -323,7 +325,7 @@ export class DocumentInformation implements ResultsContainer {
 		// Filter eligible parents by range.
 		let parents = this.elements.filter((x) => rangeIsChildOfElement(r, x));
 		if (parents.length === 0) { return; }
-		if (parents.length === 1) { return parents[0]; }
+		if (parents.length === 1) { console.log(`hover@${r.toString()}: ${parents[0].identifier?.text}`); return parents[0]; }
 
 		// Narrow parents down to the one(s) with the narrowest row scope.
 		// In the incredibly unlikely case that we have two parents with the same number of rows
@@ -331,6 +333,7 @@ export class DocumentInformation implements ResultsContainer {
 		const minRows = Math.min(...parents.map((x) => x.range.end.line - x.range.start.line));
 		parents = parents.filter((x) => x.range.end.line - x.range.start.line === minRows);
 		if (parents.length === 1 || minRows > 0) {
+			console.log(`hover@${this.rangeAddress(r)}: ${parents[0].toString()}`);
 			return parents[0];
 		}
 
@@ -358,7 +361,7 @@ export class DocumentInformation implements ResultsContainer {
 	}
 
 	getDiagnostics(): PublishDiagnosticsParams {
-		return {uri: this.docUri, diagnostics: this.elements.map((e) => e.diagnostics).flat(1)};
+		return { uri: this.docUri, diagnostics: this.elements.map((e) => e.diagnostics).flat(1) };
 	}
 
 	getSymbols = (uri: string): SymbolInformation[] =>
@@ -367,11 +370,26 @@ export class DocumentInformation implements ResultsContainer {
 			.map((x) => x.symbolInformation(uri))
 			.filter((x): x is SymbolInformation => !!x);
 
+	// getFoldingRanges = (): (FoldingRange)[] =>
+	// 	this.elements
+	// 		.filter((x) => !(x instanceof ModuleElement))
+	// 		.map((x) => x.foldingRange())
+	// 		.filter((x): x is FoldingRange => !!x);
+
 	getFoldingRanges = (): (FoldingRange)[] =>
-		this.elements
-			.filter((x) => !(x instanceof ModuleElement))
-			.map((x) => x.foldingRange())
-			.filter((x): x is FoldingRange => !!x);
+		this.foldingRanges;
+
+	private rangeAddress(r: Range): string {
+		const sl = r.start.line;
+		const el = r.end.line;
+		const sc = r.start.character;
+		const ec = r.end.character;
+
+		if(sl==el) {
+			return `${sl}:${sc}-${ec}`;
+		}
+		return `${sl}:${sc}-${el}:${ec}`;
+	}
 }
 
 class Scope {
@@ -384,6 +402,11 @@ class Scope {
 		this.links.set('global', new Map());
 	}
 
+	/**
+	 * Gets the scope related to the key. Lazy instantiates.
+	 * @param key the key of the scope to get.
+	 * @returns a Scope.
+	 */
 	getScope(key: string): Map<string, NameLink> {
 		if (key !== this.currentDoc) {
 			this.currentDoc = key;
@@ -405,10 +428,11 @@ class Scope {
 
 	processLinks(key: string, optExplicit = false) {
 		// TODO: check global for undeclareds
+		// TODO: implement explicit paths, e.g. Module1.MyVar
 		const undeclared = this.getScope(`undeclared|${key}`);
-		const docScopes = this.getScope(key);
-		undeclared.forEach((v, k) => docScopes.set(k, v));
-		docScopes.forEach((x) => x.process(optExplicit));
+		const docScope = this.getScope(key);
+		undeclared.forEach((v, k) => docScope.set(k, v));
+		docScope.forEach((x) => x.process(optExplicit));
 	}
 }
 
@@ -419,6 +443,7 @@ class NameLink {
 	// 0: Variable or method not declared.
 	// 1: Declared once.
 	// 2: Multiple conflicting declarations.
+	private _declarations: SyntaxElement[] = [];
 	declarations: SyntaxElement[] = [];
 
 	// The places this name is referenced.
@@ -438,12 +463,27 @@ class NameLink {
 	}
 
 	process(optExplicit = false) {
+		this.addDeclarationReferences();
 		this.processDiagnosticRelatedInformation();
 		this.validateDeclarationCount(optExplicit);
 		this.validateMethodSignatures();
 
 		this.assignSemanticTokens();
 		this.assignDiagnostics();
+	}
+
+	private addDeclarationReferences() {
+		this.references.forEach((x) => this.addDecToRef(x));
+	}
+
+	private addDecToRef(ref: SyntaxElement) {
+		if(!(ref instanceof VariableStatementElement)) {
+			return;
+		}
+		const dec = this.declarations[0];
+		if(dec instanceof MethodElement) {
+			ref.setDeclaredType(dec);
+		}
 	}
 
 	private processDiagnosticRelatedInformation() {
@@ -490,7 +530,7 @@ class NameLink {
 			return;
 		}
 
-		this.references.forEach((x) => x.semanticToken = 
+		this.references.forEach((x) => x.semanticToken =
 			this.declarations[0]
 				.semanticToken
 				?.toNewRange(x.range));
