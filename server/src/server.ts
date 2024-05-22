@@ -56,8 +56,8 @@ export class LanguageServerConfiguration {
 		hoverProvider: false,
 		textDocumentSync: TextDocumentSyncKind.Incremental,
 		completionProvider: { resolveProvider: false },
-		foldingRangeProvider: false,
-		documentSymbolProvider: false,
+		foldingRangeProvider: true,
+		documentSymbolProvider: true,
 	};
 
 	constructor(params: InitializeParams) {
@@ -68,7 +68,7 @@ export class LanguageServerConfiguration {
 class ConnectionInitializeResult implements InitializeResult {
 	[custom: string]: any;
 	capabilities: ServerCapabilities<any>;
-	serverInfo?: { name: string; version?: string | undefined; } | undefined;
+	serverInfo?: { name: string; version?: string; };
 
 	constructor(capabilities: ServerCapabilities) {
 		this.capabilities = capabilities;

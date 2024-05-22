@@ -112,14 +112,14 @@ class WorkspaceEvents {
 	}
 
 	private async onDocumentSymbolAsync(params: DocumentSymbolParams): Promise<SymbolInformation[]> {
-		console.log('onDocumentSymbolAsync: ' + params);
-		await sleep(1);
-		return [];
+		console.log(`onDocumentSymbolAsync: ${params.textDocument.uri}`);
+		return await this.activeDocument?.languageServerSymbolInformationAsync() ?? [];
 	}
 
 	private onFoldingRanges(params: FoldingRangeParams): FoldingRange[] {
-		console.log('onFoldingRanges: ' + params.textDocument.uri);
-		return [];
+		const foldingRanges = this._workspace.activeDocument?.foldableElements ?? [];
+		console.log(`onFoldingRanges: ${params.textDocument.uri} (${foldingRanges.length} ranges)`);
+		return foldingRanges;
 	}
 
 	private onHover(params: HoverParams): Hover {
