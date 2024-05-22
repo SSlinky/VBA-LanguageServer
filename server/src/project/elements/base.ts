@@ -1,10 +1,10 @@
 import { ParserRuleContext } from 'antlr4ts';
-import { getCtxRange } from '../../utils/helpers';
 import { SemanticTokenModifiers, SemanticTokenTypes, SymbolInformation, SymbolKind } from 'vscode-languageserver';
 import { Position, Range, TextDocument } from 'vscode-languageserver-textdocument';
 import { FoldingRangeKind } from '../../capabilities/folding';
 import { IdentifierElement } from './memory';
 import { AttributeStmtContext } from '../../antlr/out/vbaParser';
+import '../../extensions/parserExtensions';
 
 export interface ContextOptionalSyntaxElement {
 	range?: Range;
@@ -66,7 +66,7 @@ export abstract class BaseSyntaxElement implements ContextOptionalSyntaxElement 
 	constructor(context: ParserRuleContext | undefined, document: TextDocument) {
 		this.context = context;
 		this.document = document;
-		this.range = context ? getCtxRange(context, document) : undefined;
+		this.range = context ? context.toRange(document) : undefined;
 	}
 
 	isChildOf = (range: Range): boolean => {
