@@ -19,7 +19,7 @@ Adds VBA language support to VSCode via LSP compliant Language Server.
 ## Installation
 
 * Through the VBA Marketplace,
-* VSCode command palette `ext install sslinky.vba-lsp`, or;
+* VSCode command palette `ext install notisdataanalytics.vba-lsp`, or;
 * Download the [visx](../../releases/latest).
 
 ## Contributing
