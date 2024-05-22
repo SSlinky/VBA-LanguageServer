@@ -1,11 +1,23 @@
-.vscode/**
-**/*.ts
-**/*.map
+# Project
 .gitignore
+contributing.md
+.vscode/**
 **/tsconfig.json
 **/tsconfig.base.json
-contributing.md
 .travis.yml
+
+# Typescript
+**/*.ts
+**/*.map
+
+# Generated
+.antlr
+
+# Samples and testing
+.vscode-test
+sample*/**
+
+# Client node modules
 client/node_modules/**
 !client/node_modules/vscode-jsonrpc/**
 !client/node_modules/vscode-languageclient/**
