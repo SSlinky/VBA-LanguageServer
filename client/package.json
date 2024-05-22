@@ -7,7 +7,7 @@
 	"publisher": "SSlinky",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/SSlinky/tbc"
+		"url": "https://github.com/SSlinky/VB-LanguageServer"
 	},
 	"engines": {
 		"vscode": "^1.63.0"

@@ -6,7 +6,7 @@
 	"version": "1.0.0",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/SSlinky/TBC"
+		"url": "https://github.com/SSlinky/VBA-LanguageServer"
 	},
 	"publisher": "SSlinky",
 	"categories": [
@@ -27,8 +27,7 @@
 			{
 				"id": "vba",
 				"aliases": [
-					"VBA",
-					"vba"
+					"VBA"
 				],
 				"extensions": [
 					".bas",
@@ -38,6 +37,11 @@
 				"configuration": "./vba.language-configuration.json"
 			}
 		],
+		"configurationDefaults": {
+			"[vba]": {
+				"editor.semanticHighlighting.enabled": true
+			}
+		},
 		"configuration": {
 			"type": "object",
 			"title": "Default configuration",
@@ -90,13 +94,11 @@
 		"@types/node": "^16.11.7",
 		"@typescript-eslint/eslint-plugin": "^5.30.0",
 		"@typescript-eslint/parser": "^5.30.0",
+		"antlr4ts": "^0.5.0-alpha.4",
 		"antlr4ts-cli": "^0.5.0-alpha.4",
 		"eslint": "^8.13.0",
 		"js-yaml": "^4.1.0",
 		"mocha": "^9.2.1",
 		"typescript": "^4.7.2"
-	},
-	"dependencies": {
-		"antlr4ts": "^0.5.0-alpha.4"
 	}
 }
