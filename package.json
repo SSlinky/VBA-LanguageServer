@@ -3,7 +3,7 @@
 	"description": "A language server for VBA",
 	"author": "SSlinky",
 	"license": "MIT",
-	"version": "0.1.0-Alpha",
+	"version": "1.0.0",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/SSlinky/VBA-LanguageServer"
