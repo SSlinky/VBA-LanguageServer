@@ -1,21 +1,30 @@
 # Project
 .gitignore
-contributing.md
+.eslintignore
 .vscode/**
+.travis.yml
 **/tsconfig.json
 **/tsconfig.base.json
-.travis.yml
+contributing.md
 
-# Typescript
+# Development
+**/src
+
+# # Typescript
 **/*.ts
 **/*.map
 
 # Generated
 .antlr
+*.java
+*.interp
+*.tokens
+*.vsix
 
 # Samples and testing
-.vscode-test
 sample*/**
+**/test/**
+**/testFixture/**
 
 # Client node modules
 client/node_modules/**
