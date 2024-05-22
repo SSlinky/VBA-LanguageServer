@@ -23,4 +23,4 @@ Adds VBA language support to VSCode via LSP compliant Language Server.
 
 ## Contributing
 
-Contributors welcome! Please see [contributing.md].
+Contributors welcome! Please see [contributing.md](/contributing.md).
