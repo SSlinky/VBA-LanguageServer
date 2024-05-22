@@ -13,6 +13,7 @@ Adds VBA language support to VSCode via LSP compliant Language Server.
 
 ## Coming Soon
 
+* Hovers
 * Diagnostics (info, warnings, and errors)
 
 ## Installation
