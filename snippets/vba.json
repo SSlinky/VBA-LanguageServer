@@ -6,6 +6,7 @@
 			"Private m${1:PropertyName} As ${2:PropertyType}",
 			"Public Property Let $1(var As $2)",
 			"Attribute $1.VB_Description = \"${3:Dosctring}.\"",
+			"'   $3.",
 			"    m$1 = var",
 			"End Property",
 			"",
@@ -16,7 +17,6 @@
 			"$0"
 		]
 	},
-
 	"Public Property Set": {
 		"prefix": "propset",
 		"description": "Property set and get with backing store",
@@ -24,42 +24,54 @@
 			"Private m${1:PropertyName} As ${2:PropertyType}",
 			"Public Property Set $1(var As $2)",
 			"Attribute $1.VB_Description = \"${3:Dosctring}.\"",
-				"    Set m$1 = var",
+			"'   $3.",
+			"    Set m$1 = var",
 			"End Property",
 			"",
 			"Public Property Get $1() As $2",
-				"    Set $1 = m$1",
+			"    Set $1 = m$1",
 			"End Property",
 			"",
 			"$0"
 		]
 	},
-
+	"Public Property Get": {
+		"prefix": "propget",
+		"description": "Property get only",
+		"body": [
+			"Public Property Get ${1:PropertyName}() As ${2:PropertyType}",
+			"Attribute $1.VB_Description = \"${3:Dosctring}.\"",
+			"'   $3.",
+			"    $0",
+			"End Property",
+			""
+		]
+	},
 	"Subroutine": {
 		"prefix": "sub",
 		"description": "Subroutine",
 		"body": [
 			"${1:Public }Sub ${2:Identifier}($3)",
 			"Attribute $2.VB_Description = \"${4:Dosctring}.\"",
-				"'   $4.",
+			"'   $4.",
 			"'",
 			"'   Args:",
 			"'       param1:",
 			"'",
 			"'   Raises:",
 			"'",
+			"",
 			"    $0",
 			"End Sub"
 		]
 	},
-
 	"Function": {
 		"prefix": "func",
-		"description": "Subroutine",
+		"description": "Function",
 		"body": [
 			"${1:Public }Function ${2:Identifier}($3) As $4",
 			"Attribute $2.VB_Description = \"${5:Dosctring}.\"",
-				"'   $5.",
+			"'   $5.",
 			"'",
 			"'   Args:",
 			"'       param1:",
@@ -68,13 +80,104 @@
 			"'",
 			"'   Raises:",
 			"'",
+			"    Dim result As $4",
 			"    $0",
+			"",
+			"    $2 = result",
 			"End Function"
 		]
 	},
-
+	"EnumExcl": {
+		"prefix": "enumexcl",
+		"description": "Exclusive Enum",
+		"body": [
+			"Public Enum ${1:Identifier}",
+			"    ${2:Enum1}",
+			"    ${3:Enum2}",
+			"    ${4:Enum3}",
+			"End Enum"
+		]
+	},
+	"EnumIncl": {
+		"prefix": "enumincl",
+		"description": "Inclusive Enum",
+		"body": [
+			"Public Enum ${1:Identifier}",
+			"    ${2:Enum1} = 2 ^^ 1",
+			"    ${3:Enum2} = 2 ^^ 2",
+			"    ${4:Enum3} = 2 ^^ 3",
+			"End Enum"
+		]
+	},
+	"ForLoop": {
+		"prefix": "fori",
+		"description": "For Loop",
+		"body": [
+			"${4:Dim $1 As Long}",
+			"For ${1:i} = ${2:low} To ${3:high}",
+			"    $0",
+			"Next $1"
+		]
+	},
+	"ForEachLoop": {
+		"prefix": "foreach",
+		"description": "For Each Loop",
+		"body": [
+			"For Each ${1:object} In ${2:collection}",
+			"    $0",
+			"Next $1"
+		]
+	},
+	"If": {
+		"prefix": "ifblock",
+		"description": "If Block",
+		"body": [
+			"If ${1:condition} Then",
+			"    $0",
+			"End If"
+		]
+	},
+	"IfElse": {
+		"prefix": "ifelse",
+		"description": "If Else Block",
+		"body": [
+			"If ${1:condition} Then",
+			"    $0",
+			"Else",
+			"End If"
+		]
+	},
+	"TypeCheckAssignment": {
+		"prefix": "typecheck",
+		"description": "Object type check assignment",
+		"body": [
+			"If IsObject(${1:obj?}) Then",
+			"    Set ${2:Assignment}",
+			"Else",
+			"    $2",
+			"End If$0"
+		]
+	},
+	"Case": {
+		"prefix": "case",
+		"description": "Select Case",
+		"body": [
+			"Select Case $1",
+			"    Case Is = $2:",
+			"        $0",
+			"    Case Else:",
+			"End Select"
+		]
+	},
+	"Event": {
+		"prefix": "event",
+		"description": "Event",
+		"body": [
+			"Public Event ${1:Identifier}($3)"
+		]
+	},
 	"Constructor": {
-		"prefix": "init",
+		"prefix": "ctor",
 		"description": "Class_Initialize",
 		"body": [
 			"Private Sub Class_Initialize()",
@@ -82,7 +185,15 @@
 			"End Sub"
 		]
 	},
-
+	"Destructor": {
+		"prefix": "dtor",
+		"description": "Class_Terminate",
+		"body": [
+			"Private Sub Class_Terminate()",
+			"    $0",
+			"End Sub"
+		]
+	},
 	"Base Class Template": {
 		"prefix": "class",
 		"description": "Basic class",
@@ -92,16 +203,45 @@
 			"  MultiUse = -1  'True",
 			"END",
 			"Attribute VB_Name = \"${1:ClassName}\"",
+			"Attribute VB_Description = \"${2:Class description goes here}\"",
 			"Attribute VB_GlobalNameSpace = False",
 			"Attribute VB_Creatable = False",
 			"Attribute VB_PredeclaredId = False",
 			"Attribute VB_Exposed = False",
+			"' Copyright 2024 Sam Vanderslink",
+			"' ",
+			"' Permission is hereby granted, free of charge, to any person obtaining a copy ",
+			"' of this software and associated documentation files (the \"Software\"), to deal ",
+			"' in the Software without restriction, including without limitation the rights ",
+			"' to use, copy, modify, merge, publish, distribute, sublicense, and/or sell ",
+			"' copies of the Software, and to permit persons to whom the Software is ",
+			"' furnished to do so, subject to the following conditions:",
+			"' ",
+			"' The above copyright notice and this permission notice shall be included in ",
+			"' all copies or substantial portions of the Software.",
+			"' ",
+			"' THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR ",
+			"' IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, ",
+			"' FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE ",
+			"' AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER ",
+			"' LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING ",
+			"' FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS ",
+			"' IN THE SOFTWARE.",
+			"",
 			"Option Explicit",
 			"$0",
 			"'-------------------------------------------------------------------------------",
 			"'   Class: $1",
-			"'   ${2:Class description goes here}",
+			"'   $2",
 			"'-------------------------------------------------------------------------------",
+			"",
+			"' Enums",
+			"'-------------------------------------------------------------------------------",
+			"",
+			"",
+			"' Events",
+			"'-------------------------------------------------------------------------------",
+			"",
 			"",
 			"' Private Backing Store",
 			"'-------------------------------------------------------------------------------",
@@ -133,39 +273,56 @@
 			""
 		]
 	},
-
-	"Select Case": {
-		"prefix": "case",
-		"description": "Select Case",
+	"Base Module Template": {
+		"prefix": "module",
+		"description": "Basic module",
 		"body": [
-			"Select Case $1",
-			"    Case Is = $2:",
-			"        $0",
-			"    Case Else:",
-			"End Select"
+			"Attribute VB_Name = \"${1:ModuleName}\"",
+			"' Copyright 2024 Sam Vanderslink",
+			"' ",
+			"' Permission is hereby granted, free of charge, to any person obtaining a copy ",
+			"' of this software and associated documentation files (the \"Software\"), to deal ",
+			"' in the Software without restriction, including without limitation the rights ",
+			"' to use, copy, modify, merge, publish, distribute, sublicense, and/or sell ",
+			"' copies of the Software, and to permit persons to whom the Software is ",
+			"' furnished to do so, subject to the following conditions:",
+			"' ",
+			"' The above copyright notice and this permission notice shall be included in ",
+			"' all copies or substantial portions of the Software.",
+			"' ",
+			"' THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR ",
+			"' IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, ",
+			"' FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE ",
+			"' AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER ",
+			"' LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING ",
+			"' FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS ",
+			"' IN THE SOFTWARE.",
+			"",
+			"Option Explicit",
+			"$0"
 		]
 	},
-
-	"Enum": {
-		"prefix": "enum",
-		"description": "Enum",
+	"Unit Test Template": {
+		"prefix": "test",
+		"description": "Unit test basic template",
 		"body": [
-			"Public Enum ${1:Name}",
-			"    ${2:Option}",
-			"End Enum"
-		]
-	},
-
-	"EnumMulti": {
-		"prefix": "enummulti",
-		"description": "Enum with multi select",
-		"body": [
-			"Public Enum ${1:Name}",
-			"    ${2:Option} = 2",
-			"    ${3:Option} = 4",
-			"    ${4:Option} = 8",
-			"    ${5:Option} = 16",
-			"End Enum"
+			"Private Function TestList_${1:Identifier}() As TestResult",
+			"Attribute TestList_$1.VB_Description = \"${2:Dosctring}.\"",
+			"'   $2.",
+			"    Dim tr As New TestResult",
+			"",
+			"'   Arrange",
+			"    $0",
+			"",
+			"'   Act",
+			"",
+			"",
+			"'   Assert",
+			"",
+			"",
+			"Finally:",
+			"    Set TestList_$1 = tr",
+			"End Function"
 		]
 	}
 }

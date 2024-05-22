@@ -19,10 +19,10 @@ repository:
       - include: "#mthdSig"
       - include: "#variableDeclarations"
       - include: "#block"
-      - include: "#testing"    
+      - include: "#testing"
     repository:
       moduleLines:
-        match: "(.*):"
+        match: '([^\n:]*)?:(?=([^"]*"[^"]*")*[^"]*$)'
         captures:
           1:
             patterns:
@@ -52,8 +52,7 @@ repository:
     repository:
       string:
         name: string.quoted.double.vba
-        begin: "\""
-        end: "\""
+        match: '"[^\r\n]*"'
       boolean:
         name: constant.language.boolean.vba
         match: "(?i)(true|false)"

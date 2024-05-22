@@ -1,14 +1,16 @@
 {
 	"name": "vba-lsp",
-	"description": "A language server for VBA",
+	"displayName": "VBA Pro",
+	"description": "A VBA extension for VSCode with Language Server support",
+	"icon": "images/vba-lsp-icon.png",
 	"author": "SSlinky",
 	"license": "MIT",
-	"version": "1.0.0",
+	"version": "1.1.0",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/SSlinky/TBC"
+		"url": "https://github.com/SSlinky/VBA-LanguageServer"
 	},
-	"publisher": "SSlinky",
+	"publisher": "NotisDataAnalytics",
 	"categories": [
 		"Programming Languages",
 		"Snippets",
@@ -22,14 +24,12 @@
 		"vscode": "^1.63.0"
 	},
 	"main": "./client/out/extension",
+	"activationEvents": [],
 	"contributes": {
 		"languages": [
 			{
 				"id": "vba",
-				"aliases": [
-					"VBA",
-					"vba"
-				],
+				"aliases": ["VBA"],
 				"extensions": [
 					".bas",
 					".cls",
@@ -38,6 +38,11 @@
 				"configuration": "./vba.language-configuration.json"
 			}
 		],
+		"configurationDefaults": {
+			"[vba]": {
+				"editor.semanticHighlighting.enabled": true
+			}
+		},
 		"configuration": {
 			"type": "object",
 			"title": "Default configuration",
