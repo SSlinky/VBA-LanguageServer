@@ -18,10 +18,17 @@ grammar vba;
 startRule: module EOF;
 
 module:
-	WS? (endOfLine | unknownLine)* (moduleHeader endOfLine*)? moduleConfig? endOfLine*
-		moduleAttributes? endOfLine* moduleDeclarations? endOfLine* moduleBody? endOfLine* WS?;
+	WS? moduleHeader
+	moduleBody? endOfLine* WS?;
 
-moduleHeader: VERSION WS DOUBLELITERAL WS CLASS;
+moduleHeader:
+	(endOfLine | unknownLine)*
+	(moduleVerson endOfLine*)?
+	moduleConfig? endOfLine*
+	moduleAttributes? endOfLine*
+	moduleDeclarations? endOfLine*;
+
+moduleVerson: VERSION WS DOUBLELITERAL WS CLASS;
 
 moduleConfig: BEGIN endOfLine* moduleConfigElement+ END;
 
@@ -44,14 +51,8 @@ moduleOption:
 moduleDeclarationsElement:
 	comment
 	| declareStmt
-	| enumerationStmt
-	| eventStmt
-	| constStmt
-	| implementsStmt // TODO : not valid in a module!!!
-	| variableStmt
+	| implementsStmt
 	| moduleOption
-	| typeStmt
-	| macroStmt
 	| unknownLine;
 
 macroStmt: macroConstStmt | macroIfThenElseStmt;
@@ -60,9 +61,14 @@ moduleBody:
 	moduleBodyElement (endOfLine+ moduleBodyElement)* endOfLine*;
 
 moduleBodyElement:
-	methodStmt
+	constStmt
+	| enumerationStmt
+	| eventStmt
+	| macroStmt
+	| methodStmt
 	| propertyStmt
-	| macroStmt;
+	| typeStmt
+	| variableStmt;
 
 // block ----------------------------------
 
