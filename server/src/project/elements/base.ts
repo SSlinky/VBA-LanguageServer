@@ -1,6 +1,6 @@
 import { ParserRuleContext } from 'antlr4ts';
-import { SemanticTokenModifiers, SemanticTokenTypes, SymbolInformation, SymbolKind } from 'vscode-languageserver';
-import { Position, Range, TextDocument } from 'vscode-languageserver-textdocument';
+import { Range, SemanticTokenModifiers, SemanticTokenTypes, SymbolInformation, SymbolKind } from 'vscode-languageserver';
+import { Position, TextDocument } from 'vscode-languageserver-textdocument';
 import { FoldingRangeKind } from '../../capabilities/folding';
 import { IdentifierElement } from './memory';
 import { AttributeStmtContext } from '../../antlr/out/vbaParser';
@@ -66,7 +66,7 @@ export abstract class BaseSyntaxElement implements ContextOptionalSyntaxElement 
 	constructor(context: ParserRuleContext | undefined, document: TextDocument) {
 		this.context = context;
 		this.document = document;
-		this.range = context ? context.toRange(document) : undefined;
+		this.range = this._contextToRange();
 	}
 
 	isChildOf = (range: Range): boolean => {
@@ -80,6 +80,19 @@ export abstract class BaseSyntaxElement implements ContextOptionalSyntaxElement 
 		return isPositionBefore(range.start, this.range.start)
 			&& isPositionBefore(this.range.end, range.end);
 	};
+
+	private _contextToRange(): Range | undefined {
+		if (!this.context) {
+			return;
+		}
+
+		const startIndex = this.context.start.startIndex;
+		const stopIndex = this.context.stop?.stopIndex ?? startIndex;
+		return Range.create(
+			this.document.positionAt(startIndex),
+			this.document.positionAt(stopIndex)
+		);
+	}
 }
 
 export abstract class BaseContextSyntaxElement extends BaseSyntaxElement {
