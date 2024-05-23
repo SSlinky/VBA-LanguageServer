@@ -17,6 +17,7 @@ repository:
       - include: "#moduleHeader"
       - include: "#enum"
       - include: "#struct"
+      - include: "#funcDeclareSig"
       - include: "#mthdSig"
       - include: "#variableDeclarations"
       - include: "#block"
@@ -41,6 +42,7 @@ repository:
     name: source.language.vba
     patterns:
       - include: "#comments"
+      - include: "#vbaBuiltIns"
       - include: "#literals"
       - include: "#operators"
       - include: "#keywords"
@@ -127,7 +129,7 @@ repository:
         repository:
           flowDecision:
             name: keyword.control.flow.decision.vba
-            match: "(?i)\\b(if|then|elseif|else|end if|select case|case|switch|end select)\\b"
+            match: '(?i)(^|\s+)([#]?if|then|[#]?elseif|[#]?else|[#]?end if|select case|case|switch|end select)\b'
 
           flowLoop:
             name: keyword.control.flow.loop.vba
@@ -204,6 +206,18 @@ repository:
     name: variable.other.constant.label.vba
     match: "(?i)^([a-z][a-z0-9_]*|\\d+):"
 
+  vbaBuiltIns:
+    patterns:
+      - include: "#vbaEnum"
+      - include: "#vbaConstant"
+    repository:
+      vbaEnum:
+        match: (?i)(vba7|win64)
+        name: constant.numeric.enum.vba
+      vbaConstant:
+        match: (?i)(vbNewLine|vbCr|vbLf|vbCrLf)
+        name: constant.numeric.enum.vba
+
   objectModel:
     patterns:
       - include: "#application"
@@ -266,8 +280,13 @@ repository:
         name: support.type.primitive.vba
         match: "(?i)(?<=\\bAs)\\s+(boolean|byte|currency|date|decimal|double|integer|long(long|ptr)?|single|string|variant)\\b"
       objectType:
-        name: entity.name.type.vba
-        match: "(?i)(?<=\\bAs)\\s+([A-Z][A-Z0-9_]*)\\b"
+        name: support.type.object.vba
+        match: (?i)(?<=\bAs)(\s+New)?\s+([A-Z][A-Z0-9_]*)\b
+        captures:
+          1:
+            name: keyword.storage.new.vba
+          2:
+            name: support.type.object.vba
 
   arguments:
     name: source.args.vba
@@ -275,13 +294,12 @@ repository:
       - include: "#lineContinuation"
       - include: "#paramArray"
       - include: "#funcCall"
-      - include: "#subCall"
       - include: "#argsVariable"
       - include: "#argsLiteral"
       - include: "#language"
     repository:
       argsVariable:
-        match: "(?i),?\\s*(Optional\\s+)?((?:ByVal|ByRef)\\s+)?([a-z][a-z0-9_]*)(?:\\s*(\\bas\\s+[a-z][a-z0-9_]*))?\\b(\\s+=\\s+[^,)]*)?"
+        match: (?i),?\s*(Optional\s+)?((?:ByVal|ByRef)\s+)?([a-z][a-z0-9_]*)(?:\s*(\bas\s+[a-z][a-z0-9_]*))?\b(\s+=\s+[^,)]*)?
         captures:
           1:
             name: storage.type.modifier.vba
@@ -422,10 +440,40 @@ repository:
         patterns:
           - include: "#types"
 
+  funcDeclareSig:
+    name: source.declare.signature.vba
+    begin: (?i)^\s*((?:Public|Private|Friend)?\b\s*Declare)\s+(PtrSafe\s+)?(Sub|Function)\s+([a-z][a-z0-9_]*)\s+(Lib)\s+("[a-z][a-z0-9._]*")(?:\s+(Alias)\s+("[a-z][a-z0-9_]*"))?\s+\(
+    end: '(?i)(?:\))\s+(as\s+[a-z][a-z0-9_]*)'
+    beginCaptures:
+      1: # Public|Private|Friend Declare
+        name: storage.type.method.vba
+      2: # PtrSafe
+        name: storage.type.method.vba
+      3: # Sub|Function
+        name: storage.type.method.vba
+      4: # Name
+        name: entity.name.function.vba
+      5: # Lib
+        name: storage.type.method.vba
+      6: # Lib name
+        patterns:
+          - include: "#literals"
+      7: # Alias
+        name: storage.type.method.vba
+      8: # Alias name
+        patterns:
+          - include: "#literals"
+    endCaptures:
+      1: # return type
+        patterns:
+          - include: "#types"
+    patterns:
+      - include: "#arguments"
+
   mthdSig:
     name: source.method.signature.vba
-    begin: "(?i)^\\s*((?:Public|Private)?\\b\\s*(?:(?:Sub|Function)|Property\\s+(?:Let|Get|Set)))\\s+([a-z][a-z0-9_]*)\\s*(\\()"
-    end: "(?i)(\\))\\s+(as\\s+[a-z][a-z0-9_]*)?"
+    begin: '(?i)^\s*((?:Public|Private)?\b\s*(?:(?:Sub|Function)|Property\s+(?:Let|Get|Set)))\s+([a-z][a-z0-9_]*)\s*(\()'
+    end: '(?i)(\))\s+(as\s+[a-z][a-z0-9_]*)?'
     beginCaptures:
       1:
         name: storage.type.method.vba
@@ -439,7 +487,6 @@ repository:
       2: # return type
         patterns:
           - include: "#types"
-
     patterns:
       - include: "#arguments"
     
@@ -478,7 +525,7 @@ repository:
     repository:
       variableDeclaration:
         name: storage.var-declaration.vba
-        match: "(?i)^\\s*(Dim|Public|Private)\\s+([a-z][a-z0-9_]*)(\\(.*\\))?(\\s+As\\s+[A-Z][A-Z0-9_]*)?"
+        match: (?i)^\s*(Dim|Public|Private)\s+([a-z][a-z0-9_]*)(\(.*\))?(\s+As(?:\s+New)?\s+[A-Z][A-Z0-9_]*)?
         captures:
           1:
             # Dim|Private
@@ -513,8 +560,10 @@ repository:
             patterns:
               - include: "#language"
 
+  # TODO: Redo this so it can take into account chaining, e.g.:
+  # MyClass.MyProp = SomeObject.Foo(20)
   variableAssignment:
-    match: "(?i)((Get|Let|Set)\\s+)?([a-z][a-z0-9_]*)(\\s*=\\s*)(.*)"
+    match: (?i)((Get|Let|Set)\s+)?([a-z][a-z0-9._]*)(\s*=\s*)(.*)
     captures:
       2:
         name: keyword.control.vba
@@ -525,7 +574,7 @@ repository:
       5:
         patterns:
           - include: "#funcCall"
-          - include: "#subCall"
+          # - include: "#subCall" # Why would a variable assignment ever have a sub call?
           - include: "#language"
 
   funcCall:
@@ -543,10 +592,23 @@ repository:
       - include: "#lineContinuation"
 
   subCall:
+    begin: (?i)([a-z][a-z0-9._]*)\s+(.*,.*)
+    beginCaptures:
+      1:
+        name: entity.name.function.call.vba
+      2:
+        patterns:
+          - include: "#arguments"
+    end: \n
+    patterns:
+      # - include: "#subCallMultiLine"
+      - include: "#arguments"
+
+  subCallOld:
     # TODO: Better way to do this.
     # Captures sub calls with two or more args.
     # Required because they break properties somehow.
-    begin: "(?i)([a-z][a-z0-9_]*)\\s+(.*,.*)"
+    begin: (?i)([a-z][a-z0-9_]*)\s+(.*,.*)
     beginCaptures:
       1:
         name: entity.name.function.call.vba
@@ -565,7 +627,7 @@ repository:
       1:
         name: entity.name.function.call.vba
     patterns:
-      - include: "#args"
+      - include: "#arguments"
     end: "\\n"
 
   args:
