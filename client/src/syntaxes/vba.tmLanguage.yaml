@@ -504,13 +504,15 @@ repository:
               - include: "#language"
 
   variableAssignment:
-    match: "(?i)([a-z][a-z0-9_]*)(\\s*=\\s*)(.*)"
+    match: "(?i)((Get|Let|Set)\\s+)?([a-z][a-z0-9_]*)(\\s*=\\s*)(.*)"
     captures:
-      1:
-        name: variable.other.assignment.vba
       2:
-        name: keyword.operator.assignment.vba
+        name: keyword.control.vba
       3:
+        name: variable.other.assignment.vba
+      4:
+        name: keyword.operator.assignment.vba
+      5:
         patterns:
           - include: "#funcCall"
           - include: "#subCall"
