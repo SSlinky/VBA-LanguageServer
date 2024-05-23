@@ -137,7 +137,7 @@ repository:
               - include: "#flowBranchSimple"
             repository:
               flowBranchOnGos:
-                match: "(?i)\\b(on\\s+error|on)\\s+(.*\\s+)?(goto|gosub)\\s+([a-z][a-z0-9_]*|\\d+)\\b"
+                match: "(?i)\\b(on\\s+error|on)\\s+(.*\\s+)?(goto|gosub)\\s+([a-z][a-z0-9_]*|\\d+)\\b(.*)"
                 captures:
                   1:
                     name: keyword.control.flow.branch.vba
@@ -148,6 +148,9 @@ repository:
                     name: keyword.control.flow.branch.vba
                   4:
                     name: variable.other.constant.label.vba
+                  5:
+                    patterns:
+                      - include: "#vbaLang"
 
               flowBranchSimple:
                 name: keyword.control.flow.branch.vba
@@ -442,8 +445,6 @@ repository:
       - include: "#blockLines"
       - include: "#variableDeclarations"
       - include: "#variableAssignment"
-      - include: "#funcCall"
-      - include: "#subCall"
       - include: "#mthdClose"
       - include: "#language"
 
@@ -556,7 +557,6 @@ repository:
     patterns:
       - include: "#args"
     end: "\\n"
-
 
   args:
     # The match gates an args list. It is not consumed by the
