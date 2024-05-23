@@ -175,7 +175,6 @@ export abstract class BaseProjectDocument implements ProjectDocument {
 	 * @returns a number for some reason.
 	 */
 	registerSymbolInformation = (element: HasSymbolInformation): number => {
-		console.debug(`Registering symbol for ${element.symbolInformation.name}`);
 		return this._symbolInformations.push(element.symbolInformation);
 	};
 }
