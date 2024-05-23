@@ -12,6 +12,7 @@ repository:
   vbaLang:
     patterns:
       - include: "#comments"
+      - include: "#moduleLinesWithComment"
       - include: "#moduleLines"
       - include: "#moduleHeader"
       - include: "#enum"
@@ -20,8 +21,17 @@ repository:
       - include: "#variableDeclarations"
       - include: "#block"
     repository:
+      moduleLinesWithComment:
+        match: ([^\n']*)?('.*(?=([^"]*"[^"]*")*[^"]*$))
+        captures:
+          1:
+            patterns:
+              - include: "#vbaLang"
+          2:
+            patterns:
+              - include: "#comments"
       moduleLines:
-        match: '([^\n:]*)?:(?=([^"]*"[^"]*")*[^"]*$)'
+        match: ([^\n:]*)?:(?=([^"]*"[^"]*")*[^"]*$)
         captures:
           1:
             patterns:
