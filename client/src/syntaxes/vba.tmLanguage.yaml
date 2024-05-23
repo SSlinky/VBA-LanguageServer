@@ -19,7 +19,6 @@ repository:
       - include: "#mthdSig"
       - include: "#variableDeclarations"
       - include: "#block"
-      - include: "#testing"
     repository:
       moduleLines:
         match: '([^\n:]*)?:(?=([^"]*"[^"]*")*[^"]*$)'
