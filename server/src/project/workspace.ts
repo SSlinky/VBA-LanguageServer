@@ -78,7 +78,7 @@ class WorkspaceEvents {
 		connection.onCompletionResolve(item => this.onCompletionResolve(item));
 		connection.onDidChangeConfiguration(params => this.onDidChangeConfiguration(params));
 		connection.onDidChangeWatchedFiles(params => this.onDidChangeWatchedFiles(params));
-		connection.onDocumentSymbol((params) => this.onDocumentSymbolAsync(params));
+		connection.onDocumentSymbol(async (params) => await this.onDocumentSymbolAsync(params));
 		connection.onHover(params => this.onHover(params));
 
 		if (hasConfigurationCapability(this._configuration)) {
@@ -102,7 +102,7 @@ class WorkspaceEvents {
 
 	private initialiseDocumentsEvents() {
 		console.log('Initialising documents events...');
-		this._documents.onDidChangeContent(e => this.onDidChangeContent(e.document));
+		this._documents.onDidChangeContent(async (e) => await this.onDidChangeContentAsync(e.document));
 	}
 
 	/** Connection event handlers */
@@ -132,23 +132,18 @@ class WorkspaceEvents {
 	}
 
 	private async onDocumentSymbolAsync(params: DocumentSymbolParams): Promise<SymbolInformation[]> {
-		console.log(`onDocumentSymbolAsync: ${params.textDocument.uri}`);
 		return await this.activeDocument?.languageServerSymbolInformationAsync() ?? [];
 	}
 
 	private onFoldingRanges(params: FoldingRangeParams): FoldingRange[] {
-		const foldingRanges = this._workspace.activeDocument?.foldableElements ?? [];
-		console.log(`onFoldingRanges: ${params.textDocument.uri} (${foldingRanges.length} ranges)`);
-		return foldingRanges;
+		return this._workspace.activeDocument?.foldableElements ?? [];
 	}
 
 	private onHover(params: HoverParams): Hover {
-		console.log(`onHover: ${params.position.line},${params.position.character}`);
 		return { contents: '' };
 	}
 
 	private onInitialized(): void {
-		console.log('onInitialized:---');
 		const connection = this._workspace.connection;
 		// Register for client configuration notification changes.
 		connection.client.register(DidChangeConfigurationNotification.type, undefined);
@@ -167,10 +162,9 @@ class WorkspaceEvents {
 	 * This event handler is called whenever a `TextDocuments<TextDocument>` is changed.
 	 * @param doc The document that changed.
 	 */
-	onDidChangeContent(doc: TextDocument) {
-		console.log('onDidChangeContent:--- ' + doc.uri);
+	async onDidChangeContentAsync(doc: TextDocument) {
 		this.activeDocument = BaseProjectDocument.create(this._workspace, doc);
-		this.activeDocument.parse();
+		await this.activeDocument.parseAsync();
 		this._workspace.activateDocument(this.activeDocument);
 	}
 

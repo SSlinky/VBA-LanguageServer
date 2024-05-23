@@ -15,7 +15,7 @@ export interface ProjectDocument {
 	languageServerSemanticTokens: (range?: Range) => SemanticTokens | null;
 	languageServerSymbolInformationAsync(): Promise<SymbolInformation[]>;
 	get foldableElements(): FoldingRange[];
-	parse(): void;
+	parseAsync(): Promise<void>;
 }
 
 
@@ -36,6 +36,7 @@ export abstract class BaseProjectDocument implements ProjectDocument {
 	protected _semanticTokens: SemanticTokensManager = new SemanticTokensManager();
 	
 	isBusy = false;
+	private _requestId = 0;
 	abstract symbolKind: SymbolKind
 
 	get foldableElements() {
@@ -76,18 +77,23 @@ export abstract class BaseProjectDocument implements ProjectDocument {
 		return this._semanticTokens.getSemanticTokens(range);
 	};
 
-	async languageServerSymbolInformationAsync() {
+	async languageServerSymbolInformationAsync(): Promise<SymbolInformation[]> {
+		this._requestId += 1;
+		const requestId = this._requestId;
 		while (this.isBusy) {
 			await sleep(5);
+			if (requestId < this._requestId) {
+				return [];
+			}
 		}
+		this._requestId = 0;
 		return this._symbolInformations;
 	}
 
-	parse = (): void => {
+	parseAsync = async (): Promise<void> => {
 		this.isBusy = true;
 		console.log('Parsing document');
-		(new SyntaxParser()).parse(this);
-		console.log('Finished parsing document');
+		await (new SyntaxParser()).parseAsync(this);
 		this.isBusy = false;
 	};
 
