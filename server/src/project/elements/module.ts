@@ -22,7 +22,6 @@ export class ModuleElement extends BaseContextSyntaxElement implements HasSymbol
 	}
 
 	get symbolInformation(): SymbolInformation {
-		console.warn(`Creating symbol with name ${this._name}`);
 		return SymbolInformationFactory.create(
 			this, this.symbolKind
 		);

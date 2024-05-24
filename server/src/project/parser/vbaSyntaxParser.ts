@@ -14,6 +14,7 @@ import { FoldableElement } from '../elements/special';
 import { ConstDeclarationsElement, EnumBlockDeclarationElement, EnumMemberDeclarationElement, MethodBlockDeclarationElement, VariableDeclarationsElement } from '../elements/memory';
 import { ModuleElement } from '../elements/module';
 import { sleep } from '../../utils/helpers';
+import { CancellationToken } from 'vscode-languageserver';
 
 export class SyntaxParser {
     private static _lockIdentifier = 0;
@@ -31,13 +32,17 @@ export class SyntaxParser {
         this._lockIdentifier = 0;
     }
 
-    async parseAsync(document: VbaClassDocument | VbaModuleDocument) {
+    async parseAsync(document: VbaClassDocument | VbaModuleDocument, token: CancellationToken): Promise<boolean> {
+        // token.onCancellationRequested(e => {
+        //     throw new Error("No");
+        // });
+
         // Refuse to do anything that seems like too much work.
         if (document.textDocument.lineCount > 1000) {
             // TODO: Make this an option that people can increase or decrease.
             console.log(`Document oversize: ${document.textDocument.lineCount} lines.`);
             console.warn(`Syntax parsing has been disabled to prevent crashing.`);
-            return;
+            return false;
         }
 
         // Wait a few seconds to see if any other input has ocurred.
@@ -45,11 +50,16 @@ export class SyntaxParser {
         await sleep(1000);
         if (!SyntaxParser._hasLock(lock)) {
             console.info('Newer lock detected. Cancelling parse.');
-            return;
+            return false;
         }
         SyntaxParser._releaseLock();
 
         // Parse the document.
+        this.parse(document);
+        return true;
+    }
+
+    parse(document: VbaClassDocument | VbaModuleDocument) {
         console.info('Parsing the document.');
         const listener = new VbaTreeWalkListener(document);
         const parser = this.createParser(document.textDocument);

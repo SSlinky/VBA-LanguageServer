@@ -1,5 +1,5 @@
-import { CompletionItem, CompletionParams, DidChangeConfigurationNotification, DidChangeConfigurationParams, DidChangeWatchedFilesParams, DocumentSymbolParams, FoldingRange, FoldingRangeParams, Hover, HoverParams, SemanticTokensParams, SemanticTokensRangeParams, SymbolInformation, TextDocuments, WorkspaceFoldersChangeEvent, _Connection } from 'vscode-languageserver';
-import { BaseProjectDocument, ProjectDocument } from './document';
+import { CancellationToken, CancellationTokenSource, CompletionItem, CompletionParams, DidChangeConfigurationNotification, DidChangeConfigurationParams, DidChangeWatchedFilesParams, DocumentSymbolParams, FoldingRange, FoldingRangeParams, Hover, HoverParams, SemanticTokensParams, SemanticTokensRangeParams, SymbolInformation, TextDocuments, WorkspaceFoldersChangeEvent, _Connection } from 'vscode-languageserver';
+import { BaseProjectDocument } from './document';
 import { LanguageServerConfiguration } from '../server';
 import { hasConfigurationCapability } from '../capabilities/workspaceFolder';
 import { TextDocument } from 'vscode-languageserver-textdocument';
@@ -11,13 +11,13 @@ import { TextDocument } from 'vscode-languageserver-textdocument';
  */
 export class Workspace {
 	private _events: WorkspaceEvents;
-	private _documents: ProjectDocument[] = [];
-	private _activeDocument?: ProjectDocument;
+	private _documents: BaseProjectDocument[] = [];
+	private _activeDocument?: BaseProjectDocument;
 	private _publicScopeDeclarations: Map<string, any> = new Map();
 	
 	readonly connection: _Connection;
 
-	activateDocument(document: ProjectDocument) {
+	activateDocument(document: BaseProjectDocument) {
 		this._activeDocument = document;
 	}
 
@@ -59,8 +59,9 @@ class WorkspaceEvents {
 	private readonly _workspace: Workspace;
 	private readonly _documents: TextDocuments<TextDocument>;
 	private readonly _configuration: LanguageServerConfiguration;
+	private _parseCancellationToken?: CancellationTokenSource;
 
-	activeDocument?: ProjectDocument;
+	activeDocument?: BaseProjectDocument;
 
 	constructor(params: {connection: _Connection, workspace: Workspace, configuration: LanguageServerConfiguration}) {
 		this._workspace = params.workspace;
@@ -72,17 +73,16 @@ class WorkspaceEvents {
 	}
 
 	private initialiseConnectionEvents(connection: _Connection) {
-		console.log('Initialising connection events...');
 		connection.onInitialized(() => this.onInitialized());
 		connection.onCompletion(params => this.onCompletion(params));
 		connection.onCompletionResolve(item => this.onCompletionResolve(item));
 		connection.onDidChangeConfiguration(params => this.onDidChangeConfiguration(params));
 		connection.onDidChangeWatchedFiles(params => this.onDidChangeWatchedFiles(params));
-		connection.onDocumentSymbol(async (params) => await this.onDocumentSymbolAsync(params));
+		connection.onDocumentSymbol(async (params, token) => await this.onDocumentSymbolAsync(params, token));
 		connection.onHover(params => this.onHover(params));
 
 		if (hasConfigurationCapability(this._configuration)) {
-			connection.onFoldingRanges((params) => this.onFoldingRanges(params));
+			connection.onFoldingRanges(async (params, token) => this.onFoldingRanges(params, token));
 		}
 
 		connection.onRequest((method: string, params: object | object[] | any) => {
@@ -101,19 +101,16 @@ class WorkspaceEvents {
 	}
 
 	private initialiseDocumentsEvents() {
-		console.log('Initialising documents events...');
 		this._documents.onDidChangeContent(async (e) => await this.onDidChangeContentAsync(e.document));
 	}
 
 	/** Connection event handlers */
 
 	private onCompletion(params: CompletionParams): never[] {
-		console.log(`onCompletion: ${params}`);
 		return [];
 	}
 
 	private onCompletionResolve(item: CompletionItem): CompletionItem {
-		console.log(`onCompletionResolve: ${item.label}`);
 		return item;
 	}
 
@@ -127,16 +124,15 @@ class WorkspaceEvents {
 
 	// TODO: Should trigger a full workspace refresh.
 	private onDidChangeWorkspaceFolders(e: WorkspaceFoldersChangeEvent) {
-		console.log(`onDidChangeWorkspaceFolders: ${e}`);
 		this._workspace.connection.console.log(`Workspace folder change event received.\n${e}`);
 	}
 
-	private async onDocumentSymbolAsync(params: DocumentSymbolParams): Promise<SymbolInformation[]> {
-		return await this.activeDocument?.languageServerSymbolInformationAsync() ?? [];
+	private async onDocumentSymbolAsync(params: DocumentSymbolParams, token: CancellationToken): Promise<SymbolInformation[]> {
+		return await this.activeDocument?.languageServerSymbolInformationAsync(token) ?? [];
 	}
 
-	private onFoldingRanges(params: FoldingRangeParams): FoldingRange[] {
-		return this._workspace.activeDocument?.foldableElements ?? [];
+	private async onFoldingRanges(params: FoldingRangeParams, token: CancellationToken): Promise<FoldingRange[]> {
+		return await this._workspace.activeDocument?.getFoldingRanges(token) ?? [];
 	}
 
 	private onHover(params: HoverParams): Hover {
@@ -163,9 +159,13 @@ class WorkspaceEvents {
 	 * @param doc The document that changed.
 	 */
 	async onDidChangeContentAsync(doc: TextDocument) {
+		// this._parseCancellationToken?.cancel();
+		// this._parseCancellationToken?.dispose();
+
 		this.activeDocument = BaseProjectDocument.create(this._workspace, doc);
-		await this.activeDocument.parseAsync();
+		this._parseCancellationToken = new CancellationTokenSource();
+		await this.activeDocument.parseAsync(this._parseCancellationToken.token);
+		this._parseCancellationToken = undefined;
 		this._workspace.activateDocument(this.activeDocument);
 	}
-
 }

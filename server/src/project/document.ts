@@ -1,4 +1,4 @@
-import { Diagnostic, SemanticTokens, SymbolInformation, SymbolKind } from 'vscode-languageserver';
+import { CancellationToken, Diagnostic, LSPErrorCodes, ResponseError, SemanticTokens, SymbolInformation, SymbolKind } from 'vscode-languageserver';
 import { Workspace } from './workspace';
 import { FoldableElement } from './elements/special';
 import { BaseSyntaxElement, HasAttribute, HasSemanticToken, HasSymbolInformation } from './elements/base';
@@ -9,17 +9,7 @@ import { SemanticTokensManager } from '../capabilities/semanticTokens';
 import { sleep } from '../utils/helpers';
 
 
-export interface ProjectDocument {
-	name: string;
-	textDocument: TextDocument;
-	languageServerSemanticTokens: (range?: Range) => SemanticTokens | null;
-	languageServerSymbolInformationAsync(): Promise<SymbolInformation[]>;
-	get foldableElements(): FoldingRange[];
-	parseAsync(): Promise<void>;
-}
-
-
-export abstract class BaseProjectDocument implements ProjectDocument {
+export abstract class BaseProjectDocument {
 	readonly workspace: Workspace;
 	readonly textDocument: TextDocument;
 	readonly name: string;
@@ -36,12 +26,7 @@ export abstract class BaseProjectDocument implements ProjectDocument {
 	protected _semanticTokens: SemanticTokensManager = new SemanticTokensManager();
 	
 	isBusy = false;
-	private _requestId = 0;
 	abstract symbolKind: SymbolKind
-
-	get foldableElements() {
-		return this._foldableElements;
-	}
 
 	get activeAttributeElement() {
 		return this._attributeElements?.at(-1);
@@ -53,7 +38,7 @@ export abstract class BaseProjectDocument implements ProjectDocument {
 		this.name = name;
 	}
 
-	static create(workspace: Workspace, document: TextDocument): VbaClassDocument | VbaModuleDocument {
+	static create(workspace: Workspace, document: TextDocument): BaseProjectDocument {
 		const slashParts = document.uri.split('/').at(-1);
 		const dotParts = slashParts?.split('.');
 		const extension = dotParts?.at(-1);
@@ -77,24 +62,21 @@ export abstract class BaseProjectDocument implements ProjectDocument {
 		return this._semanticTokens.getSemanticTokens(range);
 	};
 
-	async languageServerSymbolInformationAsync(): Promise<SymbolInformation[]> {
-		this._requestId += 1;
-		const requestId = this._requestId;
+	async languageServerSymbolInformationAsync(token: CancellationToken): Promise<SymbolInformation[]> {
 		while (this.isBusy) {
 			await sleep(5);
-			if (requestId < this._requestId) {
+			if (token.isCancellationRequested) {
 				return [];
 			}
 		}
-		this._requestId = 0;
 		return this._symbolInformations;
 	}
 
-	parseAsync = async (): Promise<void> => {
+	parseAsync = async (token: CancellationToken): Promise<void> => {
 		this.isBusy = true;
-		console.log('Parsing document');
-		await (new SyntaxParser()).parseAsync(this);
-		this.isBusy = false;
+		if (await (new SyntaxParser()).parseAsync(this, token)) {
+			this.isBusy = false;
+		}
 	};
 
 	registerNamedElementDeclaration(element: any) {
@@ -177,6 +159,18 @@ export abstract class BaseProjectDocument implements ProjectDocument {
 	registerSymbolInformation = (element: HasSymbolInformation): number => {
 		return this._symbolInformations.push(element.symbolInformation);
 	};
+
+	/** Get document information */
+	async getFoldingRanges(token: CancellationToken): Promise<FoldingRange[]> {
+		while (this.isBusy) {
+			await sleep(5);
+			if (token.isCancellationRequested) {
+				return [];
+			}
+		}
+		this.workspace.connection.console.info('Processing request for Folding Range');
+		return this._foldableElements;
+	}
 }
 
 
