@@ -56,8 +56,8 @@ export class LanguageServerConfiguration {
 		hoverProvider: false,
 		textDocumentSync: TextDocumentSyncKind.Incremental,
 		completionProvider: { resolveProvider: false },
-		foldingRangeProvider: false,
-		documentSymbolProvider: false,
+		foldingRangeProvider: true,
+		documentSymbolProvider: true,
 	};
 
 	constructor(params: InitializeParams) {
