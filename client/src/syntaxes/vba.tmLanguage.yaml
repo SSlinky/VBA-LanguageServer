@@ -477,16 +477,19 @@ repository:
         name: storage.type.enum.vba
   
   enumMember:
-    match: (?i)^\s*([a-z][a-z0-9_]*)(\s+=.*)?('.*)?$
+    match: (?i)^\s*([a-z][a-z0-9_]*)(?:\s+(=)\s+([^\n']*)\s+)?('.*)?$
     captures:
       1:
         name: constant.numeric.enum.vba
       2:
         patterns:
-          - include: "#language"
+          - include: "#operators"
       3:
         patterns:
-          - include: "#comment"
+          - include: "#language"
+      4:
+        patterns:
+          - include: "#comments"
 
   struct:
     name: meta.struct.declaration.vba
