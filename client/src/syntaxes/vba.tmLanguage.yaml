@@ -665,7 +665,7 @@ repository:
   # TODO: Redo this so it can take into account chaining, e.g.:
   # MyClass.MyProp = SomeObject.Foo(20)
   variableAssignment:
-    match: (?i)((Get|Let|Set)\s+)?([a-z][a-z0-9._]*)(\s*=\s*)(.*)
+    match: (?i)((Get|Let|Set)\s+)?([a-z.][a-z0-9._]*)(\s*=\s*)(.*)
     captures:
       2:
         name: keyword.control.vba
