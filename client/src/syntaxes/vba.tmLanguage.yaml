@@ -16,6 +16,7 @@ repository:
       - include: "#labels"          # Handle labels first so they aren't handled by lines.
       - include: "#methodSignature"
       - include: "#continuations"   # Consume continuations so they "continue" other matches.
+      - include: "#enum"
       - include: "#syntaxLines"     # Split document lines into syntax lines.
 
   continuations:
@@ -42,25 +43,12 @@ repository:
     match: ((?:[^\n":]|"(?:\\.|[^\n"\\])*")+|"(?:\\.|[^\n"\\])*")
     captures:
       1: # Split line
-      #   patterns:
-      #     - include: "#strings"
-      #     - include: "#syntaxLine"
-      # 2: # Single syntax line.
         patterns:
           - include: "#main"
-    # repository:
-    #   syntaxLine:
-    #     name: meta.syntax-line.vba
-    #     match: (?:(.*):)
-    #     captures:
-    #       1:
-    #         patterns:
-    #           - include: "main"
 
   main:
     patterns:
       - include: "#moduleHeader"
-      - include: "#enum"
       - include: "#struct"
       - include: "#declareFunctionSignature"
       - include: "#methodSignature"
