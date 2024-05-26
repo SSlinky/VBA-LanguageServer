@@ -1,4 +1,4 @@
-import { Diagnostic, SemanticTokens, SymbolInformation, SymbolKind } from 'vscode-languageserver';
+import { CancellationToken, Diagnostic, LSPErrorCodes, ResponseError, SemanticTokens, SymbolInformation, SymbolKind } from 'vscode-languageserver';
 import { Workspace } from './workspace';
 import { FoldableElement } from './elements/special';
 import { BaseSyntaxElement, HasAttribute, HasSemanticToken, HasSymbolInformation } from './elements/base';
@@ -9,17 +9,7 @@ import { SemanticTokensManager } from '../capabilities/semanticTokens';
 import { sleep } from '../utils/helpers';
 
 
-export interface ProjectDocument {
-	name: string;
-	textDocument: TextDocument;
-	languageServerSemanticTokens: (range?: Range) => SemanticTokens | null;
-	languageServerSymbolInformationAsync(): Promise<SymbolInformation[]>;
-	get foldableElements(): FoldingRange[];
-	parse(): void;
-}
-
-
-export abstract class BaseProjectDocument implements ProjectDocument {
+export abstract class BaseProjectDocument {
 	readonly workspace: Workspace;
 	readonly textDocument: TextDocument;
 	readonly name: string;
@@ -38,10 +28,6 @@ export abstract class BaseProjectDocument implements ProjectDocument {
 	isBusy = false;
 	abstract symbolKind: SymbolKind
 
-	get foldableElements() {
-		return this._foldableElements;
-	}
-
 	get activeAttributeElement() {
 		return this._attributeElements?.at(-1);
 	}
@@ -52,7 +38,7 @@ export abstract class BaseProjectDocument implements ProjectDocument {
 		this.name = name;
 	}
 
-	static create(workspace: Workspace, document: TextDocument): VbaClassDocument | VbaModuleDocument {
+	static create(workspace: Workspace, document: TextDocument): BaseProjectDocument {
 		const slashParts = document.uri.split('/').at(-1);
 		const dotParts = slashParts?.split('.');
 		const extension = dotParts?.at(-1);
@@ -76,19 +62,21 @@ export abstract class BaseProjectDocument implements ProjectDocument {
 		return this._semanticTokens.getSemanticTokens(range);
 	};
 
-	async languageServerSymbolInformationAsync() {
+	async languageServerSymbolInformationAsync(token: CancellationToken): Promise<SymbolInformation[]> {
 		while (this.isBusy) {
 			await sleep(5);
+			if (token.isCancellationRequested) {
+				return [];
+			}
 		}
 		return this._symbolInformations;
 	}
 
-	parse = (): void => {
+	parseAsync = async (token: CancellationToken): Promise<void> => {
 		this.isBusy = true;
-		console.log('Parsing document');
-		(new SyntaxParser()).parse(this);
-		console.log('Finished parsing document');
-		this.isBusy = false;
+		if (await (new SyntaxParser()).parseAsync(this, token)) {
+			this.isBusy = false;
+		}
 	};
 
 	registerNamedElementDeclaration(element: any) {
@@ -169,9 +157,20 @@ export abstract class BaseProjectDocument implements ProjectDocument {
 	 * @returns a number for some reason.
 	 */
 	registerSymbolInformation = (element: HasSymbolInformation): number => {
-		console.debug(`Registering symbol for ${element.symbolInformation.name}`);
 		return this._symbolInformations.push(element.symbolInformation);
 	};
+
+	/** Get document information */
+	async getFoldingRanges(token: CancellationToken): Promise<FoldingRange[]> {
+		while (this.isBusy) {
+			await sleep(5);
+			if (token.isCancellationRequested) {
+				return [];
+			}
+		}
+		this.workspace.connection.console.info('Processing request for Folding Range');
+		return this._foldableElements;
+	}
 }
 
 

@@ -6,45 +6,84 @@ fileTypes:
   - .frm
 
 patterns:
-  - include: "#vbaLang"
+  - include: "#fileStructure"
 
 repository:
-  vbaLang:
+  fileStructure:
     patterns:
-      - include: "#comments"
-      - include: "#moduleLines"
+      - include: "#comments"        # Handle comments here so they aren't broken by other stuff.
+      - include: "#strings"         # Handle strings here so they aren't broken by other stuff.
+      - include: "#labels"          # Handle labels first so they aren't handled by lines.
+      - include: "#methodSignature"
+      - include: "#continuations"   # Consume continuations so they "continue" other matches.
+      - include: "#syntaxLines"     # Split document lines into syntax lines.
+
+  continuations:
+    name: meta.has-continuation.vba
+    begin: (?i)(.*)(\s_\s*)
+    end: \n
+    patterns:
+      - include: "#lineContinuation"
+      - include: "#fileStructure"
+    beginCaptures:
+      1:
+        patterns:
+          - include: "#fileStructure"
+      2:
+        patterns:
+          - include: "#lineContinuation"
+
+  lineContinuation:
+    name: support.vba
+    match: \s*_\s*\n
+
+  syntaxLines:
+    name: meta.syntax-lines.vba
+    match: ((?:[^\n":]|"(?:\\.|[^\n"\\])*")+|"(?:\\.|[^\n"\\])*")
+    captures:
+      1: # Split line
+      #   patterns:
+      #     - include: "#strings"
+      #     - include: "#syntaxLine"
+      # 2: # Single syntax line.
+        patterns:
+          - include: "#main"
+    # repository:
+    #   syntaxLine:
+    #     name: meta.syntax-line.vba
+    #     match: (?:(.*):)
+    #     captures:
+    #       1:
+    #         patterns:
+    #           - include: "main"
+
+  main:
+    patterns:
       - include: "#moduleHeader"
       - include: "#enum"
       - include: "#struct"
-      - include: "#mthdSig"
+      - include: "#declareFunctionSignature"
+      - include: "#methodSignature"
       - include: "#variableDeclarations"
       - include: "#block"
-      - include: "#testing"
-    repository:
-      moduleLines:
-        match: '([^\n:]*)?:(?=([^"]*"[^"]*")*[^"]*$)'
-        captures:
-          1:
-            patterns:
-              - include: "#vbaLang"
+
 
   language:
     name: source.language.vba
     patterns:
       - include: "#comments"
+      - include: "#vbaBuiltIns"
       - include: "#literals"
       - include: "#operators"
       - include: "#keywords"
-      - include: "#funcCall"
+      - include: "#functionCall"
       - include: "#subCall"
       - include: "#objectModel"
 
-  lineContinuation:
-    name: support.vba
-    match: "\\s*_\\s*\\n"
       
   literals:
     patterns:
+      - include: "#comments"
       - include: "#string"
       - include: "#boolean"
       - include: "#number"
@@ -73,19 +112,19 @@ repository:
     repository:
       opsArithmetic:
         name: keyword.operator.arithmetic.vba
-        match: "(?i)([*&/\\+-]|\\bMod\\b)"
+        match: (?i)([*&/\+-]|\bMod\b)
       opsComparison:
         name: keyword.operator.comparison.vba
-        match: "(?i)([<>=]|\\b(is|like)\\b)"
+        match: (?i)([<>=]|\b(is|like)\b)
       opsConcatenation:
         name: keyword.operator.concatenation.vba
-        match: "(?i)[&+]"
+        match: (?i)[&+]
       opsLogical:
         name: keyword.operator.logical.vba
-        match: "(?i)\\b(and|eqv|imp|not|or|xor)\\b"
+        match: (?i)\b(and|eqv|imp|not|or|xor)\b
       opsOther:
         name: keyword.operator.concatenation.vba
-        match: "(?i)\\b(addressof|typeof)\\b"
+        match: (?i)\b(addressof|typeof)\b
 
   keywords:
     patterns:
@@ -110,7 +149,10 @@ repository:
 
       kw-flow:
         patterns:
+          - include: "#inlineIfElse"
+          - include: "#inlineIf"
           - include: "#flowDecision"
+          - include: "#forEachLoop"
           - include: "#flowLoop"
           - include: "#flowCall"
           - include: "#flowPauseExit"
@@ -118,11 +160,61 @@ repository:
         repository:
           flowDecision:
             name: keyword.control.flow.decision.vba
-            match: "(?i)\\b(if|then|elseif|else|end if|select case|case|switch|end select)\\b"
+            match: '(?i)(^|\s+)(#if|then|#elseif|#else|#end if|select case|case|switch|end select)\b'
+            # match: '(?i)(^|\s+)([#]?if|then|[#]?elseif|[#]?else|[#]?end if|select case|case|switch|end select)\b'
 
           flowLoop:
             name: keyword.control.flow.loop.vba
-            match: "(?i)\\b(do|exit\\s+do|while|until|loop|for|exit\\s+for|next|with)\\b"
+            match: "(?i)\\b(do|exit\\s+do|while|until|loop|for|each|in|to|exit\\s+for|next|with)\\b"
+
+          forEachLoop:
+            name: meta.flow.foreach.vba
+            match: (?i)\b(for\s+each)\s+(.+?)\s+(in)
+            captures:
+              1:
+                name: keyword.control.flow.loop.vba
+              2:
+                patterns:
+                  - include: "#expression"
+                  - include: "#functionCall"
+              3:
+                name: keyword.control.flow.loop.vba
+          
+          inlineIfElse:
+            name: meta.flow.inline-if-else.vba
+            match: (?i)\b(if)\s+(.*?)\s+(then)\s+(.*)\s+(else)\s+(.*)
+            captures:
+              1:
+                name: keyword.control.flow.decision.vba
+              2:
+                patterns:
+                  - include: "#expression"
+                  - include: "#functionCall"
+              3:
+                name: keyword.control.flow.decision.vba
+              4:
+                patterns:
+                  - include: "#expression"
+                  - include: "#functionCall"
+              5:
+                name: keyword.control.flow.decision.vba
+              6:
+                patterns:
+                  - include: "#expression"
+                  - include: "#functionCall"
+          
+          inlineIf:
+            name: meta.flow.inline-if.vba
+            match: (?i)\b(if)\s+(.*?)\s+(then)
+            captures:
+              1:
+                name: keyword.control.flow.decision.vba
+              2:
+                patterns:
+                  - include: "#expression"
+                  - include: "#functionCall"
+              3:
+                name: keyword.control.flow.decision.vba
 
           flowCall:
             name: keyword.control.flow.call.vba
@@ -138,7 +230,7 @@ repository:
               - include: "#flowBranchSimple"
             repository:
               flowBranchOnGos:
-                match: "(?i)\\b(on\\s+error|on)\\s+(.*\\s+)?(goto|gosub)\\s+([a-z][a-z0-9_]*|\\d+)\\b"
+                match: "(?i)\\b(on\\s+error|on)\\s+(.*\\s+)?(goto|gosub)\\s+([a-z][a-z0-9_]*|\\d+)\\b(.*)"
                 captures:
                   1:
                     name: keyword.control.flow.branch.vba
@@ -149,6 +241,9 @@ repository:
                     name: keyword.control.flow.branch.vba
                   4:
                     name: variable.other.constant.label.vba
+                  5:
+                    patterns:
+                      - include: "#main"
 
               flowBranchSimple:
                 name: keyword.control.flow.branch.vba
@@ -189,8 +284,23 @@ repository:
             match: "^#.*"
 
   labels:
-    name: variable.other.constant.label.vba
-    match: "(?i)^([a-z][a-z0-9_]*|\\d+):"
+    # name: variable.other.constant.label.vba
+    match: '(?i)^(\s*[a-z][a-z0-9_]*|\d+):'
+    captures:
+      1:
+        name: variable.other.constant.label.vba
+
+  vbaBuiltIns:
+    patterns:
+      - include: "#vbaEnum"
+      - include: "#vbaConstant"
+    repository:
+      vbaEnum:
+        match: (?i)(vba7|win64)
+        name: constant.numeric.enum.vba
+      vbaConstant:
+        match: (?i)(vbNewLine|vbCr|vbLf|vbCrLf)
+        name: constant.numeric.enum.vba
 
   objectModel:
     patterns:
@@ -233,7 +343,7 @@ repository:
               - include: "#objectModelDebugInvalid"
             repository:
               objectModelDebugValid:
-                match: "(?i)\\b(debug)(\\.(print|assert))"
+                match: (?i)\b(debug)(\.(print|assert))
                 captures:
                   1:
                     name: entity.name.type.vba
@@ -242,7 +352,7 @@ repository:
 
               objectModelDebugInvalid:
                 name: invalid.unimplemented.vba
-                match: "(?i)\\b(debug)(\\.([a-z][a-z0-9_]*))"
+                match: (?i)\b(debug)(\.([a-z][a-z0-9_]*))
 
   types:
     patterns:
@@ -252,24 +362,30 @@ repository:
     repository:
       primativeType:
         name: support.type.primitive.vba
-        match: "(?i)(?<=\\bAs)\\s+(boolean|byte|currency|date|decimal|double|integer|long(long|ptr)?|single|string|variant)\\b"
+        match: (?i)(?<=\bAs)\s+(boolean|byte|currency|date|decimal|double|integer|long(long|ptr)?|single|string|variant)\b
       objectType:
-        name: entity.name.type.vba
-        match: "(?i)(?<=\\bAs)\\s+([A-Z][A-Z0-9_]*)\\b"
+        name: support.type.object.vba
+        match: (?i)(?<=\bAs)(\s+New)?\s+([A-Z][A-Z0-9_]*)\b
+        captures:
+          1:
+            name: keyword.storage.new.vba
+          2:
+            name: support.type.object.vba
 
   arguments:
+    # Rules that have no match will never return a name in the hierarchy.
+    # This name doesn't do anything but leaving this as usage notes.
     name: source.args.vba
     patterns:
       - include: "#lineContinuation"
       - include: "#paramArray"
-      - include: "#funcCall"
-      - include: "#subCall"
+      - include: "#functionCall"
       - include: "#argsVariable"
       - include: "#argsLiteral"
       - include: "#language"
     repository:
       argsVariable:
-        match: "(?i),?\\s*(Optional\\s+)?((?:ByVal|ByRef)\\s+)?([a-z][a-z0-9_]*)(?:\\s*(\\bas\\s+[a-z][a-z0-9_]*))?\\b(\\s+=\\s+[^,)]*)?"
+        match: (?i),?\s*(Optional\s+)?((?:ByVal|ByRef)\s+)?([a-z][a-z0-9_]*)(?:\s*(\bas\s+[a-z][a-z0-9_]*))?\b(\s+=\s+[^,)]*)?
         captures:
           1:
             name: storage.type.modifier.vba
@@ -285,20 +401,21 @@ repository:
               - include: "#language"
 
       argsLiteral:
-        match: "(?i),?\\s*([a-z0-9\"]*)\\b"
+        name: meta.arguments.argsLiteral.vba
+        match: ((?:[^\n",]|"(?:\\.|[^\n"\\])*")+|"(?:\\.|[^\n"\\])*")
         captures:
           1:
             patterns:
-              - include: "#types"
+              - include: "#literals"
 
       paramArray:
-        match: "(?i)(ParamArray)\\s+([a-z][a-z0-9_]*)(\\(\\))(\\s+As\\s+Variant)"
+        match: (?i),?\s*(ParamArray)\s+([a-z][a-z0-9_]*)(?:\(\))(\s+As\s+Variant)?
         captures:
           1:
-            name: storage.type.array.vba
+            name: storage.type.modifier.array.vba
           2:
-            name: variable.other.readwrite.vba
-          4:
+            name: variable.parameter.vba
+          3:
             patterns:
               - include: "#types"
 
@@ -312,20 +429,20 @@ repository:
         # The sub-pattern consumes the \n if preceded by line continuation.
         # Capturing it there prevents the end pattern being matched.
         name: comment.block.vba
-        begin: "'.*\\s_\\s*"
-        end: "\\n"
+        begin: (?i)'.*\s_\s*
+        end: \n
         patterns:
           - include: "#lineContinuation"
       apostropheComments:
         name: comment.line.apostrophe.vba
-        match: "'.*"
+        match: (?i)'.*
       remarkComments:
         name: comment.line.remark.vba
-        match: "(?i)(?<=^|:)\\s*Rem\\b.*"
+        match: (?i)(?<=^|:)\s*Rem\b.*
 
   attribute:
     name: entity.other.attribute-name.vba
-    match: "(?i)^Attribute(.*)"
+    match: (?i)^Attribute(.*)
     captures:
       0:
         patterns:
@@ -342,33 +459,33 @@ repository:
           - include: "#attribute"
       moduleAttributeBlock:
         name: entity.other.attribute-name.block.vba
-        begin: "(?i)^VERSION"
-        end: "^(?i)End"
+        begin: (?i)^VERSION
+        end: ^(?i)End
         patterns:
           - include: "#comments"
           - include: "#literals"
 
       moduleOption:
         name: keyword.control.vba
-        match: "(?i)^\\s*Option\\s+(Explicit|Base|Private\\s+Module)\\b"
+        match: (?i)^\s*Option\s+(Explicit|Base|Private\s+Module)\b
 
   enum:
     name: meta.enum.declaration.vba
-    begin: "(?i)^\\s*((?:(?:Public|Private) )?\\s*Enum)\\s+([a-z][a-z0-9_]*)"
+    begin: (?i)^\s*((?:(?:Public|Private) )?\s*Enum)\s+([a-z][a-z0-9_]*)
     beginCaptures:
       1:
         name: storage.type.enum.vba
       2:
         name: entity.name.type.enum.vba
     patterns:
-      - include: "#enumDeclaration"
-    end: "(?i)^\\s*End\\s+Enum\\b"
+      - include: "#enumMember"
+    end: (?i)^\s*End\s+Enum\b
     endCaptures:
       0:
         name: storage.type.enum.vba
   
-  enumDeclaration:
-    match: "(?i)^\\s*([a-z][a-z0-9_]*)(\\s+=.*)?('.*)?$"
+  enumMember:
+    match: (?i)^\s*([a-z][a-z0-9_]*)(\s+=.*)?('.*)?$
     captures:
       1:
         name: constant.numeric.enum.vba
@@ -410,10 +527,40 @@ repository:
         patterns:
           - include: "#types"
 
-  mthdSig:
+  declareFunctionSignature:
+    name: source.declare.signature.vba
+    begin: (?i)^\s*((?:Public|Private|Friend)?\b\s*Declare)\s+(PtrSafe\s+)?(Sub|Function)\s+([a-z][a-z0-9_]*)\s+(Lib)\s+("[a-z][a-z0-9._]*")(?:\s+(Alias)\s+("[a-z][a-z0-9_]*"))?\s+\(
+    end: '(?i)(?:\))\s+(as\s+[a-z][a-z0-9_]*)'
+    beginCaptures:
+      1: # Public|Private|Friend Declare
+        name: storage.type.method.vba
+      2: # PtrSafe
+        name: storage.type.method.vba
+      3: # Sub|Function
+        name: storage.type.method.vba
+      4: # Name
+        name: entity.name.function.vba
+      5: # Lib
+        name: storage.type.method.vba
+      6: # Lib name
+        patterns:
+          - include: "#literals"
+      7: # Alias
+        name: storage.type.method.vba
+      8: # Alias name
+        patterns:
+          - include: "#literals"
+    endCaptures:
+      1: # return type
+        patterns:
+          - include: "#types"
+    patterns:
+      - include: "#arguments"
+
+  methodSignature:
     name: source.method.signature.vba
-    begin: "(?i)^\\s*((?:Public|Private)?\\b\\s*(?:(?:Sub|Function)|Property\\s+(?:Let|Get|Set)))\\s+([a-z][a-z0-9_]*)\\s*(\\()"
-    end: "(?i)(\\))\\s+(as\\s+[a-z][a-z0-9_]*)?"
+    begin: '(?i)^\s*((?:Public|Private)?\b\s*(?:(?:Sub|Function)|Property\s+(?:Let|Get|Set)))\s+([a-z][a-z0-9_]*)\s*(\()'
+    end: '(?i)(\))\s+(as\s+[a-z][a-z0-9_]*)?'
     beginCaptures:
       1:
         name: storage.type.method.vba
@@ -427,39 +574,59 @@ repository:
       2: # return type
         patterns:
           - include: "#types"
-
     patterns:
       - include: "#arguments"
     
-  mthdClose:
-    name: storage.type.method.vba
-    match: "(?i)^\\s*End\\s+(Sub|Function|Property)"
+  methodClose:
+    name: storage.type.method.close.vba
+    match: (?i)^\s*End\s+(Sub|Function|Property)
+
+  expression:
+    # (?:[*&/\+-]|\bMod\b)|
+    # (?:[<>=]|\b(is|like)\b)|
+    # (?:[&+])|
+    # (?:\b(and|eqv|imp|not|or|xor)\b)|
+    # (?:\b(addressof|typeof)\b)
+
+    # This match just made up of the operators matchs. Don't look at it too hard.
+    match: (?i)(.*?)\s+((?:[*&/\+-]|\bMod\b)|(?:[<>=]|\b(is|like)\b)|(?:[&+])|(?:\b(and|eqv|imp|not|or|xor)\b)|(?:\b(addressof|typeof)\b))\s+(.*)
+    captures:
+      1:  # Left sided of expression
+        patterns:
+          - include: "#literal"
+      2:  # Operator
+        patterns:
+          - include: "#operators"
+      3:  # Operator
+        patterns:
+          - include: "#literals"
+          - include: "#functionCall"
+          - include: "#expression"
 
   block:
     patterns:
-      - include: "#labels"
-      - include: "#comments"
-      - include: "#blockAttribute"
-      - include: "#blockLines"
       - include: "#variableDeclarations"
       - include: "#variableAssignment"
-      - include: "#funcCall"
-      - include: "#subCall"
-      - include: "#mthdClose"
+      - include: "#methodClose"
       - include: "#language"
 
     repository:
       blockLines:
         name: source.methodlines.vba
-        match: "(.*):"
+        match: (?:(^(?:\s*[a-z0-9]*?:\s*)(?:\s+'.*)?$)|(.*):)
+        # match: (?:(^(?:\s*[a-z0-9]*?:\s*)(?:\s+'.*)?$)|(.*):)
         captures:
-          1:
+          1: # label
+            name: source.methodlines.label.vba
+            # patterns:
+            #   - include: "#labels"
+          2: # colon separated line
             patterns:
               - include: "#block"
 
-      blockAttribute:
-        patterns:
-          - include: "#attribute"
+      # blockAttribute:
+      #   patterns:
+      #     - include: "#attribute"
 
   variableDeclarations:
     patterns:
@@ -468,7 +635,7 @@ repository:
     repository:
       variableDeclaration:
         name: storage.var-declaration.vba
-        match: "(?i)^\\s*(Dim|Public|Private)\\s+([a-z][a-z0-9_]*)(\\(.*\\))?(\\s+As\\s+[A-Z][A-Z0-9_]*)?"
+        match: (?i)^\s*(Dim|Public|Private)\s+([a-z][a-z0-9_]*)(\(.*\))?(\s+As(?:\s+New)?\s+[A-Z][A-Z0-9_]*)?
         captures:
           1:
             # Dim|Private
@@ -503,96 +670,47 @@ repository:
             patterns:
               - include: "#language"
 
+  # TODO: Redo this so it can take into account chaining, e.g.:
+  # MyClass.MyProp = SomeObject.Foo(20)
   variableAssignment:
-    match: "(?i)([a-z][a-z0-9_]*)(\\s*=\\s*)(.*)"
+    match: (?i)((Get|Let|Set)\s+)?([a-z][a-z0-9._]*)(\s*=\s*)(.*)
     captures:
-      1:
-        name: variable.other.assignment.vba
       2:
-        name: keyword.operator.assignment.vba
+        name: keyword.control.vba
       3:
+        name: variable.other.assignment.vba
+      4:
+        name: keyword.operator.assignment.vba
+      5:
         patterns:
-          - include: "#funcCall"
-          - include: "#subCall"
+          - include: "#functionCall"
           - include: "#language"
 
-  funcCall:
+  functionCall:
     name: meta.function.call.vba
-    begin: "(?i)([a-z][a-z0-9_]*)\\("
-    end: "\\)"
+    begin: (?i)([a-z][a-z0-9_]*)\(
+    end: \)
     beginCaptures:
       1:
         name: entity.name.function.call.vba
     patterns:
       # These calls need to be back to a top level group because
       # textMate does not seem to support a repository in a begin/end
-      - include: "#args"
-      - include: "#arg"
+      - include: "#arguments"
       - include: "#lineContinuation"
 
   subCall:
-    # TODO: Better way to do this.
-    # Captures sub calls with two or more args.
-    # Required because they break properties somehow.
-    begin: "(?i)([a-z][a-z0-9_]*)\\s+(.*,.*)"
+    begin: (?i)([a-z][a-z0-9._]*)\s+(.*,.*)
     beginCaptures:
       1:
         name: entity.name.function.call.vba
       2:
         patterns:
-          - include: "#args"
-          - include: "#arg"
+          - include: "#arguments"
+    end: \n
     patterns:
-      - include: "#args"
-      - include: "#arg"
-    end: "\\n"
-
-  subCallMultiLine:
-    begin: "(?i)([a-z][a-z0-9_]*)\\s+_\\s*['\\n]"
-    beginCaptures:
-      1:
-        name: entity.name.function.call.vba
-    patterns:
-      - include: "#args"
-    end: "\\n"
-
-
-  args:
-    # The match gates an args list. It is not consumed by the
-    # match immediately because it is passed through captures which
-    # handles args separately.
-    match: ".*,.*"
-    captures:
-      0:
-        patterns:
-          - include: "#argsHandler"
-        repository:
-          argsHandler:
-            begin: "[^,]+"
-            beginCaptures:
-              0:
-                name: variable.parameter.vba
-                patterns:
-                  - include: "#arg"
-            end: ","
-            patterns:
-              - include: "#arg"
-
-  arg:
-    patterns:
-      - include: "#kwarg"
-      - include: "#literals"
-      - include: "#lineConcat"
-      - include: "#language"
-
-  kwarg:
-    match: "(?i)([a-z][a-z0-9_]*)(:=.*)"
-    captures:
-      1:
-        name: variable.parameter.function-call.vba
-      2:
-        patterns:
-          - include: "#arg"
+      # - include: "#subCallMultiLine"
+      - include: "#arguments"
 
   testing:
     patterns:
