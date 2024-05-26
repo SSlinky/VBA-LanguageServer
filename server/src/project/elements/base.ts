@@ -1,5 +1,5 @@
 import { ParserRuleContext } from 'antlr4ts';
-import { Range, SemanticTokenModifiers, SemanticTokenTypes, SymbolInformation, SymbolKind } from 'vscode-languageserver';
+import { Diagnostic, Range, SemanticTokenModifiers, SemanticTokenTypes, SymbolInformation, SymbolKind } from 'vscode-languageserver';
 import { Position, TextDocument } from 'vscode-languageserver-textdocument';
 import { FoldingRangeKind } from '../../capabilities/folding';
 import { IdentifierElement } from './memory';
@@ -19,6 +19,11 @@ export interface ContextOptionalSyntaxElement {
 interface SyntaxElement extends ContextOptionalSyntaxElement {
 	range: Range;
 	context: ParserRuleContext;
+}
+
+export interface HasDiagnosticCapability {
+	diagnostics: Diagnostic[];
+	evaluateDiagnostics(): void;
 }
 
 export interface HasAttribute {
@@ -90,7 +95,7 @@ export abstract class BaseSyntaxElement implements ContextOptionalSyntaxElement 
 		const stopIndex = this.context.stop?.stopIndex ?? startIndex;
 		return Range.create(
 			this.document.positionAt(startIndex),
-			this.document.positionAt(stopIndex)
+			this.document.positionAt(stopIndex + 1)
 		);
 	}
 }
