@@ -52,8 +52,7 @@ moduleDeclarationsElement:
 	comment
 	| declareStmt
 	| implementsStmt
-	| moduleOption
-	| unknownLine;
+	| moduleOption;
 
 macroStmt: macroConstStmt | macroIfThenElseStmt;
 

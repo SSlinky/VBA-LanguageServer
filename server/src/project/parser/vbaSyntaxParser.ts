@@ -39,7 +39,7 @@ export class SyntaxParser {
         // });
 
         // Refuse to do anything that seems like too much work.
-        if (document.textDocument.lineCount > 1000) {
+        if (document.textDocument.lineCount > 1500) {
             // TODO: Make this an option that people can increase or decrease.
             console.log(`Document oversize: ${document.textDocument.lineCount} lines.`);
             console.warn(`Syntax parsing has been disabled to prevent crashing.`);
