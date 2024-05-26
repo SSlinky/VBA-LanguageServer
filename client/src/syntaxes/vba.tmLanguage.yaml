@@ -16,6 +16,7 @@ repository:
       - include: "#labels"          # Handle labels first so they aren't handled by lines.
       - include: "#methodSignature"
       - include: "#continuations"   # Consume continuations so they "continue" other matches.
+      - include: "#enum"
       - include: "#syntaxLines"     # Split document lines into syntax lines.
 
   continuations:
@@ -42,25 +43,12 @@ repository:
     match: ((?:[^\n":]|"(?:\\.|[^\n"\\])*")+|"(?:\\.|[^\n"\\])*")
     captures:
       1: # Split line
-      #   patterns:
-      #     - include: "#strings"
-      #     - include: "#syntaxLine"
-      # 2: # Single syntax line.
         patterns:
           - include: "#main"
-    # repository:
-    #   syntaxLine:
-    #     name: meta.syntax-line.vba
-    #     match: (?:(.*):)
-    #     captures:
-    #       1:
-    #         patterns:
-    #           - include: "main"
 
   main:
     patterns:
       - include: "#moduleHeader"
-      - include: "#enum"
       - include: "#struct"
       - include: "#declareFunctionSignature"
       - include: "#methodSignature"
@@ -112,7 +100,7 @@ repository:
     repository:
       opsArithmetic:
         name: keyword.operator.arithmetic.vba
-        match: (?i)([*&/\+-]|\bMod\b)
+        match: (?i)([*&\/\^\+\-]|\^|\bMod\b)
       opsComparison:
         name: keyword.operator.comparison.vba
         match: (?i)([<>=]|\b(is|like)\b)
@@ -471,13 +459,17 @@ repository:
 
   enum:
     name: meta.enum.declaration.vba
-    begin: (?i)^\s*((?:(?:Public|Private) )?\s*Enum)\s+([a-z][a-z0-9_]*)
+    begin: (?i)^\s*((?:(?:Public|Private)\s+)?\s*Enum)\s+([a-z][a-z0-9_]+)(\s+(?:'|Rem).*)
     beginCaptures:
       1:
         name: storage.type.enum.vba
       2:
         name: entity.name.type.enum.vba
+      3:
+        patterns:
+          - include: "#comments"
     patterns:
+      - include: "#comment"
       - include: "#enumMember"
     end: (?i)^\s*End\s+Enum\b
     endCaptures:
@@ -485,16 +477,19 @@ repository:
         name: storage.type.enum.vba
   
   enumMember:
-    match: (?i)^\s*([a-z][a-z0-9_]*)(\s+=.*)?('.*)?$
+    match: (?i)^\s*([a-z][a-z0-9_]*)(?:\s+(=)\s+([^\n']*)\s+)?('.*)?$
     captures:
       1:
         name: constant.numeric.enum.vba
       2:
         patterns:
-          - include: "#language"
+          - include: "#operators"
       3:
         patterns:
-          - include: "#comment"
+          - include: "#language"
+      4:
+        patterns:
+          - include: "#comments"
 
   struct:
     name: meta.struct.declaration.vba
@@ -673,7 +668,7 @@ repository:
   # TODO: Redo this so it can take into account chaining, e.g.:
   # MyClass.MyProp = SomeObject.Foo(20)
   variableAssignment:
-    match: (?i)((Get|Let|Set)\s+)?([a-z][a-z0-9._]*)(\s*=\s*)(.*)
+    match: (?i)((Get|Let|Set)\s+)?([a-z.][a-z0-9._]*)(\s*=\s*)(.*)
     captures:
       2:
         name: keyword.control.vba
