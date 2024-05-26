@@ -460,7 +460,19 @@ stopStmt: STOP;
 timeStmt: TIME WS? EQ WS? valueStmt;
 
 typeStmt:
-	(visibility WS)? TYPE WS ambiguousIdentifier endOfStatement typeStmt_Element* END_TYPE;
+	(visibility WS)? TYPE WS ambiguousIdentifier endOfStatement (typeStmt_Element|macroTypeIfThenElseStmt)* END_TYPE;
+
+macroTypeIfThenElseStmt:
+	macroTypeIfBlockStmt macroTypeElseIfBlockStmt* macroTypeElseBlockStmt? MACRO_END_IF endOfStatement;
+
+macroTypeIfBlockStmt:
+	MACRO_IF WS? ifConditionStmt WS THEN endOfStatement typeStmt_Element*;
+
+macroTypeElseIfBlockStmt:
+	MACRO_ELSEIF WS? ifConditionStmt WS THEN endOfStatement typeStmt_Element*;
+
+macroTypeElseBlockStmt:
+	MACRO_ELSE endOfStatement typeStmt_Element*;
 
 typeStmt_Element:
 	ambiguousIdentifier (WS? LPAREN (WS? subscripts)? WS? RPAREN)? (
