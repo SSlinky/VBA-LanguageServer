@@ -100,7 +100,7 @@ repository:
     repository:
       opsArithmetic:
         name: keyword.operator.arithmetic.vba
-        match: (?i)([*&/\+-]|\bMod\b)
+        match: (?i)([*&\/\^\+\-]|\^|\bMod\b)
       opsComparison:
         name: keyword.operator.comparison.vba
         match: (?i)([<>=]|\b(is|like)\b)
