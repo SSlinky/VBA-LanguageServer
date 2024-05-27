@@ -17,6 +17,7 @@ repository:
       - include: "#methodSignature"
       - include: "#continuations"   # Consume continuations so they "continue" other matches.
       - include: "#enum"
+      - include: "#struct"
       - include: "#syntaxLines"     # Split document lines into syntax lines.
 
   continuations:
@@ -49,7 +50,6 @@ repository:
   main:
     patterns:
       - include: "#moduleHeader"
-      - include: "#struct"
       - include: "#declareFunctionSignature"
       - include: "#methodSignature"
       - include: "#variableDeclarations"
