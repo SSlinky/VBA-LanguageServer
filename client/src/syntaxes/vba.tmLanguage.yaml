@@ -497,34 +497,42 @@ repository:
 
   struct:
     name: meta.struct.declaration.vba
-    begin: "(?i)^\\s*((?:(?:Public|Private) )?\\s*Type)\\s+([a-z][a-z0-9_]*)"
+    begin: (?i)^\s*((?:(?:Public|Private)\s+)?Type)\s+([a-z][a-z0-9_]*)?(\s+(?:'|Rem).*)?
     beginCaptures:
+      1: # Type declaration
+        name: storage.type.struct.vba
+      2: # Type name
+        name: entity.name.type.struct.vba
+      3: # Comments?
+        patterns:
+          - include: "#comments"
+    patterns:
+      - include: "#comment"
+      - include: "#structProperty"
+      - include: "#language"
+
+    end: (?i)^\s*(End\s+Type)(\s+'.*)?
+    endCaptures:
       1:
         name: storage.type.struct.vba
       2:
-        name: entity.name.type.struct.vba
-    patterns:
-      - include: "#structProperty"
-
-    end: "(?i)^\\s*End\\s+Type\\b"
-    endCaptures:
-      0:
-        name: storage.type.struct.vba
+        patterns:
+          - include: "#comments"
 
   structProperty:
-    match: "(?i)^\\s*([a-z][a-z0-9_]*)(\\(.*\\))?(\\s+As\\s+[a-z][a-z0-9_]*)?"
+    match: (?i)^\s*([a-z][a-z0-9_]*)(\(.*\))?(\s+As\s+[a-z][a-z0-9_]*)?(\s+(?:'|Rem).*)?
     captures:
-      1:
-        # Property
+      1: # Property
         name: variable.other.readwrite.vba
-      2:
-        # Array bounds?
+      2: # Array bounds?
         patterns:
           - include: "#language"
-      3:
-        # As Type
+      3: # As Type?
         patterns:
           - include: "#types"
+      4: # Comments?
+        patterns:
+          - include: "#comments"
 
   declareFunctionSignature:
     name: source.declare.signature.vba
