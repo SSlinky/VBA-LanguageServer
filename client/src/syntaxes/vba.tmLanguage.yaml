@@ -459,7 +459,7 @@ repository:
 
   enum:
     name: meta.enum.declaration.vba
-    begin: (?i)^\s*((?:(?:Public|Private)\s+)?\s*Enum)\s+([a-z][a-z0-9_]+)(\s+(?:'|Rem).*)
+    begin: (?i)^\s*((?:(?:Public|Private)\s+)?\s*Enum)\s+([a-z][a-z0-9_]+)(\s+(?:'|Rem).*)?
     beginCaptures:
       1:
         name: storage.type.enum.vba
@@ -471,13 +471,17 @@ repository:
     patterns:
       - include: "#comment"
       - include: "#enumMember"
-    end: (?i)^\s*End\s+Enum\b
+      - include: "#language"
+    end: (?i)^\s*(End\s+Enum)(\s+'.*)?
     endCaptures:
-      0:
+      1:
         name: storage.type.enum.vba
+      2:
+        patterns:
+          - include: "#comments"
   
   enumMember:
-    match: (?i)^\s*([a-z][a-z0-9_]*)(?:\s+(=)\s+([^\n']*)\s+)?('.*)?$
+    match: (?i)^\s*([a-z][a-z0-9_]*)(?:\s+(=)\s+([^\n']*))?(\s+(?:'|Rem).*)?
     captures:
       1:
         name: constant.numeric.enum.vba
