@@ -371,22 +371,20 @@ repository:
       - include: "#paramArray"
       - include: "#functionCall"
       - include: "#argsVariable"
-      - include: "#argsLiteral"
       - include: "#language"
+      - include: "#argsLiteral"
     repository:
       argsVariable:
-        match: (?i),?\s*(Optional\s+)?((?:ByVal|ByRef)\s+)?([a-z][a-z0-9_]*)(?:\s*(\bas\s+[a-z][a-z0-9_]*))?\b(\s+=\s+[^,)]*)?
+        match: (?i),?\s*((?:Optional\s+)?(?:ByVal|ByRef)\s+)?([a-z][a-z0-9_]*)(?:\s+(as\s+[a-z][a-z0-9_]*))?(\s*=\s*[^,)]+)?
         captures:
-          1:
+          1: # Optional? ByVal|ByRef?
             name: storage.type.modifier.vba
-          2:
-            name: storage.type.modifier.vba
-          3:
+          2: # Identifier
             name: variable.parameter.vba
-          4:
+          3: # As Type?
             patterns:
               - include: "#types"
-          5:
+          4:
             patterns:
               - include: "#language"
 
