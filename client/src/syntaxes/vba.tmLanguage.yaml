@@ -17,6 +17,7 @@ repository:
       - include: "#methodSignature"
       - include: "#continuations"   # Consume continuations so they "continue" other matches.
       - include: "#enum"
+      - include: "#struct"
       - include: "#syntaxLines"     # Split document lines into syntax lines.
 
   continuations:
@@ -40,16 +41,18 @@ repository:
 
   syntaxLines:
     name: meta.syntax-lines.vba
-    match: ((?:[^\n":]|"(?:\\.|[^\n"\\])*")+|"(?:\\.|[^\n"\\])*")
+    match: ((?:[^\n"':]|"(?:\\.|[^\n"\\])*")+|"(?:\\.|[^\n"\\])*")(?:('.*)*)?
     captures:
       1: # Split line
         patterns:
           - include: "#main"
+      2: # Comments
+        patterns:
+          - include: "#comments"
 
   main:
     patterns:
       - include: "#moduleHeader"
-      - include: "#struct"
       - include: "#declareFunctionSignature"
       - include: "#methodSignature"
       - include: "#variableDeclarations"
@@ -148,12 +151,11 @@ repository:
         repository:
           flowDecision:
             name: keyword.control.flow.decision.vba
-            match: '(?i)(^|\s+)(#if|then|#elseif|#else|#end if|select case|case|switch|end select)\b'
-            # match: '(?i)(^|\s+)([#]?if|then|[#]?elseif|[#]?else|[#]?end if|select case|case|switch|end select)\b'
+            match: (?i)(^|\s+)(#if|then|#elseif|[#]?else|#end if|select case|case|switch|end select)\b
 
           flowLoop:
             name: keyword.control.flow.loop.vba
-            match: "(?i)\\b(do|exit\\s+do|while|until|loop|for|each|in|to|exit\\s+for|next|with)\\b"
+            match: (?i)\b(do|exit\s+do|while|until|loop|for|each|in|to|exit\s+for|next|with)\b
 
           forEachLoop:
             name: meta.flow.foreach.vba
@@ -170,7 +172,7 @@ repository:
           
           inlineIfElse:
             name: meta.flow.inline-if-else.vba
-            match: (?i)\b(if)\s+(.*?)\s+(then)\s+(.*)\s+(else)\s+(.*)
+            match: (?i)\s*((?:else)?if)\s+(.*?)\s+(then)\s+(.*)\s+(else)\s+([^'\n]*)
             captures:
               1:
                 name: keyword.control.flow.decision.vba
@@ -193,7 +195,7 @@ repository:
           
           inlineIf:
             name: meta.flow.inline-if.vba
-            match: (?i)\b(if)\s+(.*?)\s+(then)
+            match: (?i)\s*((?:else)?if)\s+(.*?)\s+(then)
             captures:
               1:
                 name: keyword.control.flow.decision.vba
@@ -417,13 +419,13 @@ repository:
         # The sub-pattern consumes the \n if preceded by line continuation.
         # Capturing it there prevents the end pattern being matched.
         name: comment.block.vba
-        begin: (?i)'.*\s_\s*
+        begin: (?i)\s*'.*\s_\s*
         end: \n
         patterns:
           - include: "#lineContinuation"
       apostropheComments:
-        name: comment.line.apostrophe.vba
-        match: (?i)'.*
+        name: comment.line.apostropheXX.vba
+        match: (?i)\s*'.*
       remarkComments:
         name: comment.line.remark.vba
         match: (?i)(?<=^|:)\s*Rem\b.*
@@ -459,7 +461,7 @@ repository:
 
   enum:
     name: meta.enum.declaration.vba
-    begin: (?i)^\s*((?:(?:Public|Private)\s+)?\s*Enum)\s+([a-z][a-z0-9_]+)(\s+(?:'|Rem).*)
+    begin: (?i)^\s*((?:(?:Public|Private)\s+)?\s*Enum)\s+([a-z][a-z0-9_]+)(\s+(?:'|Rem).*)?
     beginCaptures:
       1:
         name: storage.type.enum.vba
@@ -471,13 +473,17 @@ repository:
     patterns:
       - include: "#comment"
       - include: "#enumMember"
-    end: (?i)^\s*End\s+Enum\b
+      - include: "#language"
+    end: (?i)^\s*(End\s+Enum)(\s+'.*)?
     endCaptures:
-      0:
+      1:
         name: storage.type.enum.vba
+      2:
+        patterns:
+          - include: "#comments"
   
   enumMember:
-    match: (?i)^\s*([a-z][a-z0-9_]*)(?:\s+(=)\s+([^\n']*)\s+)?('.*)?$
+    match: (?i)^\s*([a-z][a-z0-9_]*)(?:\s+(=)\s+([^\n']*))?(\s+(?:'|Rem).*)?
     captures:
       1:
         name: constant.numeric.enum.vba
@@ -493,34 +499,42 @@ repository:
 
   struct:
     name: meta.struct.declaration.vba
-    begin: "(?i)^\\s*((?:(?:Public|Private) )?\\s*Type)\\s+([a-z][a-z0-9_]*)"
+    begin: (?i)^\s*((?:(?:Public|Private)\s+)?Type)\s+([a-z][a-z0-9_]*)?(\s+(?:'|Rem).*)?
     beginCaptures:
+      1: # Type declaration
+        name: storage.type.struct.vba
+      2: # Type name
+        name: entity.name.type.struct.vba
+      3: # Comments?
+        patterns:
+          - include: "#comments"
+    patterns:
+      - include: "#comment"
+      - include: "#structProperty"
+      - include: "#language"
+
+    end: (?i)^\s*(End\s+Type)(\s+'.*)?
+    endCaptures:
       1:
         name: storage.type.struct.vba
       2:
-        name: entity.name.type.struct.vba
-    patterns:
-      - include: "#structProperty"
-
-    end: "(?i)^\\s*End\\s+Type\\b"
-    endCaptures:
-      0:
-        name: storage.type.struct.vba
+        patterns:
+          - include: "#comments"
 
   structProperty:
-    match: "(?i)^\\s*([a-z][a-z0-9_]*)(\\(.*\\))?(\\s+As\\s+[a-z][a-z0-9_]*)?"
+    match: (?i)^\s*([a-z][a-z0-9_]*)(\(.*\))?(\s+As\s+[a-z][a-z0-9_]*)?(\s+(?:'|Rem).*)?
     captures:
-      1:
-        # Property
+      1: # Property
         name: variable.other.readwrite.vba
-      2:
-        # Array bounds?
+      2: # Array bounds?
         patterns:
           - include: "#language"
-      3:
-        # As Type
+      3: # As Type?
         patterns:
           - include: "#types"
+      4: # Comments?
+        patterns:
+          - include: "#comments"
 
   declareFunctionSignature:
     name: source.declare.signature.vba

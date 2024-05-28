@@ -53,11 +53,39 @@ class LanguageServer {
 export class LanguageServerConfiguration {
 	params: InitializeParams;
 	capabilities: ServerCapabilities<any> = {
-		hoverProvider: false,
-		textDocumentSync: TextDocumentSyncKind.Incremental,
-		completionProvider: { resolveProvider: false },
-		foldingRangeProvider: true,
+		// Implemented
 		documentSymbolProvider: true,
+		foldingRangeProvider: true,
+		textDocumentSync: TextDocumentSyncKind.Incremental,
+		
+		// Implement soon.
+		codeActionProvider: false,
+		completionProvider: undefined,
+		hoverProvider: false,
+
+		// Not implemented.		
+		signatureHelpProvider: undefined,
+		declarationProvider: false,
+		definitionProvider: false,
+		typeDefinitionProvider: false,
+		implementationProvider: false,
+		referencesProvider: false,
+		documentHighlightProvider: false,
+		codeLensProvider: undefined,
+		documentLinkProvider: undefined,
+		colorProvider: false,
+		workspaceSymbolProvider: false,
+		documentFormattingProvider: false,
+		documentRangeFormattingProvider: false,
+		documentOnTypeFormattingProvider: undefined,
+		renameProvider: false,
+		selectionRangeProvider: false,
+		executeCommandProvider: undefined,
+		callHierarchyProvider: false,
+		linkedEditingRangeProvider: false,
+		workspace: undefined,
+		monikerProvider: false,
+		experimental: undefined,
 	};
 
 	constructor(params: InitializeParams) {

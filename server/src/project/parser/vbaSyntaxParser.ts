@@ -6,7 +6,7 @@ import { ErrorNode } from 'antlr4ts/tree/ErrorNode';
 import { ParseTreeWalker } from 'antlr4ts/tree/ParseTreeWalker';
 
 import { vbaLexer as VbaLexer } from '../../antlr/out/vbaLexer';
-import { AttributeStmtContext, ConstStmtContext, EnumerationStmtContext, EnumerationStmt_ConstantContext, FoldingBlockStmtContext, MethodStmtContext, ModuleContext, ModuleHeaderContext, VariableStmtContext, vbaParser as VbaParser } from '../../antlr/out/vbaParser';
+import { AttributeStmtContext, ConstStmtContext, EnumerationStmtContext, EnumerationStmt_ConstantContext, FoldingBlockStmtContext, MethodStmtContext, ModuleContext, ModuleHeaderContext, OperatorsStmtContext, VariableStmtContext, vbaParser as VbaParser } from '../../antlr/out/vbaParser';
 import { vbaListener } from '../../antlr/out/vbaListener';
 
 import { VbaClassDocument, VbaModuleDocument } from '../document';
@@ -15,6 +15,7 @@ import { ConstDeclarationsElement, EnumBlockDeclarationElement, EnumMemberDeclar
 import { ModuleElement } from '../elements/module';
 import { sleep } from '../../utils/helpers';
 import { CancellationToken } from 'vscode-languageserver';
+import { OperatorElement } from '../elements/operator';
 
 export class SyntaxParser {
     private static _lockIdentifier = 0;
@@ -38,7 +39,7 @@ export class SyntaxParser {
         // });
 
         // Refuse to do anything that seems like too much work.
-        if (document.textDocument.lineCount > 1000) {
+        if (document.textDocument.lineCount > 1500) {
             // TODO: Make this an option that people can increase or decrease.
             console.log(`Document oversize: ${document.textDocument.lineCount} lines.`);
             console.warn(`Syntax parsing has been disabled to prevent crashing.`);
@@ -110,6 +111,7 @@ class VbaTreeWalkListener implements vbaListener {
 	};
 
     exitEnumerationStmt = (_: EnumerationStmtContext) => {
+        console.warn("Entered enum statement.");
         this.document.deregisterScopedElement();
     };
 
@@ -155,8 +157,14 @@ class VbaTreeWalkListener implements vbaListener {
 	};
 
     enterVariableStmt = (ctx: VariableStmtContext) => {
+        console.warn("Entered value statement. " + ctx.text);
         const element = new VariableDeclarationsElement(ctx, this.document.textDocument);
         element.declarations.forEach((e) => this.document.registerSymbolInformation(e));
+    };
+
+    enterOperatorsStmt = (ctx: OperatorsStmtContext) => {
+        const element = new OperatorElement(ctx, this.document.textDocument);
+        this.document.registerDiagnosticElement(element);
     };
 }
 

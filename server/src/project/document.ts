@@ -1,7 +1,7 @@
-import { CancellationToken, Diagnostic, LSPErrorCodes, ResponseError, SemanticTokens, SymbolInformation, SymbolKind } from 'vscode-languageserver';
+import { CancellationToken, Diagnostic, LSPErrorCodes, PublishDiagnosticsParams, ResponseError, SemanticTokens, SymbolInformation, SymbolKind } from 'vscode-languageserver';
 import { Workspace } from './workspace';
 import { FoldableElement } from './elements/special';
-import { BaseSyntaxElement, HasAttribute, HasSemanticToken, HasSymbolInformation } from './elements/base';
+import { BaseSyntaxElement, HasAttribute, HasDiagnosticCapability, HasSemanticToken, HasSymbolInformation } from './elements/base';
 import { Range, TextDocument } from 'vscode-languageserver-textdocument';
 import { SyntaxParser } from './parser/vbaSyntaxParser';
 import { FoldingRange } from '../capabilities/folding';
@@ -17,6 +17,7 @@ export abstract class BaseProjectDocument {
 	protected _unhandledNamedElements: [] = [];
 	protected _publicScopeDeclarations: Map<string, any> = new Map();
 	protected _documentScopeDeclarations: Map<string, Map<string, any>> = new Map();
+	protected _hasDiagnosticElements: HasDiagnosticCapability[] = [];
 	
 	protected _diagnostics: Diagnostic[] = [];
 	protected _elementParents: BaseSyntaxElement[] = [];
@@ -77,6 +78,10 @@ export abstract class BaseProjectDocument {
 		if (await (new SyntaxParser()).parseAsync(this, token)) {
 			this.isBusy = false;
 		}
+		this._hasDiagnosticElements.forEach(element => {
+			element.evaluateDiagnostics;
+			this._diagnostics.concat(element.diagnostics);
+		});
 	};
 
 	registerNamedElementDeclaration(element: any) {
@@ -86,6 +91,11 @@ export abstract class BaseProjectDocument {
 		// Check for overriding name in document scope.
 		// Check for overriding name in workspace.
 		throw new Error("Not implemented");
+	}
+
+	registerDiagnosticElement(element: HasDiagnosticCapability) {
+		console.log("Registering diagnostic element");
+		this._hasDiagnosticElements.push(element);
 	}
 
 	/**
@@ -170,6 +180,16 @@ export abstract class BaseProjectDocument {
 		}
 		this.workspace.connection.console.info('Processing request for Folding Range');
 		return this._foldableElements;
+	}
+
+	getDiagnostics(): PublishDiagnosticsParams {
+		this._hasDiagnosticElements.forEach(e =>
+			e.evaluateDiagnostics()
+		);
+		return {
+			uri: this.textDocument.uri,
+			diagnostics: this._hasDiagnosticElements
+				.map((e) => e.diagnostics).flat(1) };
 	}
 }
 
