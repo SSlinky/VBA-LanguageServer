@@ -14,6 +14,7 @@ repository:
       - include: "#comments"        # Handle comments here so they aren't broken by other stuff.
       - include: "#strings"         # Handle strings here so they aren't broken by other stuff.
       - include: "#labels"          # Handle labels first so they aren't handled by lines.
+      - include: "#inlineMethod"    # Try not to be too sad people can, and do, do this.
       - include: "#methodSignature"
       - include: "#continuations"   # Consume continuations so they "continue" other matches.
       - include: "#enum"
@@ -564,10 +565,32 @@ repository:
     patterns:
       - include: "#arguments"
 
+  inlineMethod:
+    name: source.inline-method.please-dont.vba
+    match: (?i)^\s*((?:Public|Private)?\b\s*(?:(?:Sub|Function)|Property\s+(?:Let|Get|Set)))\s+([a-z][a-z0-9_]*)\s*\((.+)?\)(\s+as\s+[a-z][a-z0-9_]*)?:(.*)?:\s*(End\s+(?:Sub|Function|Property))
+    captures:
+      1: # Method type
+        name: storage.type.method.vba
+      2: # Identifier
+        name: entity.name.function.vba
+      3: # Arguments?
+        patterns:
+          - include: "#arguments"
+      4: # Return type?
+        patterns:
+          - include: "#types"
+      5: # Method lines
+        patterns:
+          - include: "#fileStructure"
+      6: # End method
+        name: storage.type.method.close.vba
+
+
+
   methodSignature:
     name: source.method.signature.vba
-    begin: '(?i)^\s*((?:Public|Private)?\b\s*(?:(?:Sub|Function)|Property\s+(?:Let|Get|Set)))\s+([a-z][a-z0-9_]*)\s*(\()'
-    end: '(?i)(\))\s+(as\s+[a-z][a-z0-9_]*)?'
+    begin: (?i)^\s*((?:Public|Private)?\b\s*(?:(?:Sub|Function)|Property\s+(?:Let|Get|Set)))\s+([a-z][a-z0-9_]*)\s*(\()
+    end: (?i)(\))\s+(as\s+[a-z][a-z0-9_]*)?
     beginCaptures:
       1:
         name: storage.type.method.vba
