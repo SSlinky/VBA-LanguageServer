@@ -1,5 +1,5 @@
 {
-	"Public Property Let": {
+	"VBA Pro: Public Property Get Let": {
 		"prefix": "proplet",
 		"description": "Property let and get with backing store",
 		"body": [
@@ -17,7 +17,7 @@
 			"$0"
 		]
 	},
-	"Public Property Set": {
+	"VBA Pro: Public Property Get Set": {
 		"prefix": "propset",
 		"description": "Property set and get with backing store",
 		"body": [
@@ -35,7 +35,7 @@
 			"$0"
 		]
 	},
-	"Public Property Get": {
+	"VBA Pro: Public Property Get": {
 		"prefix": "propget",
 		"description": "Property get only",
 		"body": [
@@ -47,7 +47,7 @@
 			""
 		]
 	},
-	"Subroutine": {
+	"VBA Pro: Subroutine": {
 		"prefix": "sub",
 		"description": "Subroutine",
 		"body": [
@@ -65,7 +65,7 @@
 			"End Sub"
 		]
 	},
-	"Function": {
+	"VBA Pro: Function": {
 		"prefix": "func",
 		"description": "Function",
 		"body": [
@@ -87,7 +87,7 @@
 			"End Function"
 		]
 	},
-	"EnumExcl": {
+	"VBA Pro: Enum Exclusive": {
 		"prefix": "enumexcl",
 		"description": "Exclusive Enum",
 		"body": [
@@ -98,18 +98,18 @@
 			"End Enum"
 		]
 	},
-	"EnumIncl": {
+	"VBA Pro: Enum Inclusive": {
 		"prefix": "enumincl",
 		"description": "Inclusive Enum",
 		"body": [
 			"Public Enum ${1:Identifier}",
-			"    ${2:Enum1} = 2 ^^ 1",
-			"    ${3:Enum2} = 2 ^^ 2",
-			"    ${4:Enum3} = 2 ^^ 3",
+			"    ${2:Enum1} = 2 ^ 1",
+			"    ${3:Enum2} = 2 ^ 2",
+			"    ${4:Enum3} = 2 ^ 3",
 			"End Enum"
 		]
 	},
-	"ForLoop": {
+	"VBA Pro: ForLoop": {
 		"prefix": "fori",
 		"description": "For Loop",
 		"body": [
@@ -119,7 +119,7 @@
 			"Next $1"
 		]
 	},
-	"ForEachLoop": {
+	"VBA Pro: ForEachLoop": {
 		"prefix": "foreach",
 		"description": "For Each Loop",
 		"body": [
@@ -128,7 +128,7 @@
 			"Next $1"
 		]
 	},
-	"If": {
+	"VBA Pro: If Block": {
 		"prefix": "ifblock",
 		"description": "If Block",
 		"body": [
@@ -137,7 +137,7 @@
 			"End If"
 		]
 	},
-	"IfElse": {
+	"VBA Pro: IfElse": {
 		"prefix": "ifelse",
 		"description": "If Else Block",
 		"body": [
@@ -147,7 +147,7 @@
 			"End If"
 		]
 	},
-	"TypeCheckAssignment": {
+	"VBA Pro: TypeCheckAssignment": {
 		"prefix": "typecheck",
 		"description": "Object type check assignment",
 		"body": [
@@ -158,7 +158,7 @@
 			"End If$0"
 		]
 	},
-	"Case": {
+	"VBA Pro: Case": {
 		"prefix": "case",
 		"description": "Select Case",
 		"body": [
@@ -169,14 +169,14 @@
 			"End Select"
 		]
 	},
-	"Event": {
+	"VBA Pro: Event": {
 		"prefix": "event",
 		"description": "Event",
 		"body": [
 			"Public Event ${1:Identifier}($3)"
 		]
 	},
-	"Constructor": {
+	"VBA Pro: Constructor": {
 		"prefix": "ctor",
 		"description": "Class_Initialize",
 		"body": [
@@ -185,7 +185,7 @@
 			"End Sub"
 		]
 	},
-	"Destructor": {
+	"VBA Pro: Destructor": {
 		"prefix": "dtor",
 		"description": "Class_Terminate",
 		"body": [
@@ -194,7 +194,7 @@
 			"End Sub"
 		]
 	},
-	"Base Class Template": {
+	"VBA Pro: Class Template": {
 		"prefix": "class",
 		"description": "Basic class",
 		"body": [
@@ -208,7 +208,7 @@
 			"Attribute VB_Creatable = False",
 			"Attribute VB_PredeclaredId = False",
 			"Attribute VB_Exposed = False",
-			"' Copyright 2024 Sam Vanderslink",
+			"' Copyright 2024 ${2:Name}",
 			"' ",
 			"' Permission is hereby granted, free of charge, to any person obtaining a copy ",
 			"' of this software and associated documentation files (the \"Software\"), to deal ",
@@ -273,12 +273,12 @@
 			""
 		]
 	},
-	"Base Module Template": {
+	"VBA Pro: Module Template": {
 		"prefix": "module",
 		"description": "Basic module",
 		"body": [
 			"Attribute VB_Name = \"${1:ModuleName}\"",
-			"' Copyright 2024 Sam Vanderslink",
+			"' Copyright 2024 ${2:Name}",
 			"' ",
 			"' Permission is hereby granted, free of charge, to any person obtaining a copy ",
 			"' of this software and associated documentation files (the \"Software\"), to deal ",
@@ -300,29 +300,6 @@
 			"",
 			"Option Explicit",
 			"$0"
-		]
-	},
-	"Unit Test Template": {
-		"prefix": "test",
-		"description": "Unit test basic template",
-		"body": [
-			"Private Function TestList_${1:Identifier}() As TestResult",
-			"Attribute TestList_$1.VB_Description = \"${2:Dosctring}.\"",
-			"'   $2.",
-			"    Dim tr As New TestResult",
-			"",
-			"'   Arrange",
-			"    $0",
-			"",
-			"'   Act",
-			"",
-			"",
-			"'   Assert",
-			"",
-			"",
-			"Finally:",
-			"    Set TestList_$1 = tr",
-			"End Function"
 		]
 	}
 }
