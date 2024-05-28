@@ -684,7 +684,7 @@ literal:
 
 type_: (baseType | complexType) (WS? LPAREN WS? RPAREN)?;
 
-typeHint: '&' | '%' | '#' | '!' | '@' | '$';
+typeHint: '&' | '%' | '#' | '!' | '@' | '$' | POW;
 
 visibility: PRIVATE | PUBLIC | FRIEND | GLOBAL;
 
