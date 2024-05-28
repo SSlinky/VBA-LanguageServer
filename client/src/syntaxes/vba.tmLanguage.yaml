@@ -41,11 +41,14 @@ repository:
 
   syntaxLines:
     name: meta.syntax-lines.vba
-    match: ((?:[^\n":]|"(?:\\.|[^\n"\\])*")+|"(?:\\.|[^\n"\\])*")
+    match: ((?:[^\n"':]|"(?:\\.|[^\n"\\])*")+|"(?:\\.|[^\n"\\])*")(?:('.*)*)?
     captures:
       1: # Split line
         patterns:
           - include: "#main"
+      2: # Comments
+        patterns:
+          - include: "#comments"
 
   main:
     patterns:
@@ -148,12 +151,11 @@ repository:
         repository:
           flowDecision:
             name: keyword.control.flow.decision.vba
-            match: '(?i)(^|\s+)(#if|then|#elseif|#else|#end if|select case|case|switch|end select)\b'
-            # match: '(?i)(^|\s+)([#]?if|then|[#]?elseif|[#]?else|[#]?end if|select case|case|switch|end select)\b'
+            match: (?i)(^|\s+)(#if|then|#elseif|[#]?else|#end if|select case|case|switch|end select)\b
 
           flowLoop:
             name: keyword.control.flow.loop.vba
-            match: "(?i)\\b(do|exit\\s+do|while|until|loop|for|each|in|to|exit\\s+for|next|with)\\b"
+            match: (?i)\b(do|exit\s+do|while|until|loop|for|each|in|to|exit\s+for|next|with)\b
 
           forEachLoop:
             name: meta.flow.foreach.vba
@@ -170,7 +172,7 @@ repository:
           
           inlineIfElse:
             name: meta.flow.inline-if-else.vba
-            match: (?i)\b(if)\s+(.*?)\s+(then)\s+(.*)\s+(else)\s+(.*)
+            match: (?i)\s*((?:else)?if)\s+(.*?)\s+(then)\s+(.*)\s+(else)\s+([^'\n]*)
             captures:
               1:
                 name: keyword.control.flow.decision.vba
@@ -193,7 +195,7 @@ repository:
           
           inlineIf:
             name: meta.flow.inline-if.vba
-            match: (?i)\b(if)\s+(.*?)\s+(then)
+            match: (?i)\s*((?:else)?if)\s+(.*?)\s+(then)
             captures:
               1:
                 name: keyword.control.flow.decision.vba
