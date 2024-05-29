@@ -156,7 +156,7 @@ repository:
 
           flowLoop:
             name: keyword.control.flow.loop.vba
-            match: (?i)\b(do|exit\s+do|while|until|loop|for|each|in|to|exit\s+for|next|with)\b
+            match: (?i)\b(do|exit\s+do|while|wend|until|loop|for|each|in|to|exit\s+for|next|with)\b
 
           forEachLoop:
             name: meta.flow.foreach.vba
