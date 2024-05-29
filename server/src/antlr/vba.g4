@@ -513,13 +513,13 @@ valueStmt:
 operatorsStmt:
 	(GEQ
 	| LEQ
+	| GT
 	| LT
 	| NEQ
 	| EQ
 	| POW
 	| DIV
 	| MULT
-	| MOD
 	| PLUS
 	| MINUS
 	| AMPERSAND
