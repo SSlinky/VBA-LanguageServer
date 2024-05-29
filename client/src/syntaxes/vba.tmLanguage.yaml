@@ -11,6 +11,7 @@ patterns:
 repository:
   fileStructure:
     patterns:
+      - include: "#moduleHeader"
       - include: "#comments"        # Handle comments here so they aren't broken by other stuff.
       - include: "#strings"         # Handle strings here so they aren't broken by other stuff.
       - include: "#labels"          # Handle labels first so they aren't handled by lines.
@@ -53,7 +54,6 @@ repository:
 
   main:
     patterns:
-      - include: "#moduleHeader"
       - include: "#declareFunctionSignature"
       - include: "#methodSignature"
       - include: "#variableDeclarations"
@@ -449,7 +449,7 @@ repository:
       moduleAttributeBlock:
         name: entity.other.attribute-name.block.vba
         begin: (?i)^VERSION
-        end: ^(?i)End
+        end: (?i)^END
         patterns:
           - include: "#comments"
           - include: "#literals"
