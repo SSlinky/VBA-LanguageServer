@@ -103,10 +103,10 @@ class VbaTreeWalkListener implements vbaListener {
 
 	enterEnumerationStmt = (ctx: EnumerationStmtContext) => {
 		const element = new EnumBlockDeclarationElement(ctx, this.document.textDocument);
-		this.document.registerFoldableElement(element);
-        this.document.registerSemanticToken(element);
-        this.document.registerSymbolInformation(element);
-        this.document.registerScopedElement(element);
+		this.document.registerFoldableElement(element)
+            .registerSemanticToken(element)
+            .registerSymbolInformation(element)
+            .registerScopedElement(element);
 	};
 
     exitEnumerationStmt = (_: EnumerationStmtContext) => {
@@ -115,8 +115,8 @@ class VbaTreeWalkListener implements vbaListener {
 
     enterEnumerationStmt_Constant = (ctx: EnumerationStmt_ConstantContext) => {
         const element = new EnumMemberDeclarationElement(ctx, this.document.textDocument);
-        this.document.registerSymbolInformation(element);
-        this.document.registerSemanticToken(element);
+        this.document.registerSymbolInformation(element)
+            .registerSemanticToken(element);
     };
 
 	enterFoldingBlockStmt = (ctx: FoldingBlockStmtContext) => {
@@ -126,10 +126,11 @@ class VbaTreeWalkListener implements vbaListener {
 
 	enterMethodStmt = (ctx: MethodStmtContext) => {
 		const element = new MethodBlockDeclarationElement(ctx, this.document.textDocument);
-		this.document.registerNamedElement(element);
-		this.document.registerFoldableElement(element);
-        this.document.registerSymbolInformation(element);
-		this.document.registerScopedElement(element);
+        this.document.registerNamedElement(element)
+            .registerFoldableElement(element)
+            .registerSymbolInformation(element)
+            .registerSemanticToken(element)
+            .registerScopedElement(element);
 	};
 
 	exitMethodStmt = (_: MethodStmtContext) => {
@@ -138,15 +139,15 @@ class VbaTreeWalkListener implements vbaListener {
 
     enterModule = (ctx: ModuleContext) => {
         const element = new ModuleElement(ctx, this.document.textDocument, this.document.symbolKind);
-        this.document.registerAttributeElement(element);
-        this.document.registerScopedElement(element);
+        this.document.registerAttributeElement(element)
+            .registerScopedElement(element);
     };
 
     exitModule = (_: ModuleContext) => {
         const element = this.document.deregisterAttributeElement() as ModuleElement;
-        this.document.registerSymbolInformation(element);
-        this.document.deregisterScopedElement();
-        this.document.deregisterAttributeElement();
+        this.document.registerSymbolInformation(element)
+            .deregisterScopedElement()
+            .deregisterAttributeElement();
     };
 
 	enterModuleHeader = (ctx: ModuleHeaderContext) => {
@@ -161,8 +162,8 @@ class VbaTreeWalkListener implements vbaListener {
 
     enterTypeStmt = (ctx: TypeStmtContext) => {
         const element = new TypeDeclarationElement(ctx, this.document.textDocument);
-        this.document.registerSymbolInformation(element);
-        this.document.registerSemanticToken(element);
+        this.document.registerSymbolInformation(element)
+            .registerSemanticToken(element);
     };
     
     enterOperatorsStmt = (ctx: OperatorsStmtContext) => {

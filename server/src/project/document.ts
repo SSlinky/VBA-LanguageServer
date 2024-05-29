@@ -155,19 +155,21 @@ export abstract class BaseProjectDocument {
 	/**
 	 * Registers a semantic token element for tracking with the SemanticTokenManager.
 	 * @param element element The element that has a semantic token.
-	 * @returns void.
+	 * @returns this for chaining.
 	 */
-	registerSemanticToken = (element: HasSemanticToken): void => {
+	registerSemanticToken = (element: HasSemanticToken) => {
 		this._semanticTokens.add(element);
+		return this;
 	};
 
 	/**
 	 * Registers a SymbolInformation.
 	 * @param element The element that has symbol information.
-	 * @returns a number for some reason.
+	 * @returns this for chaining.
 	 */
-	registerSymbolInformation = (element: HasSymbolInformation): number => {
-		return this._symbolInformations.push(element.symbolInformation);
+	registerSymbolInformation = (element: HasSymbolInformation) => {
+		this._symbolInformations.push(element.symbolInformation);
+		return this;
 	};
 
 	/** Get document information */
