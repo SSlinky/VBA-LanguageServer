@@ -61,10 +61,8 @@ export class SyntaxParser {
     }
 
     parse(document: VbaClassDocument | VbaModuleDocument) {
-        console.info('Parsing the document.');
         const listener = new VbaTreeWalkListener(document);
         const parser = this.createParser(document.textDocument);
-
         ParseTreeWalker.DEFAULT.walk(
             listener,
             parser.startRule()
@@ -77,6 +75,7 @@ export class SyntaxParser {
 
         parser.removeErrorListeners();
         parser.addErrorListener(new VbaErrorListener());
+        parser.errorHandler = new VbaErrorHandler();
         return parser;
     }
 }
@@ -111,7 +110,6 @@ class VbaTreeWalkListener implements vbaListener {
 	};
 
     exitEnumerationStmt = (_: EnumerationStmtContext) => {
-        console.warn("Entered enum statement.");
         this.document.deregisterScopedElement();
     };
 
@@ -157,7 +155,6 @@ class VbaTreeWalkListener implements vbaListener {
 	};
 
     enterVariableStmt = (ctx: VariableStmtContext) => {
-        console.warn("Entered value statement. " + ctx.text);
         const element = new VariableDeclarationsElement(ctx, this.document.textDocument);
         element.declarations.forEach((e) => this.document.registerSymbolInformation(e));
     };
@@ -168,6 +165,16 @@ class VbaTreeWalkListener implements vbaListener {
     };
 }
 
+class VbaErrorHandler extends DefaultErrorStrategy {
+    recover(recognizer: Parser, e: RecognitionException): void {
+        const inputStream = recognizer.inputStream;
+        if (!recognizer.isMatchedEOF) {
+            inputStream.consume();
+        }
+        this.endErrorCondition(recognizer);
+    }
+}
+
 class VbaErrorListener extends ConsoleErrorListener {
     syntaxError<T>(recognizer: Recognizer<T, any>, offendingSymbol: T, line: number, charPositionInLine: number, msg: string, e: RecognitionException | undefined): void {
         super.syntaxError(recognizer, offendingSymbol, line, charPositionInLine, msg, e);
@@ -176,6 +183,5 @@ class VbaErrorListener extends ConsoleErrorListener {
             const y = recognizer.getErrorHeader(e);
             console.log(y);
         }
-        recognizer.inputStream?.consume();
     }
 }
