@@ -22,7 +22,7 @@ module:
 	moduleBody? endOfLine* WS?;
 
 moduleHeader:
-	(endOfLine | unknownLine)*
+	endOfLine*
 	(moduleVerson endOfLine*)?
 	moduleConfig? endOfLine*
 	moduleAttributes? endOfLine*
@@ -141,8 +141,7 @@ blockStmt:
 	| widthStmt
 	| writeStmt
 	| implicitCallStmt_InBlock
-	| implicitCallStmt_InStmt
-	| unknownLine;
+	| implicitCallStmt_InStmt;
 
 foldingBlockStmt:
 	doLoopStmt
@@ -845,25 +844,6 @@ endOfLine: WS? (NEWLINE | comment | remComment) WS?;
 
 endOfStatement: (endOfLine | WS? COLON WS?)*;
 
-unknownToken: (IDENTIFIER | NWS)+;
-
-anyValidToken: (
-		DIM
-		| visibility
-		| ambiguousIdentifier
-		| AS
-		| literal
-		| baseType
-		| complexType
-		| '!'
-		| '.'
-	);
-
-unknownLine: (
-		(anyValidToken WS?)* WS? unknownToken WS? (
-			anyValidToken WS?
-		)*
-	)+;
 
 // lexer rules --------------------------------------------------------------------------------
 
