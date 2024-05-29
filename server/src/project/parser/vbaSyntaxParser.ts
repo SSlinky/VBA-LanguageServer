@@ -154,10 +154,10 @@ class VbaTreeWalkListener implements vbaListener {
 		const element = new FoldableElement(ctx, this.document.textDocument);
 		this.document.registerFoldableElement(element);
 	};
-
-    enterVariableStmt = (ctx: VariableStmtContext) => {
-        const element = new VariableDeclarationsElement(ctx, this.document.textDocument);
-        element.declarations.forEach((e) => this.document.registerSymbolInformation(e));
+    
+    enterOperatorsStmt = (ctx: OperatorsStmtContext) => {
+        const element = new OperatorElement(ctx, this.document.textDocument);
+        this.document.registerDiagnosticElement(element);
     };
 
     enterTypeStmt = (ctx: TypeStmtContext) => {
@@ -165,10 +165,10 @@ class VbaTreeWalkListener implements vbaListener {
         this.document.registerSymbolInformation(element)
             .registerSemanticToken(element);
     };
-    
-    enterOperatorsStmt = (ctx: OperatorsStmtContext) => {
-        const element = new OperatorElement(ctx, this.document.textDocument);
-        this.document.registerDiagnosticElement(element);
+
+    enterVariableStmt = (ctx: VariableStmtContext) => {
+        const element = new VariableDeclarationsElement(ctx, this.document.textDocument);
+        element.declarations.forEach((e) => this.document.registerSymbolInformation(e));
     };
 }
 
