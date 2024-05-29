@@ -26,8 +26,12 @@ export abstract class BaseProjectDocument {
 	protected _symbolInformations: SymbolInformation[] = [];
 	protected _semanticTokens: SemanticTokensManager = new SemanticTokensManager();
 	
-	isBusy = false;
+	protected _isBusy = true;
 	abstract symbolKind: SymbolKind
+
+	get Busy() {
+		return this._isBusy;
+	}
 
 	get activeAttributeElement() {
 		return this._attributeElements?.at(-1);
@@ -63,20 +67,33 @@ export abstract class BaseProjectDocument {
 		return this._semanticTokens.getSemanticTokens(range);
 	};
 
-	async languageServerSymbolInformationAsync(token: CancellationToken): Promise<SymbolInformation[]> {
-		while (this.isBusy) {
-			await sleep(5);
-			if (token.isCancellationRequested) {
-				return [];
-			}
-		}
+	languageServerFoldingRanges(): FoldingRange[] {
+		return this._foldableElements;
+	}
+
+	languageServerSymbolInformation(): SymbolInformation[] {
 		return this._symbolInformations;
 	}
 
+	languageServerDiagnostics(): PublishDiagnosticsParams {
+		this._hasDiagnosticElements.forEach(e =>
+			e.evaluateDiagnostics()
+		);
+		return {
+			uri: this.textDocument.uri,
+			diagnostics: this._hasDiagnosticElements
+				.map((e) => e.diagnostics).flat(1) };
+	}
+
 	parseAsync = async (token: CancellationToken): Promise<void> => {
-		this.isBusy = true;
+		if (!this._isBusy) {
+			console.log("Parser busy!");
+			console.log(`v${this.textDocument.version}: ${this.textDocument.uri}`);
+			this._isBusy = true;
+		}
 		if (await (new SyntaxParser()).parseAsync(this, token)) {
-			this.isBusy = false;
+			console.log("Parser idle!");
+			this._isBusy = false;
 		}
 		this._hasDiagnosticElements.forEach(element => {
 			element.evaluateDiagnostics;
@@ -94,7 +111,6 @@ export abstract class BaseProjectDocument {
 	}
 
 	registerDiagnosticElement(element: HasDiagnosticCapability) {
-		console.log("Registering diagnostic element");
 		this._hasDiagnosticElements.push(element);
 	}
 
@@ -171,28 +187,6 @@ export abstract class BaseProjectDocument {
 		this._symbolInformations.push(element.symbolInformation);
 		return this;
 	};
-
-	/** Get document information */
-	async getFoldingRanges(token: CancellationToken): Promise<FoldingRange[]> {
-		while (this.isBusy) {
-			await sleep(5);
-			if (token.isCancellationRequested) {
-				return [];
-			}
-		}
-		this.workspace.connection.console.info('Processing request for Folding Range');
-		return this._foldableElements;
-	}
-
-	getDiagnostics(): PublishDiagnosticsParams {
-		this._hasDiagnosticElements.forEach(e =>
-			e.evaluateDiagnostics()
-		);
-		return {
-			uri: this.textDocument.uri,
-			diagnostics: this._hasDiagnosticElements
-				.map((e) => e.diagnostics).flat(1) };
-	}
 }
 
 
