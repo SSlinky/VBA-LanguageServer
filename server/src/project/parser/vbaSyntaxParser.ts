@@ -1,17 +1,17 @@
 import { TextDocument } from 'vscode-languageserver-textdocument';
 
-import { ANTLRInputStream, CommonTokenStream, ConsoleErrorListener, RecognitionException, Recognizer } from 'antlr4ts';
+import { ANTLRInputStream, CommonTokenStream, ConsoleErrorListener, DefaultErrorStrategy, Parser, RecognitionException, Recognizer } from 'antlr4ts';
 
 import { ErrorNode } from 'antlr4ts/tree/ErrorNode';
 import { ParseTreeWalker } from 'antlr4ts/tree/ParseTreeWalker';
 
 import { vbaLexer as VbaLexer } from '../../antlr/out/vbaLexer';
-import { AttributeStmtContext, ConstStmtContext, EnumerationStmtContext, EnumerationStmt_ConstantContext, FoldingBlockStmtContext, MethodStmtContext, ModuleContext, ModuleHeaderContext, OperatorsStmtContext, VariableStmtContext, vbaParser as VbaParser } from '../../antlr/out/vbaParser';
+import { AttributeStmtContext, ConstStmtContext, EnumerationStmtContext, EnumerationStmt_ConstantContext, FoldingBlockStmtContext, MethodStmtContext, ModuleContext, ModuleHeaderContext, OperatorsStmtContext, TypeStmtContext, VariableStmtContext, vbaParser as VbaParser } from '../../antlr/out/vbaParser';
 import { vbaListener } from '../../antlr/out/vbaListener';
 
 import { VbaClassDocument, VbaModuleDocument } from '../document';
 import { FoldableElement } from '../elements/special';
-import { ConstDeclarationsElement, EnumBlockDeclarationElement, EnumMemberDeclarationElement, MethodBlockDeclarationElement, VariableDeclarationsElement } from '../elements/memory';
+import { ConstDeclarationsElement, EnumBlockDeclarationElement, EnumMemberDeclarationElement, MethodBlockDeclarationElement, TypeDeclarationElement, VariableDeclarationsElement } from '../elements/memory';
 import { ModuleElement } from '../elements/module';
 import { sleep } from '../../utils/helpers';
 import { CancellationToken } from 'vscode-languageserver';

@@ -1,4 +1,4 @@
-import { AmbiguousIdentifierContext, AsTypeClauseContext, ConstStmtContext, ConstSubStmtContext, EnumerationStmtContext, EnumerationStmt_ConstantContext, MethodStmtContext, VariableStmtContext, VariableSubStmtContext } from '../../antlr/out/vbaParser';
+import { AmbiguousIdentifierContext, AsTypeClauseContext, ConstStmtContext, ConstSubStmtContext, EnumerationStmtContext, EnumerationStmt_ConstantContext, MethodStmtContext, TypeStmtContext, VariableStmtContext, VariableSubStmtContext } from '../../antlr/out/vbaParser';
 
 import { TextDocument } from 'vscode-languageserver-textdocument';
 

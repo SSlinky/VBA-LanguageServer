@@ -121,7 +121,7 @@ class WorkspaceEvents {
 	}
 
 	private _onDidChangeConfiguration(params: DidChangeConfigurationParams): void {
-		console.log(`onDidChangeConfiguration: ${params}`);
+		console.log(`onDidChangeConfiguration: ${params.settings}`);
 	}
 
 	private _onDidChangeWatchedFiles(params: DidChangeWatchedFilesParams) {
