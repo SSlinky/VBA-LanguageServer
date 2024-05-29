@@ -76,7 +76,8 @@ attributeStmt:
 		WS? ',' WS? literal
 	)*;
 
-block: blockStmt (endOfStatement blockStmt)* endOfStatement;
+block:
+	((blockStmt | foldingBlockStmt) endOfStatement)+;
 
 blockStmt:
 	lineLabel
@@ -96,7 +97,6 @@ blockStmt:
 	| exitStmt
 	| explicitCallStmt
 	| filecopyStmt
-	| foldingBlockStmt
 	| getStmt
 	| goSubStmt
 	| goToStmt
