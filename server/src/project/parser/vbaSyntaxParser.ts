@@ -6,7 +6,7 @@ import { ErrorNode } from 'antlr4ts/tree/ErrorNode';
 import { ParseTreeWalker } from 'antlr4ts/tree/ParseTreeWalker';
 
 import { vbaLexer as VbaLexer } from '../../antlr/out/vbaLexer';
-import { AttributeStmtContext, ConstStmtContext, EnumerationStmtContext, EnumerationStmt_ConstantContext, FoldingBlockStmtContext, MethodStmtContext, ModuleContext, ModuleHeaderContext, OperatorsStmtContext, TypeStmtContext, VariableStmtContext, vbaParser as VbaParser } from '../../antlr/out/vbaParser';
+import { AttributeStmtContext, ConstStmtContext, EnumerationStmtContext, EnumerationStmt_ConstantContext, FoldingBlockStmtContext, MethodStmtContext, ModuleContext, ModuleHeaderContext, OperatorsStmtContext, TypeStmtContext, VariableStmtContext, vbaParser as VbaParser, WhileWendStmtContext } from '../../antlr/out/vbaParser';
 import { vbaListener } from '../../antlr/out/vbaListener';
 
 import { VbaClassDocument, VbaModuleDocument } from '../document';
@@ -16,6 +16,7 @@ import { ModuleElement } from '../elements/module';
 import { sleep } from '../../utils/helpers';
 import { CancellationToken } from 'vscode-languageserver';
 import { OperatorElement } from '../elements/operator';
+import { WhileWendLoopElement } from '../elements/flow';
 
 export class SyntaxParser {
     private static _lockIdentifier = 0;
@@ -169,6 +170,11 @@ class VbaTreeWalkListener implements vbaListener {
     enterVariableStmt = (ctx: VariableStmtContext) => {
         const element = new VariableDeclarationsElement(ctx, this.document.textDocument);
         element.declarations.forEach((e) => this.document.registerSymbolInformation(e));
+    };
+
+    enterWhileWendStmt = (ctx: WhileWendStmtContext) => {
+        const element = new  WhileWendLoopElement(ctx, this.document.textDocument);
+        this.document.registerDiagnosticElement(element);
     };
 }
 

@@ -28,3 +28,11 @@ export class MultipleOperatorsDiagnostic extends BaseDiagnostic {
 		super(range);
 	}
 }
+
+export class WhileWendDeprecatedDiagnostic extends BaseDiagnostic {
+	message = "The Do...Loop statement provides a more structured and flexible way to perform looping.";
+	severity = DiagnosticSeverity.Information;
+	constructor(range: Range) {
+		super(range);
+	}
+}
