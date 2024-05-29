@@ -236,10 +236,11 @@ forEachStmt:
 	)?;
 
 forNextStmt:
-	FOR WS ambiguousIdentifier typeHint? (WS asTypeClause)? WS? EQ WS? valueStmt WS TO WS valueStmt
-		(
-		WS STEP WS valueStmt
-	)? endOfStatement block? NEXT (WS ambiguousIdentifier)?;
+	FOR WS ambiguousIdentifier typeHint? WS?
+	EQ WS? valueStmt WS TO WS valueStmt
+	(WS STEP WS valueStmt)? endOfStatement
+	block?
+	NEXT (WS ambiguousIdentifier)?;
 
 getStmt:
 	GET WS fileNumber WS? ',' WS? valueStmt? WS? ',' WS? valueStmt;
@@ -249,10 +250,14 @@ goSubStmt: GOSUB WS valueStmt;
 goToStmt: GOTO WS valueStmt;
 
 ifThenElseStmt:
-	IF WS ifConditionStmt WS THEN WS blockStmt (
-		WS ELSE WS blockStmt
-	)?															# inlineIfThenElse
-	| ifBlockStmt ifElseIfBlockStmt* ifElseBlockStmt? END_IF	# blockIfThenElse;
+	inlineIfThenElseStmt
+	| blockIfThenElseStmt;
+
+inlineIfThenElseStmt:
+	IF WS ifConditionStmt WS THEN WS blockStmt (WS ELSE WS blockStmt)?;
+
+blockIfThenElseStmt:
+	ifBlockStmt ifElseIfBlockStmt* ifElseBlockStmt? END_IF;
 
 ifBlockStmt:
 	IF WS ifConditionStmt WS THEN endOfStatement block?;
