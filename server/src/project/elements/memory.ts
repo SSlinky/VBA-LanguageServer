@@ -114,6 +114,28 @@ export class ConstDeclarationsElement extends BaseVariableDeclarationStatementEl
 	}
 }
 
+export class TypeDeclarationElement  extends FoldableElement implements HasSemanticToken, HasSymbolInformation {
+	tokenType: SemanticTokenTypes;
+	tokenModifiers: SemanticTokenModifiers[] = [];
+	identifier: IdentifierElement;
+	symbolKind: SymbolKind;
+
+	constructor(context: TypeStmtContext, document: TextDocument) {
+		super(context, document);
+		this.symbolKind = SymbolKind.Struct;
+		this.tokenType = SemanticTokenTypes.struct;
+		this.identifier = new IdentifierElement(context.ambiguousIdentifier(), document);
+	}
+
+	get name(): string { return this.identifier.text; }
+	get symbolInformation(): SymbolInformation {
+		return SymbolInformationFactory.create(
+			this, this.symbolKind
+		);
+	}
+
+}
+
 export class VariableDeclarationsElement extends BaseVariableDeclarationStatementElement {
 	declarations: VariableDeclarationElement[] = [];
 

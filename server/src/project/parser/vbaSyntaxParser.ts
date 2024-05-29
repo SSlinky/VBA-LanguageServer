@@ -159,6 +159,12 @@ class VbaTreeWalkListener implements vbaListener {
         element.declarations.forEach((e) => this.document.registerSymbolInformation(e));
     };
 
+    enterTypeStmt = (ctx: TypeStmtContext) => {
+        const element = new TypeDeclarationElement(ctx, this.document.textDocument);
+        this.document.registerSymbolInformation(element);
+        this.document.registerSemanticToken(element);
+    };
+    
     enterOperatorsStmt = (ctx: OperatorsStmtContext) => {
         const element = new OperatorElement(ctx, this.document.textDocument);
         this.document.registerDiagnosticElement(element);
