@@ -671,7 +671,7 @@ fieldLength: MULT WS? (INTEGERLITERAL | ambiguousIdentifier);
 letterrange:
 	certainIdentifier (WS? MINUS WS? certainIdentifier)?;
 
-lineLabel: ambiguousIdentifier ' :';
+lineLabel: ambiguousIdentifier WS? (':' | COLON);
 
 literal:
 	HEXLITERAL
