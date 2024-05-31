@@ -112,6 +112,7 @@ export abstract class BaseProjectDocument {
 
 	registerDiagnosticElement(element: HasDiagnosticCapability) {
 		this._hasDiagnosticElements.push(element);
+		return this;
 	}
 
 	/**

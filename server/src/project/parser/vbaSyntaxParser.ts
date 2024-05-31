@@ -141,6 +141,7 @@ class VbaTreeWalkListener implements vbaListener {
     enterModule = (ctx: ModuleContext) => {
         const element = new ModuleElement(ctx, this.document.textDocument, this.document.symbolKind);
         this.document.registerAttributeElement(element)
+            .registerDiagnosticElement(element)
             .registerScopedElement(element);
     };
 
