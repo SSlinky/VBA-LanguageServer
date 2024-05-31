@@ -36,3 +36,11 @@ export class WhileWendDeprecatedDiagnostic extends BaseDiagnostic {
 		super(range);
 	}
 }
+
+export class MissingOptionExplicitDiagnostic extends BaseDiagnostic {
+	message = "Option Explicit is missing from module header.";
+	severity = DiagnosticSeverity.Warning;
+	constructor(range: Range) {
+		super(range);
+	}
+}
