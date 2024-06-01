@@ -37,6 +37,26 @@ export class WhileWendDeprecatedDiagnostic extends BaseDiagnostic {
 	}
 }
 
+export class MissingAttributeDiagnostic extends BaseDiagnostic {
+	message: string;
+	severity = DiagnosticSeverity.Error;
+
+	constructor(range: Range, attributeName: string) {
+		super(range);
+		this.message = `Module missing attribute ${attributeName}.`;
+	}
+}
+
+export class DuplicateAttributeDiagnostic extends BaseDiagnostic {
+	message: string;
+	severity = DiagnosticSeverity.Error;
+
+	constructor(range: Range, attributeName: string) {
+		super(range);
+		this.message = `Module duplicate attribute ${attributeName}.`;
+	}
+}
+
 export class MissingOptionExplicitDiagnostic extends BaseDiagnostic {
 	message = "Option Explicit is missing from module header.";
 	severity = DiagnosticSeverity.Warning;
