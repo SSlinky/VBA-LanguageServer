@@ -32,15 +32,26 @@ abstract class BaseModuleElement extends BaseContextSyntaxElement implements Has
 }
 
 export class ModuleElement extends BaseModuleElement implements ScopeElement {
+	context: ProceduralModuleContext;
 	protected _name: string;
 
 	constructor(context: ProceduralModuleContext, document: TextDocument) {
 		super(context, document, SymbolKind.File);
+		this.context = context;
 		this._name = this._getName(context);
 	}
 
 	evaluateDiagnostics(): void {
-		return;
+		if (!this._hasOptionExplicit()) {
+			const header = this.context.proceduralModuleHeader();
+			const startLine = header.stop?.line ?? 0 + 1;
+			this.diagnostics.push(new MissingOptionExplicitDiagnostic(
+				Range.create(
+					startLine, 1,
+					startLine, 1
+				)
+			));
+		}
 	}
 
 	private _getName(context: ProceduralModuleContext) {
@@ -55,6 +66,21 @@ export class ModuleElement extends BaseModuleElement implements ScopeElement {
 		}
 
 		return name?.stripQuotes() ?? 'Unknown Module';
+	}
+
+	private _hasOptionExplicit(): boolean {
+		const moduleDeclarations = this.context.proceduralModuleBody().proceduralModuleDeclarationSection()?.proceduralModuleDeclarationElement();
+		if (!moduleDeclarations) {
+			return false;
+		}
+
+		for (const declaration of moduleDeclarations) {
+			if (declaration.commonOptionDirective()?.optionExplicitDirective()) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 }
 
