@@ -16,7 +16,6 @@ import { Workspace } from './project/workspace';
 import { activateSemanticTokenProvider } from './capabilities/semanticTokens';
 import { activateWorkspaceFolderCapability } from './capabilities/workspaceFolder';
 
-
 class LanguageServer {
 	workspace?: Workspace;
 	configuration?: LanguageServerConfiguration;

@@ -1,4 +1,4 @@
-import { ParserRuleContext } from 'antlr4ts';
+import { ParserRuleContext } from 'antlr4ng';
 import { FoldingRangeKind } from '../../capabilities/folding';
 import { BaseContextSyntaxElement, FoldingRangeElement } from './base';
 import { Range, TextDocument } from 'vscode-languageserver-textdocument';

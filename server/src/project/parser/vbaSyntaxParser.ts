@@ -1,18 +1,16 @@
 import { TextDocument } from 'vscode-languageserver-textdocument';
 
 import { vbaLexer } from '../../antlr/out/vbaLexer';
-import {  ModuleContext, vbaParser } from '../../antlr/out/vbaParser';
+import {  ClassModuleContext, ModuleContext, ProceduralModuleBodyContext, ProceduralModuleContext, ProcedureDeclarationContext, vbaParser } from '../../antlr/out/vbaParser';
 import { vbaListener } from '../../antlr/out/vbaListener';
 
 import { VbaClassDocument, VbaModuleDocument } from '../document';
 import { FoldableElement } from '../elements/special';
-import { ConstDeclarationsElement, EnumBlockDeclarationElement, EnumMemberDeclarationElement, MethodBlockDeclarationElement, TypeDeclarationElement, VariableDeclarationsElement } from '../elements/memory';
-import { ModuleElement } from '../elements/module';
 import { sleep } from '../../utils/helpers';
 import { CancellationToken } from 'vscode-languageserver';
-import { OperatorElement } from '../elements/operator';
-import { WhileWendLoopElement } from '../elements/flow';
 import { CharStream, CommonTokenStream, ConsoleErrorListener, DefaultErrorStrategy, ParseTreeWalker, Parser, RecognitionException, Recognizer } from 'antlr4ng';
+import { ClassElement, ModuleElement } from '../elements/module';
+import { DeclarationElement } from '../elements/memory';
 
 export class SyntaxParser {
     private static _lockIdentifier = 0;
@@ -95,6 +93,29 @@ class VbaListener extends vbaListener {
         this.document = document;
     }
 
+    enterProceduralModule = (ctx: ProceduralModuleContext) => {
+        const element = new ModuleElement(ctx, this.document.textDocument);
+        this.document.registerSymbolInformation(element)
+            .registerDiagnosticElement(element)
+            .registerScopedElement(element);
+    };
+
+    enterClassModule = (ctx: ClassModuleContext) => {
+        const element = new ClassElement(ctx, this.document.textDocument);
+        this.document.registerSymbolInformation(element)
+            .registerDiagnosticElement(element)
+            .registerScopedElement(element);
+    };
+
+    enterProcedureDeclaration = (ctx: ProcedureDeclarationContext) => {
+        // TODO: figure out how to handle scope for properties.
+        const element = DeclarationElement.create(ctx, this.document);
+        this.document.registerSymbolInformation(element)
+            .registerFoldableElement(element)
+            .registerNamedElement(element)
+            .registerScopedElement(element);
+    };
+
 	// visitErrorNode(node: ErrorNode) {
     //     console.log(node.payload);
     // }
@@ -166,11 +187,11 @@ class VbaListener extends vbaListener {
     // enterOperatorsStmt = (ctx: OperatorsStmtContext) => {
     //     const element = new OperatorElement(ctx, this.document.textDocument);
     //     this.document.registerDiagnosticElement(element);
-    enterModule = (ctx: ModuleContext) => {
-        const element = new ModuleElement(ctx, this.document.textDocument, this.document.symbolKind);
-        this.document.registerAttributeElement(element)
-            .registerScopedElement(element);
-    };
+    // enterModule = (ctx: ModuleContext) => {
+    //     const element = new ModuleElement(ctx, this.document.textDocument, this.document.symbolKind);
+    //     this.document.registerAttributeElement(element)
+    //         .registerScopedElement(element);
+    // };
 
     // enterTypeStmt = (ctx: TypeStmtContext) => {
     //     const element = new TypeDeclarationElement(ctx, this.document.textDocument);

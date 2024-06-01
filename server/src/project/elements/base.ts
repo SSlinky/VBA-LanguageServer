@@ -1,9 +1,8 @@
-import { ParserRuleContext } from 'antlr4ts';
+import { ParserRuleContext } from 'antlr4ng';
 import { Diagnostic, Range, SemanticTokenModifiers, SemanticTokenTypes, SymbolInformation, SymbolKind } from 'vscode-languageserver';
 import { Position, TextDocument } from 'vscode-languageserver-textdocument';
 import { FoldingRangeKind } from '../../capabilities/folding';
 import { IdentifierElement } from './memory';
-import { AttributeStmtContext } from '../../antlr/out/vbaParser';
 import '../../extensions/parserExtensions';
 
 export interface ContextOptionalSyntaxElement {
@@ -24,10 +23,6 @@ interface SyntaxElement extends ContextOptionalSyntaxElement {
 export interface HasDiagnosticCapability {
 	diagnostics: Diagnostic[];
 	evaluateDiagnostics(): void;
-}
-
-export interface HasAttribute {
-	processAttribute(context: AttributeStmtContext): void;
 }
 
 export interface NamedSyntaxElement extends SyntaxElement {
@@ -58,6 +53,10 @@ export interface FoldingRangeElement {
 	foldingRangeKind?: FoldingRangeKind;
 }
 
+export interface ScopeElement {
+	declaredNames: Map<string, BaseSyntaxElement>;
+}
+
 export abstract class BaseSyntaxElement implements ContextOptionalSyntaxElement {
 	protected document: TextDocument;
 	
@@ -65,7 +64,7 @@ export abstract class BaseSyntaxElement implements ContextOptionalSyntaxElement 
 	parent?: ContextOptionalSyntaxElement;
 	context?: ParserRuleContext;
 
-	get text(): string { return this.context?.text ?? ''; }
+	get text(): string { return this.context?.getText() ?? ''; }
 	get uri(): string { return this.document.uri; }
 
 	constructor(context: ParserRuleContext | undefined, document: TextDocument) {
@@ -91,8 +90,8 @@ export abstract class BaseSyntaxElement implements ContextOptionalSyntaxElement 
 			return;
 		}
 
-		const startIndex = this.context.start.startIndex;
-		const stopIndex = this.context.stop?.stopIndex ?? startIndex;
+		const startIndex = this.context?.start?.start ?? 0;
+		const stopIndex = this.context.stop?.stop ?? startIndex;
 		return Range.create(
 			this.document.positionAt(startIndex),
 			this.document.positionAt(stopIndex + 1)

@@ -49,7 +49,7 @@ export class SemanticToken {
 			element,
 			element.identifier.range.start.line,
 			element.identifier.range.start.character,
-			element.identifier.context.text.length,
+			element.identifier.context.getText().length,
 			element.tokenType,
 			element.tokenModifiers
 		);
