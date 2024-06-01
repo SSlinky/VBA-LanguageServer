@@ -363,7 +363,7 @@ procedureDeclaration
     : subroutineDeclaration
     | functionDeclaration
     | propertyGetDeclaration
-    | propertyLhsDeclaration
+    | propertySetDeclaration
     ;
 
 // 5.3.1 Procedure Declarations
@@ -389,7 +389,7 @@ propertyGetDeclaration
         procedureBody?
         endLabel? endOfStatement+ END wsc PROPERTY procedureTail?;
   
-propertyLhsDeclaration
+propertySetDeclaration
     : (procedureScope wsc)? (
               (initialStatic wsc)? PROPERTY wsc (LET | SET) wsc subroutineName wsc? propertyParameters
             | PROPERTY wsc (LET | SET) wsc subroutineName propertyParameters wsc? trailingStatic)
