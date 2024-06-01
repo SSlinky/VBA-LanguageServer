@@ -76,19 +76,24 @@ classModule
 
 // Compare STRINGLITERAL to quoted-identifier
 proceduralModuleHeader
-    : endOfLine* ATTRIBUTE WS? VB_NAME WS? EQ WS? STRINGLITERAL
+    : endOfLine* nameAttr?
     ;
-classModuleHeader: (endOfLine+ classAttr)+ WS?;
+classModuleHeader: (endOfLine+ (classAttr | nameAttr))* WS?;
 
 // VBA Library Projects are allowed to have GoobalNamespace and creatable as true.
 classAttr
-    : ATTRIBUTE WS? VB_NAME WS? EQ WS? STRINGLITERAL
+    : ATTRIBUTE WS? VB_DESCRIPTION WS? EQ WS? STRINGLITERAL
     | ATTRIBUTE WS? VB_GLOBALNAMESPACE WS? EQ WS? booleanLiteralIdentifier
     | ATTRIBUTE WS? VB_CREATABLE WS? EQ WS? booleanLiteralIdentifier
     | ATTRIBUTE WS? VB_PREDECLAREDID WS? EQ WS? booleanLiteralIdentifier
     | ATTRIBUTE WS? VB_EXPOSED WS? EQ WS? booleanLiteralIdentifier
     | ATTRIBUTE WS? VB_CUSTOMIZABLE WS? EQ WS? booleanLiteralIdentifier
     ;
+
+nameAttr
+    : ATTRIBUTE WS? VB_NAME WS? EQ WS? STRINGLITERAL
+	;
+
 //---------------------------------------------------------------------------------------
 // 5.1 Module Body Structure
 // Everything from here down is user generated code.
