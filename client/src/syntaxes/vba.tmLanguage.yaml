@@ -353,10 +353,10 @@ repository:
     repository:
       primativeType:
         name: support.type.primitive.vba
-        match: (?i)(?<=\bAs)\s+(boolean|byte|currency|date|decimal|double|integer|long(long|ptr)?|single|string|variant)\b
+        match: (?i)(?<=\bAs)(?:\s+|\s+_\s*\n)+(boolean|byte|currency|date|decimal|double|integer|long(long|ptr)?|single|string|variant)\b
       objectType:
         name: support.type.object.vba
-        match: (?i)(?<=\bAs)(\s+New)?\s+([A-Z][A-Z0-9_]*)\b
+        match: (?i)(?<=\bAs)((?:\s+(?:\s*_\s*\n)*)New)?(?:\s+(?:\s*_\s*\n)*)([A-Z][A-Z0-9_]*)\b
         captures:
           1:
             name: keyword.storage.new.vba
