@@ -731,7 +731,8 @@ repository:
       - include: "#lineContinuation"
 
   subCall:
-    begin: (?i)([a-z][a-z0-9._]*)\s+(.*,.*)
+    name: meta.sub-call.vba
+    begin: (?i)([a-z][a-z0-9._]*)\s+(.*)
     beginCaptures:
       1:
         name: entity.name.function.call.vba
