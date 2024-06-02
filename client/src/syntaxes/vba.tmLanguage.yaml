@@ -376,7 +376,11 @@ repository:
       - include: "#argsLiteral"
     repository:
       argsVariable:
+        name: meta.arguments.argsVariable.vba
         match: (?i),?\s*((?:Optional\s+)?(?:(?:ByVal|ByRef)\s+)?)?([a-z][a-z0-9_]*)(?:\s+(as\s+[a-z][a-z0-9_]*))?(\s*=\s*[^,)]+)?
+        # Attempted replacing \s with (?:\s+|\s*_\s*\n) to consume a space or a line ending but it refuses to play the game.
+        # match: ~~ doesn't work (?i),?(?:\s+|\s*_\s*\n)*((?:Optional(?:\s+|\s*_\s*\n)+)?(?:(?:ByVal|ByRef)(?:\s+|\s*_\s*\n)+)?)?([a-z][a-z0-9_]*)(?:(?:\s+|\s*_\s*\n)+(as(?:\s+|\s*_\s*\n)+[a-z][a-z0-9_]*))?((?:\s+|\s*_\s*\n)*=(?:\s+|\s*_\s*\n)*[^,\n)]+)?
+        # match: ~~ all broken (?i),?(?:\s*_\s*\n)*((?:Optional(?:\s+(?:\s*_\s*\n)*))?(?:(?:ByVal|ByRef)(?:\s+(?:\s*_\s*\n)*))?)?([a-z][a-z0-9_]*)(?:(?:\s+(?:\s*_\s*\n)*)(as\(?:\s+(?:\s*_\s*\n)*)[a-z][a-z0-9_]*))?((?:\s*_\s*\n)*=(?:\s*_\s*\n)*[^,)]+)?
         captures:
           1: # Optional? ByVal|ByRef?
             name: storage.type.modifier.vba
@@ -398,6 +402,7 @@ repository:
               - include: "#literals"
 
       paramArray:
+        name: meta.args.paramarray.vba
         match: (?i),?\s*(ParamArray)\s+([a-z][a-z0-9_]*)(?:\(\))(\s+As\s+Variant)?
         captures:
           1:
