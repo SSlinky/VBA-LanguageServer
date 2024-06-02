@@ -612,14 +612,14 @@ repository:
     match: (?i)^\s*End\s+(Sub|Function|Property)
 
   expression:
-    # (?:[*&/\+-]|\bMod\b)|
+    # (?:[*&\/\+-]|\bMod\b)|
     # (?:[<>=]|\b(is|like)\b)|
     # (?:[&+])|
     # (?:\b(and|eqv|imp|not|or|xor)\b)|
     # (?:\b(addressof|typeof)\b)
 
     # This match just made up of the operators matchs. Don't look at it too hard.
-    match: (?i)(.*?)\s+((?:[*&/\+-]|\bMod\b)|(?:[<>=]|\b(is|like)\b)|(?:[&+])|(?:\b(and|eqv|imp|not|or|xor)\b)|(?:\b(addressof|typeof)\b))\s+(.*)
+    match: (?i)(.*?)\s+((?:[*&\/\+-]|\bMod\b)|(?:[<>=]|\b(is|like)\b)|(?:[&+])|(?:\b(and|eqv|imp|not|or|xor)\b)|(?:\b(addressof|typeof)\b))\s+(.*)
     captures:
       1:  # Left sided of expression
         patterns:
