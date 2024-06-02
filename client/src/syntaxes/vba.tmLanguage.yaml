@@ -376,7 +376,7 @@ repository:
       - include: "#argsLiteral"
     repository:
       argsVariable:
-        match: (?i),?\s*((?:Optional\s+)?(?:ByVal|ByRef)\s+)?([a-z][a-z0-9_]*)(?:\s+(as\s+[a-z][a-z0-9_]*))?(\s*=\s*[^,)]+)?
+        match: (?i),?\s*((?:Optional\s+)?(?:(?:ByVal|ByRef)\s+)?)?([a-z][a-z0-9_]*)(?:\s+(as\s+[a-z][a-z0-9_]*))?(\s*=\s*[^,)]+)?
         captures:
           1: # Optional? ByVal|ByRef?
             name: storage.type.modifier.vba
