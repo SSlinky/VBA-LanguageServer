@@ -83,7 +83,7 @@ repository:
     repository:
       string:
         name: string.quoted.double.vba
-        match: '"[^\r\n]*"'
+        match: '"("")*([^"\n]*)((?:"")[^"\n]+)?"("")*'
       boolean:
         name: constant.language.boolean.vba
         match: "(?i)(true|false)"
