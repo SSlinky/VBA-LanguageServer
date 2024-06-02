@@ -152,7 +152,7 @@ repository:
         repository:
           flowDecision:
             name: keyword.control.flow.decision.vba
-            match: (?i)(^|\s+)(#if|then|#elseif|[#]?else|#end if|select case|case|switch|end select)\b
+            match: (?i)(^|\s+)(#if|then|#elseif|[#]?else|[#]?end if|select case|case|switch|end select)\b
 
           flowLoop:
             name: keyword.control.flow.loop.vba
