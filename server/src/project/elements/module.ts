@@ -85,15 +85,26 @@ export class ModuleElement extends BaseModuleElement implements ScopeElement {
 }
 
 export class ClassElement extends BaseModuleElement {
+	context: ClassModuleContext;
 	protected _name: string;
 
 	constructor(context: ClassModuleContext, document: TextDocument) {
 		super(context, document, SymbolKind.Class);
+		this.context = context;
 		this._name = this._getName(context);
 	}
 
 	evaluateDiagnostics(): void {
-		return;
+		if (!this._hasOptionExplicit()) {
+			const header = this.context.classModuleHeader();
+			const startLine = header.stop?.line ?? 0 + 1;
+			this.diagnostics.push(new MissingOptionExplicitDiagnostic(
+				Range.create(
+					startLine, 1,
+					startLine, 1
+				)
+			));
+		}
 	}
 
 	private _getName(context: ClassModuleContext) {
@@ -109,6 +120,21 @@ export class ClassElement extends BaseModuleElement {
 
 		const nameAttribute = nameAttributes[0];
 		return nameAttribute.STRINGLITERAL().getText().stripQuotes();
+	}
+
+	private _hasOptionExplicit(): boolean {
+		const moduleDeclarations = this.context.classModuleBody().classModuleDeclarationSection()?.classModuleDeclarationElement();
+		if (!moduleDeclarations) {
+			return false;
+		}
+
+		for (const declaration of moduleDeclarations) {
+			if (declaration.commonOptionDirective()?.optionExplicitDirective()) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 }
 
