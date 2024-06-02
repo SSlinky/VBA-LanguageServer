@@ -69,8 +69,8 @@ repository:
       - include: "#operators"
       - include: "#keywords"
       - include: "#functionCall"
-      - include: "#subCall"
       - include: "#objectModel"
+      - include: "#subCall"
 
       
   literals:
@@ -83,7 +83,7 @@ repository:
     repository:
       string:
         name: string.quoted.double.vba
-        match: '"[^\r\n]*"'
+        match: '"("")*([^"\n]*)((?:"")[^"\n]+)?"("")*'
       boolean:
         name: constant.language.boolean.vba
         match: "(?i)(true|false)"
@@ -152,7 +152,7 @@ repository:
         repository:
           flowDecision:
             name: keyword.control.flow.decision.vba
-            match: (?i)(^|\s+)(#if|then|#elseif|[#]?else|#end if|select case|case|switch|end select)\b
+            match: (?i)(^|\s+)(#if|then|#elseif|[#]?else|[#]?end if|select case|case|switch|end select)\b
 
           flowLoop:
             name: keyword.control.flow.loop.vba
@@ -353,10 +353,10 @@ repository:
     repository:
       primativeType:
         name: support.type.primitive.vba
-        match: (?i)(?<=\bAs)\s+(boolean|byte|currency|date|decimal|double|integer|long(long|ptr)?|single|string|variant)\b
+        match: (?i)(?<=\bAs)(?:\s+|\s+_\s*\n)+(boolean|byte|currency|date|decimal|double|integer|long(long|ptr)?|single|string|variant)\b
       objectType:
         name: support.type.object.vba
-        match: (?i)(?<=\bAs)(\s+New)?\s+([A-Z][A-Z0-9_]*)\b
+        match: (?i)(?<=\bAs)((?:\s+(?:\s*_\s*\n)*)New)?(?:\s+(?:\s*_\s*\n)*)([A-Z][A-Z0-9_]*)\b
         captures:
           1:
             name: keyword.storage.new.vba
@@ -376,7 +376,11 @@ repository:
       - include: "#argsLiteral"
     repository:
       argsVariable:
-        match: (?i),?\s*((?:Optional\s+)?(?:ByVal|ByRef)\s+)?([a-z][a-z0-9_]*)(?:\s+(as\s+[a-z][a-z0-9_]*))?(\s*=\s*[^,)]+)?
+        name: meta.arguments.argsVariable.vba
+        match: (?i),?\s*((?:Optional\s+)?(?:(?:ByVal|ByRef)\s+)?)?([a-z][a-z0-9_]*)(?:\s+(as\s+[a-z][a-z0-9_]*))?(\s*=\s*[^,)]+)?
+        # Attempted replacing \s with (?:\s+|\s*_\s*\n) to consume a space or a line ending but it refuses to play the game.
+        # match: ~~ doesn't work (?i),?(?:\s+|\s*_\s*\n)*((?:Optional(?:\s+|\s*_\s*\n)+)?(?:(?:ByVal|ByRef)(?:\s+|\s*_\s*\n)+)?)?([a-z][a-z0-9_]*)(?:(?:\s+|\s*_\s*\n)+(as(?:\s+|\s*_\s*\n)+[a-z][a-z0-9_]*))?((?:\s+|\s*_\s*\n)*=(?:\s+|\s*_\s*\n)*[^,\n)]+)?
+        # match: ~~ all broken (?i),?(?:\s*_\s*\n)*((?:Optional(?:\s+(?:\s*_\s*\n)*))?(?:(?:ByVal|ByRef)(?:\s+(?:\s*_\s*\n)*))?)?([a-z][a-z0-9_]*)(?:(?:\s+(?:\s*_\s*\n)*)(as\(?:\s+(?:\s*_\s*\n)*)[a-z][a-z0-9_]*))?((?:\s*_\s*\n)*=(?:\s*_\s*\n)*[^,)]+)?
         captures:
           1: # Optional? ByVal|ByRef?
             name: storage.type.modifier.vba
@@ -398,6 +402,7 @@ repository:
               - include: "#literals"
 
       paramArray:
+        name: meta.args.paramarray.vba
         match: (?i),?\s*(ParamArray)\s+([a-z][a-z0-9_]*)(?:\(\))(\s+As\s+Variant)?
         captures:
           1:
@@ -430,10 +435,12 @@ repository:
         match: (?i)(?<=^|:)\s*Rem\b.*
 
   attribute:
-    name: entity.other.attribute-name.vba
-    match: (?i)^Attribute(.*)
+    name: meta.attribute.vba
+    match: (?i)^\s*(Attribute VB_\w+)\s+(.*)$
     captures:
-      0:
+      1:
+        name: entity.other.attribute-name.vba
+      2:
         patterns:
           - include: "#language"
 
@@ -590,7 +597,7 @@ repository:
   methodSignature:
     name: source.method.signature.vba
     begin: (?i)^\s*((?:Public|Private)?\b\s*(?:(?:Sub|Function)|Property\s+(?:Let|Get|Set)))\s+([a-z][a-z0-9_]*)\s*(\()
-    end: (?i)(\))\s+(as\s+[a-z][a-z0-9_]*)?
+    end: (?i)\s*(\))\s+(as\s+[a-z][a-z0-9_]*)?
     beginCaptures:
       1:
         name: storage.type.method.vba
@@ -612,17 +619,18 @@ repository:
     match: (?i)^\s*End\s+(Sub|Function|Property)
 
   expression:
-    # (?:[*&/\+-]|\bMod\b)|
+    # (?:[*&\/\+-]|\bMod\b)|
     # (?:[<>=]|\b(is|like)\b)|
     # (?:[&+])|
     # (?:\b(and|eqv|imp|not|or|xor)\b)|
     # (?:\b(addressof|typeof)\b)
 
     # This match just made up of the operators matchs. Don't look at it too hard.
-    match: (?i)(.*?)\s+((?:[*&/\+-]|\bMod\b)|(?:[<>=]|\b(is|like)\b)|(?:[&+])|(?:\b(and|eqv|imp|not|or|xor)\b)|(?:\b(addressof|typeof)\b))\s+(.*)
+    match: (?i)(.*?)\s+((?:[*&\/\+-]|\bMod\b)|(?:[<>=]|\b(is|like)\b)|(?:[&+])|(?:\b(and|eqv|imp|not|or|xor)\b)|(?:\b(addressof|typeof)\b))\s+(.*)
     captures:
       1:  # Left sided of expression
         patterns:
+          - include: "#functionCall"
           - include: "#literal"
       2:  # Operator
         patterns:
@@ -730,7 +738,8 @@ repository:
       - include: "#lineContinuation"
 
   subCall:
-    begin: (?i)([a-z][a-z0-9._]*)\s+(.*,.*)
+    name: meta.sub-call.vba
+    begin: (?i)([a-z][a-z0-9._]*)\s+(.*)
     beginCaptures:
       1:
         name: entity.name.function.call.vba
