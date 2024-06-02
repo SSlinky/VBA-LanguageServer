@@ -590,7 +590,7 @@ repository:
   methodSignature:
     name: source.method.signature.vba
     begin: (?i)^\s*((?:Public|Private)?\b\s*(?:(?:Sub|Function)|Property\s+(?:Let|Get|Set)))\s+([a-z][a-z0-9_]*)\s*(\()
-    end: (?i)(\))\s+(as\s+[a-z][a-z0-9_]*)?
+    end: (?i)\s*(\))\s+(as\s+[a-z][a-z0-9_]*)?
     beginCaptures:
       1:
         name: storage.type.method.vba
