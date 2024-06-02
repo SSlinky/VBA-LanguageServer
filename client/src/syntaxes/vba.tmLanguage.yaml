@@ -430,10 +430,12 @@ repository:
         match: (?i)(?<=^|:)\s*Rem\b.*
 
   attribute:
-    name: entity.other.attribute-name.vba
-    match: (?i)^Attribute(.*)
+    name: meta.attribute.vba
+    match: (?i)^\s*(Attribute VB_\w+)\s+(.*)$
     captures:
-      0:
+      1:
+        name: entity.other.attribute-name.vba
+      2:
         patterns:
           - include: "#language"
 
