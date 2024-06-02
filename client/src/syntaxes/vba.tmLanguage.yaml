@@ -69,8 +69,8 @@ repository:
       - include: "#operators"
       - include: "#keywords"
       - include: "#functionCall"
-      - include: "#subCall"
       - include: "#objectModel"
+      - include: "#subCall"
 
       
   literals:
