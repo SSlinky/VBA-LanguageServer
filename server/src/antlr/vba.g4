@@ -2563,7 +2563,7 @@ STRINGLITERAL
     ;
 
 INTEGERLITERAL
-    : (DIGIT DIGIT*
+    : [-]? (DIGIT DIGIT*
     | '&H' [0-9A-F]+
     | '&' [O]? [0-7]+) [%&^]?
     ;
