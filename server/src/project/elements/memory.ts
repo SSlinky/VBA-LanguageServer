@@ -1,8 +1,8 @@
-import { AmbiguousIdentifierContext, EnumDeclarationContext, EnumMemberContext, FunctionDeclarationContext, ProcedureDeclarationContext, PropertyGetDeclarationContext, PropertySetDeclarationContext, SubroutineDeclarationContext } from '../../antlr/out/vbaParser';
+import { AmbiguousIdentifierContext, EnumDeclarationContext, EnumMemberContext, FunctionDeclarationContext, ProcedureDeclarationContext, PropertyGetDeclarationContext, PropertySetDeclarationContext, PublicTypeDeclarationContext, SubroutineDeclarationContext, UdtDeclarationContext, UntypedNameContext } from '../../antlr/out/vbaParser';
 
 import { TextDocument } from 'vscode-languageserver-textdocument';
 
-import { BaseContextSyntaxElement, HasSemanticToken, HasSymbolInformation, IdentifiableSyntaxElement } from './base';
+import { BaseContextSyntaxElement, HasSemanticToken, HasSymbolInformation, IdentifiableSyntaxElement, NamedSyntaxElement } from './base';
 import { SemanticTokenModifiers, SemanticTokenTypes, SymbolInformation, SymbolKind } from 'vscode-languageserver';
 import { ScopeElement } from './special';
 import { SymbolInformationFactory } from '../../capabilities/symbolInformation';
@@ -11,7 +11,7 @@ import { VbaClassDocument, VbaModuleDocument } from '../document';
 
 
 export class IdentifierElement extends BaseContextSyntaxElement {
-	constructor(ctx: AmbiguousIdentifierContext, doc: TextDocument) {
+	constructor(ctx: UntypedNameContext | AmbiguousIdentifierContext, doc: TextDocument) {
 		super(ctx, doc);
 	}
 }
@@ -58,8 +58,8 @@ export class SubDeclarationElement extends DeclarationElement implements HasSymb
 	constructor(context: ProcedureDeclarationContext, document: TextDocument, methodContext: SubroutineDeclarationContext) {
 		super(context, document);
 
-		const identifierContext = methodContext.subroutineName()!.ambiguousIdentifier()!;
-		this.identifier = new IdentifierElement(identifierContext, document);
+		const identifierContext = methodContext.subroutineName()?.ambiguousIdentifier();
+		this.identifier = new IdentifierElement(identifierContext!, document);
 		this.symbolInformation = SymbolInformation.create(
 			this.identifier.text,
 			SymbolKind.Method,
@@ -207,84 +207,6 @@ class EnumMemberDeclarationElement extends BaseEnumDeclarationElement {
 	}
 }
 
-
-// abstract class BaseEnumElement extends FoldableElement implements HasSemanticToken, HasSymbolInformation {
-// 	identifier: IdentifierElement;
-// 	tokenModifiers: SemanticTokenModifiers[] = [];
-// 	abstract tokenType: SemanticTokenTypes;
-// 	abstract symbolKind: SymbolKind;
-
-// 	constructor(context: EnumerationStmtContext | EnumerationStmt_ConstantContext, document: TextDocument) {
-// 		super(context, document);
-// 		this.identifier = new IdentifierElement(context.ambiguousIdentifier(), document);
-// 	}
-
-// 	get name(): string { return this.identifier.text; }
-// 	get symbolInformation(): SymbolInformation {
-// 		return SymbolInformationFactory.create(
-// 			this, this.symbolKind
-// 		);
-// 	}
-
-// }
-
-
-// export class EnumBlockDeclarationElement extends BaseEnumElement {
-// 	tokenType: SemanticTokenTypes;
-// 	tokenModifiers: SemanticTokenModifiers[] = [];
-// 	symbolKind: SymbolKind;
-
-// 	constructor(context: EnumerationStmtContext, document: TextDocument) {
-// 		super(context, document);
-// 		this.tokenType = SemanticTokenTypes.enum;
-// 		this.symbolKind = SymbolKind.Enum;
-// 	}
-// }
-
-
-// export class EnumMemberDeclarationElement extends BaseEnumElement {
-// 	tokenType: SemanticTokenTypes;
-// 	tokenModifiers: SemanticTokenModifiers[] = [];
-// 	symbolKind: SymbolKind;
-
-// 	constructor(context: EnumerationStmt_ConstantContext, document: TextDocument) {
-// 		super(context, document);
-// 		this.tokenType = SemanticTokenTypes.enumMember;
-// 		this.symbolKind = SymbolKind.EnumMember;
-// 	}
-// }
-
-// abstract class BaseMethodElement extends FoldableElement implements HasSemanticToken, HasSymbolInformation {
-// 	identifier: IdentifierElement;
-// 	tokenModifiers: SemanticTokenModifiers[] = [];
-// 	abstract tokenType: SemanticTokenTypes;
-// 	abstract symbolKind: SymbolKind;
-
-// 	constructor(context: MethodStmtContext, document: TextDocument) {
-// 		super(context, document);
-// 		this.identifier = new IdentifierElement(context.methodSignatureStmt().ambiguousIdentifier(), document);
-// 	}
-
-// 	get name(): string { return this.identifier.text; }
-// 	get symbolInformation(): SymbolInformation {
-// 		return SymbolInformationFactory.create(
-// 			this, this.symbolKind
-// 		);
-// 	}
-// }
-
-// export class MethodBlockDeclarationElement extends BaseMethodElement {
-// 	tokenType: SemanticTokenTypes;
-// 	tokenModifiers: SemanticTokenModifiers[] = [];
-// 	symbolKind: SymbolKind;
-
-// 	constructor(context: MethodStmtContext, document: TextDocument) {
-// 		super(context, document);
-// 		this.tokenType = SemanticTokenTypes.method;
-// 		this.symbolKind = SymbolKind.Method;
-// 	}
-// }
-
 // abstract class BaseVariableDeclarationStatementElement extends BaseContextSyntaxElement {
 // 	abstract declarations: VariableDeclarationElement[];
 
@@ -306,25 +228,27 @@ class EnumMemberDeclarationElement extends BaseEnumDeclarationElement {
 // 	}
 // }
 
-// export class TypeDeclarationElement  extends FoldableElement implements HasSemanticToken, HasSymbolInformation {
-// 	tokenType: SemanticTokenTypes;
-// 	tokenModifiers: SemanticTokenModifiers[] = [];
-// 	identifier: IdentifierElement;
-// 	symbolKind: SymbolKind;
+export class TypeDeclarationElement  extends ScopeElement implements HasSemanticToken, HasSymbolInformation, NamedSyntaxElement {
+	tokenType: SemanticTokenTypes;
+	tokenModifiers: SemanticTokenModifiers[] = [];
+	identifier: IdentifierElement;
+	symbolKind: SymbolKind;
+	declaredNames: Map<string, IdentifiableSyntaxElement[]> = new Map(); // Get variable declarations going
 
-// 	constructor(context: TypeStmtContext, document: TextDocument) {
-// 		super(context, document);
-// 		this.symbolKind = SymbolKind.Struct;
-// 		this.tokenType = SemanticTokenTypes.struct;
-// 		this.identifier = new IdentifierElement(context.ambiguousIdentifier(), document);
-// 	}
+	constructor(context: UdtDeclarationContext, document: TextDocument) {
+		super(context, document);
+		this.symbolKind = SymbolKind.Struct;
+		this.tokenType = SemanticTokenTypes.struct;
+		this.identifier = new IdentifierElement(context.untypedName(), document);
+	}
 
-// 	get name(): string { return this.identifier.text; }
-// 	get symbolInformation(): SymbolInformation {
-// 		return SymbolInformationFactory.create(
-// 			this, this.symbolKind
-// 		);
-// 	}
+	get name(): string { return this.identifier.text; }
+	get symbolInformation(): SymbolInformation {
+		return SymbolInformationFactory.create(
+			this as NamedSyntaxElement, this.symbolKind
+		);
+	}
+}
 
 // }
 

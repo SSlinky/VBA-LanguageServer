@@ -1,15 +1,15 @@
 import { TextDocument } from 'vscode-languageserver-textdocument';
 
 import { vbaLexer } from '../../antlr/out/vbaLexer';
-import {  ClassModuleContext, EnumDeclarationContext, IgnoredAttrContext, ProceduralModuleContext, ProcedureDeclarationContext, WhileStatementContext, vbaParser } from '../../antlr/out/vbaParser';
+import {  ClassModuleContext, EnumDeclarationContext, IgnoredAttrContext, ProceduralModuleContext, ProcedureDeclarationContext, UdtDeclarationContext, WhileStatementContext, vbaParser } from '../../antlr/out/vbaParser';
 import { vbaListener } from '../../antlr/out/vbaListener';
 
 import { VbaClassDocument, VbaModuleDocument } from '../document';
 import { sleep } from '../../utils/helpers';
 import { CancellationToken } from 'vscode-languageserver';
-import { CharStream, CommonTokenStream, DefaultErrorStrategy, ParseTreeWalker, Parser, RecognitionException } from 'antlr4ng';
+import { CharStream, CommonTokenStream, DefaultErrorStrategy, ErrorNode, ParseTreeWalker, Parser, RecognitionException } from 'antlr4ng';
 import { ClassElement, IgnoredAttributeElement, ModuleElement } from '../elements/module';
-import { DeclarationElement, EnumDeclarationElement } from '../elements/memory';
+import { DeclarationElement, EnumDeclarationElement, TypeDeclarationElement } from '../elements/memory';
 import { WhileLoopElement } from '../elements/flow';
 
 export class SyntaxParser {
@@ -150,6 +150,13 @@ class VbaListener extends vbaListener {
         this.document.deregisterScopedElement();
     };
 
+    enterUdtDeclaration = (ctx: UdtDeclarationContext) => {
+        const element = new TypeDeclarationElement(ctx, this.document.textDocument);
+        this.document.registerFoldableElement(element)
+            .registerSemanticToken(element)
+            .registerSymbolInformation(element);
+    };
+
     enterWhileStatement = (ctx: WhileStatementContext) => {
         const element = new WhileLoopElement(ctx, this.document.textDocument);
         this.document.registerDiagnosticElement(element);
@@ -167,61 +174,6 @@ class VbaListener extends vbaListener {
     //     const element = new ConstDeclarationsElement(ctx, this.document.textDocument);
     //     element.declarations.forEach((e) => this.document.registerSymbolInformation(e));
     // };
-
-	// enterEnumerationStmt = (ctx: EnumerationStmtContext) => {
-	// 	const element = new EnumBlockDeclarationElement(ctx, this.document.textDocument);
-	// 	this.document.registerFoldableElement(element)
-    //         .registerSemanticToken(element)
-    //         .registerSymbolInformation(element)
-    //         .registerScopedElement(element);
-	// };
-
-    // exitEnumerationStmt = (_: EnumerationStmtContext) => {
-    //     this.document.deregisterScopedElement();
-    // };
-
-    // enterEnumerationStmt_Constant = (ctx: EnumerationStmt_ConstantContext) => {
-    //     const element = new EnumMemberDeclarationElement(ctx, this.document.textDocument);
-    //     this.document.registerSymbolInformation(element)
-    //         .registerSemanticToken(element);
-    // };
-
-	// enterFoldingBlockStmt = (ctx: FoldingBlockStmtContext) => {
-	// 	const element = new FoldableElement(ctx, this.document.textDocument);
-	// 	this.document.registerFoldableElement(element);
-	// };
-
-	// enterMethodStmt = (ctx: MethodStmtContext) => {
-	// 	const element = new MethodBlockDeclarationElement(ctx, this.document.textDocument);
-    //     this.document.registerNamedElement(element)
-    //         .registerFoldableElement(element)
-    //         .registerSymbolInformation(element)
-    //         .registerSemanticToken(element)
-    //         .registerScopedElement(element);
-	// };
-
-	// exitMethodStmt = (_: MethodStmtContext) => {
-	// 	this.document.deregisterScopedElement();
-	// };
-
-    // enterModule = (ctx: ModuleContext) => {
-    //     const element = new ModuleElement(ctx, this.document.textDocument, this.document.symbolKind);
-    //     this.document.registerAttributeElement(element)
-    //         .registerDiagnosticElement(element)
-    //         .registerScopedElement(element);
-    // };
-
-    // exitModule = (_: ModuleContext) => {
-    //     const element = this.document.deregisterAttributeElement() as ModuleElement;
-    //     this.document.registerSymbolInformation(element)
-    //         .deregisterScopedElement()
-    //         .deregisterAttributeElement();
-    // };
-
-	// enterModuleHeader = (ctx: ModuleHeaderContext) => {
-	// 	const element = new FoldableElement(ctx, this.document.textDocument);
-	// 	this.document.registerFoldableElement(element);
-	// };
     
     // enterOperatorsStmt = (ctx: OperatorsStmtContext) => {
     //     const element = new OperatorElement(ctx, this.document.textDocument);
