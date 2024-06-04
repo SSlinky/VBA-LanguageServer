@@ -1,4 +1,4 @@
-import { CodeDescription, Diagnostic, DiagnosticRelatedInformation, DiagnosticSeverity, DiagnosticTag, Range, TextDocumentClientCapabilities } from 'vscode-languageserver';
+import { CodeDescription, Diagnostic, DiagnosticRelatedInformation, DiagnosticSeverity, DiagnosticTag, Position, Range, TextDocumentClientCapabilities } from 'vscode-languageserver';
 
 
 function hasDiagnosticRelatedInformationCapability(x: TextDocumentClientCapabilities) {
@@ -33,7 +33,10 @@ export class WhileWendDeprecatedDiagnostic extends BaseDiagnostic {
 	message = "The Do...Loop statement provides a more structured and flexible way to perform looping.";
 	severity = DiagnosticSeverity.Information;
 	constructor(range: Range) {
-		super(range);
+		super(Range.create(
+			range.start,
+			Position.create(range.start.line, range.start.character + 4)
+		));
 	}
 }
 

@@ -1,7 +1,7 @@
 import { TextDocument } from 'vscode-languageserver-textdocument';
 
 import { vbaLexer } from '../../antlr/out/vbaLexer';
-import {  ClassModuleContext, EnumDeclarationContext, IgnoredAttrContext, ProceduralModuleContext, ProcedureDeclarationContext, vbaParser } from '../../antlr/out/vbaParser';
+import {  ClassModuleContext, EnumDeclarationContext, IgnoredAttrContext, ProceduralModuleContext, ProcedureDeclarationContext, WhileStatementContext, vbaParser } from '../../antlr/out/vbaParser';
 import { vbaListener } from '../../antlr/out/vbaListener';
 
 import { VbaClassDocument, VbaModuleDocument } from '../document';
@@ -10,6 +10,7 @@ import { CancellationToken } from 'vscode-languageserver';
 import { CharStream, CommonTokenStream, DefaultErrorStrategy, ParseTreeWalker, Parser, RecognitionException } from 'antlr4ng';
 import { ClassElement, IgnoredAttributeElement, ModuleElement } from '../elements/module';
 import { DeclarationElement, EnumDeclarationElement } from '../elements/memory';
+import { WhileLoopElement } from '../elements/flow';
 
 export class SyntaxParser {
     private static _lockIdentifier = 0;
@@ -131,6 +132,11 @@ class VbaListener extends vbaListener {
             .registerFoldableElement(element)
             .registerNamedElement(element)
             .registerScopedElement(element);
+    };
+
+    enterWhileStatement = (ctx: WhileStatementContext) => {
+        const element = new WhileLoopElement(ctx, this.document.textDocument);
+        this.document.registerDiagnosticElement(element);
     };
 
 	// visitErrorNode(node: ErrorNode) {
