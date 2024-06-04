@@ -2,10 +2,10 @@ import { TextDocument } from 'vscode-languageserver-textdocument';
 import { Diagnostic, SemanticTokenModifiers, SemanticTokenTypes, SymbolInformation, SymbolKind } from 'vscode-languageserver';
 import { AmbiguousIdentifierContext, ConstItemContext, EnumDeclarationContext, EnumMemberContext, FunctionDeclarationContext, ProcedureDeclarationContext, PropertyGetDeclarationContext, PropertySetDeclarationContext, ReservedMemberNameContext, SubroutineDeclarationContext, UdtDeclarationContext, UdtElementContext, UntypedNameContext, VariableDclContext } from '../../antlr/out/vbaParser';
 
-import { BaseContextSyntaxElement, HasDiagnosticCapability, HasSemanticToken, HasSymbolInformation, IdentifiableSyntaxElement, NamedSyntaxElement } from './base';
+import { BaseContextSyntaxElement, HasDiagnosticCapability, HasSemanticToken, HasSymbolInformation, NamedSyntaxElement } from './base';
 
 import { ScopeElement } from './special';
-import { BaseProjectDocument, VbaClassDocument, VbaModuleDocument } from '../document';
+import { VbaClassDocument, VbaModuleDocument } from '../document';
 import { SymbolInformationFactory } from '../../capabilities/symbolInformation';
 import '../../extensions/parserExtensions';
 import { DuplicateDeclarationDiagnostic } from '../../capabilities/diagnostics';
@@ -120,9 +120,10 @@ export class PropertyDeclarationElement extends DeclarationElement implements Ha
 
 	constructor(context: ProcedureDeclarationContext, document: TextDocument) {
 		super(context, document);
-		this.identifier = this.addPropertyDeclaration(context, document);
+		const identifier = this.addPropertyDeclaration(context, document);
+		this.identifier = identifier.value
 		this.symbolInformation = SymbolInformation.create(
-			this.identifier.text,
+			`${identifier.type} ${this.identifier.text}`,
 			SymbolKind.Property,
 			this.range,
 			this.document.uri
@@ -134,20 +135,26 @@ export class PropertyDeclarationElement extends DeclarationElement implements Ha
 	}
 
 	addPropertyDeclaration(context: ProcedureDeclarationContext, document: TextDocument) {
+		let property: PropertyGetDeclarationElement | PropertyLetDeclarationElement | PropertySetDeclarationElement;
+		let propertyType: string;
 		switch (true) {
 			case !!context.propertyGetDeclaration():
-				// Property Get
+				propertyType = 'Get';
+				property = new PropertyGetDeclarationElement(context, document, context.propertyGetDeclaration()!);
 				this.getDeclarations.push(new PropertyGetDeclarationElement(context, document, context.propertyGetDeclaration()!));
-				return this.getDeclarations[0].identifier;
+				break;
 			case !!context.propertySetDeclaration()?.LET():
-				// Property Let
-				this.letDeclarations.push(new PropertyLetDeclarationElement(context, document, context.propertySetDeclaration()!));
-				return this.letDeclarations[0].identifier;
+				propertyType = 'Let';
+				property = new PropertyLetDeclarationElement(context, document, context.propertySetDeclaration()!);
+				this.letDeclarations.push(property);
+				break;
 			default:
-				// Property Set
+				propertyType = 'Set';
+				property = new PropertyLetDeclarationElement(context, document, context.propertySetDeclaration()!);
 				this.setDeclarations.push(new PropertySetDeclarationElement(context, document, context.propertySetDeclaration()!));
-				return this.setDeclarations[0].identifier;
+				break;
 		}
+		return { type: propertyType, value: property.identifier };
 	}
 
 	private _evaluateDuplicateDeclarationsDiagnostics(): void {
