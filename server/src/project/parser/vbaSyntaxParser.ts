@@ -106,11 +106,19 @@ class VbaListener extends vbaListener {
         );
     };
 
+    exitEnumDeclaration = (_: EnumDeclarationContext) => {
+        this.document.deregisterScopedElement();
+    };
+
     enterClassModule = (ctx: ClassModuleContext) => {
         const element = new ClassElement(ctx, this.document.textDocument);
         this.document.registerSymbolInformation(element)
             .registerDiagnosticElement(element)
             .registerScopedElement(element);
+    };
+
+    exitClassModule = (ctx: ClassModuleContext) => {
+        this.document.deregisterScopedElement();
     };
 
     enterIgnoredAttr = (ctx: IgnoredAttrContext) => {
@@ -125,6 +133,10 @@ class VbaListener extends vbaListener {
             .registerScopedElement(element);
     };
 
+    exitProceduralModule = (ctx: ProceduralModuleContext) => {
+        this.document.deregisterScopedElement();
+    };
+
     enterProcedureDeclaration = (ctx: ProcedureDeclarationContext) => {
         // TODO: figure out how to handle scope for properties.
         const element = DeclarationElement.create(ctx, this.document);
@@ -132,6 +144,10 @@ class VbaListener extends vbaListener {
             .registerFoldableElement(element)
             .registerNamedElement(element)
             .registerScopedElement(element);
+    };
+
+    exitProcedureDeclaration = (ctx: ProcedureDeclarationContext) => {
+        this.document.deregisterScopedElement();
     };
 
     enterWhileStatement = (ctx: WhileStatementContext) => {
