@@ -54,7 +54,7 @@ export interface FoldingRangeElement {
 }
 
 export interface ScopeElement {
-	declaredNames: Map<string, BaseSyntaxElement>;
+	declaredNames: Map<string, IdentifiableSyntaxElement[]>;
 }
 
 export abstract class BaseSyntaxElement implements ContextOptionalSyntaxElement {
@@ -107,3 +107,4 @@ export abstract class BaseContextSyntaxElement extends BaseSyntaxElement {
 		super(ctx, doc);
 	}
 }
+

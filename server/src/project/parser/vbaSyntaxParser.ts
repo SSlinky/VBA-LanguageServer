@@ -1,16 +1,15 @@
 import { TextDocument } from 'vscode-languageserver-textdocument';
 
 import { vbaLexer } from '../../antlr/out/vbaLexer';
-import {  ClassModuleContext, IgnoredAttrContext, ModuleContext, ProceduralModuleBodyContext, ProceduralModuleContext, ProcedureDeclarationContext, vbaParser } from '../../antlr/out/vbaParser';
+import {  ClassModuleContext, EnumDeclarationContext, IgnoredAttrContext, ProceduralModuleContext, ProcedureDeclarationContext, vbaParser } from '../../antlr/out/vbaParser';
 import { vbaListener } from '../../antlr/out/vbaListener';
 
 import { VbaClassDocument, VbaModuleDocument } from '../document';
-import { FoldableElement } from '../elements/special';
 import { sleep } from '../../utils/helpers';
 import { CancellationToken } from 'vscode-languageserver';
-import { CharStream, CommonTokenStream, ConsoleErrorListener, DefaultErrorStrategy, ParseTreeWalker, Parser, RecognitionException, Recognizer } from 'antlr4ng';
+import { CharStream, CommonTokenStream, DefaultErrorStrategy, ParseTreeWalker, Parser, RecognitionException } from 'antlr4ng';
 import { ClassElement, IgnoredAttributeElement, ModuleElement } from '../elements/module';
-import { DeclarationElement } from '../elements/memory';
+import { DeclarationElement, EnumDeclarationElement } from '../elements/memory';
 
 export class SyntaxParser {
     private static _lockIdentifier = 0;
@@ -92,6 +91,19 @@ class VbaListener extends vbaListener {
         super();
         this.document = document;
     }
+
+    enterEnumDeclaration = (ctx: EnumDeclarationContext) => {
+        const element = new EnumDeclarationElement(ctx, this.document.textDocument);
+        this.document.registerFoldableElement(element)
+            .registerScopedElement(element)
+            .registerSemanticToken(element)
+            .registerSymbolInformation(element);
+        element.declaredNames.forEach(names =>
+            names.forEach(name => this.document
+                .registerSemanticToken(name)
+                .registerSymbolInformation(name))
+        );
+    };
 
     enterClassModule = (ctx: ClassModuleContext) => {
         const element = new ClassElement(ctx, this.document.textDocument);

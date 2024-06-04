@@ -1,4 +1,4 @@
-import { CancellationToken, Diagnostic, LSPErrorCodes, PublishDiagnosticsParams, ResponseError, SemanticTokens, SymbolInformation, SymbolKind } from 'vscode-languageserver';
+import { CancellationToken, Diagnostic, PublishDiagnosticsParams, SymbolInformation, SymbolKind } from 'vscode-languageserver';
 import { Workspace } from './workspace';
 import { FoldableElement } from './elements/special';
 import { BaseSyntaxElement, HasDiagnosticCapability, HasSemanticToken, HasSymbolInformation, ScopeElement } from './elements/base';
@@ -6,7 +6,6 @@ import { Range, TextDocument } from 'vscode-languageserver-textdocument';
 import { SyntaxParser } from './parser/vbaSyntaxParser';
 import { FoldingRange } from '../capabilities/folding';
 import { SemanticTokensManager } from '../capabilities/semanticTokens';
-import { sleep } from '../utils/helpers';
 
 
 export abstract class BaseProjectDocument {

@@ -1,17 +1,17 @@
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { Diagnostic, Range, SymbolInformation, SymbolKind } from 'vscode-languageserver';
 import { ClassModuleContext, IgnoredAttrContext, ProceduralModuleContext } from '../../antlr/out/vbaParser';
-import { BaseContextSyntaxElement, BaseSyntaxElement, HasDiagnosticCapability, HasSymbolInformation, ScopeElement } from './base';
+import { BaseContextSyntaxElement, HasDiagnosticCapability, HasSymbolInformation } from './base';
 import { SymbolInformationFactory } from '../../capabilities/symbolInformation';
 import { IgnoredAttributeDiagnostic, MissingAttributeDiagnostic, MissingOptionExplicitDiagnostic } from '../../capabilities/diagnostics';
 import '../../extensions/stringExtensions';
+import { ScopeElement } from './special';
 
 
-abstract class BaseModuleElement extends BaseContextSyntaxElement implements HasSymbolInformation, HasDiagnosticCapability {
+abstract class BaseModuleElement extends ScopeElement implements HasSymbolInformation, HasDiagnosticCapability {
 	protected abstract _name: string;
 	symbolKind: SymbolKind;
 	diagnostics: Diagnostic[] = [];
-	declaredNames: Map<string, BaseSyntaxElement> = new Map();
 
 	constructor(context: ProceduralModuleContext | ClassModuleContext, document: TextDocument, symbolKind: SymbolKind) {
 		super(context, document);
@@ -31,7 +31,7 @@ abstract class BaseModuleElement extends BaseContextSyntaxElement implements Has
 	abstract evaluateDiagnostics(): void;
 }
 
-export class ModuleElement extends BaseModuleElement implements ScopeElement {
+export class ModuleElement extends BaseModuleElement {
 	context: ProceduralModuleContext;
 	protected _name: string;
 

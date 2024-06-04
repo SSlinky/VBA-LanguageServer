@@ -1,10 +1,10 @@
-import { AmbiguousIdentifierContext, FunctionDeclarationContext, ProcedureDeclarationContext, PropertyGetDeclarationContext, PropertySetDeclarationContext, SubroutineDeclarationContext } from '../../antlr/out/vbaParser';
+import { AmbiguousIdentifierContext, EnumDeclarationContext, EnumMemberContext, FunctionDeclarationContext, ProcedureDeclarationContext, PropertyGetDeclarationContext, PropertySetDeclarationContext, SubroutineDeclarationContext } from '../../antlr/out/vbaParser';
 
 import { TextDocument } from 'vscode-languageserver-textdocument';
 
-import { BaseContextSyntaxElement, BaseSyntaxElement, HasSemanticToken, HasSymbolInformation, ScopeElement } from './base';
+import { BaseContextSyntaxElement, HasSemanticToken, HasSymbolInformation, IdentifiableSyntaxElement } from './base';
 import { SemanticTokenModifiers, SemanticTokenTypes, SymbolInformation, SymbolKind } from 'vscode-languageserver';
-import { FoldableElement } from './special';
+import { ScopeElement } from './special';
 import { SymbolInformationFactory } from '../../capabilities/symbolInformation';
 import '../../extensions/parserExtensions';
 import { VbaClassDocument, VbaModuleDocument } from '../document';
@@ -16,9 +16,8 @@ export class IdentifierElement extends BaseContextSyntaxElement {
 	}
 }
 
-export abstract class DeclarationElement extends FoldableElement implements ScopeElement {
+export abstract class DeclarationElement extends ScopeElement {
 	abstract identifier: IdentifierElement;
-	abstract declaredNames: Map<string, BaseSyntaxElement>;
 
 	constructor(context: ProcedureDeclarationContext, document: TextDocument) {
 		super(context, document);
@@ -40,11 +39,13 @@ export abstract class DeclarationElement extends FoldableElement implements Scop
 		}
 
 		const propertyDeclaration = new PropertyDeclarationElement(context, document.textDocument);
-		const predeclaredElement = document.currentScopeElement?.declaredNames.get(propertyDeclaration.identifier.text);
-		if (predeclaredElement && isPropertyDeclarationElement(predeclaredElement)) {
-			predeclaredElement.addPropertyDeclaration(context, document.textDocument);
-			return predeclaredElement;
-		}
+		const predeclaredElements = document.currentScopeElement?.declaredNames.get(propertyDeclaration.identifier.text);
+		predeclaredElements?.forEach(predeclaredElement => {
+			if (predeclaredElement && isPropertyDeclarationElement(predeclaredElement)) {
+				predeclaredElement.addPropertyDeclaration(context, document.textDocument);
+				return predeclaredElement;
+			}
+		});
 		return propertyDeclaration;
 	}
 
@@ -53,7 +54,6 @@ export abstract class DeclarationElement extends FoldableElement implements Scop
 export class SubDeclarationElement extends DeclarationElement implements HasSymbolInformation {
 	identifier: IdentifierElement;
 	symbolInformation: SymbolInformation;
-	declaredNames: Map<string, BaseSyntaxElement> = new Map();
 
 	constructor(context: ProcedureDeclarationContext, document: TextDocument, methodContext: SubroutineDeclarationContext) {
 		super(context, document);
@@ -72,7 +72,6 @@ export class SubDeclarationElement extends DeclarationElement implements HasSymb
 export class FunctionDeclarationElement extends DeclarationElement implements HasSymbolInformation {
 	identifier: IdentifierElement;
 	symbolInformation: SymbolInformation;
-	declaredNames: Map<string, BaseSyntaxElement> = new Map();
 
 	constructor(context: ProcedureDeclarationContext, document: TextDocument, methodContext: FunctionDeclarationContext) {
 		super(context, document);
@@ -93,7 +92,6 @@ export class PropertyDeclarationElement extends DeclarationElement implements Ha
 	getDeclarations: PropertyGetDeclarationElement[] = [];
 	letDeclarations: PropertyLetDeclarationElement[] = [];
 	setDeclarations: PropertyLetDeclarationElement[] = [];
-	declaredNames: Map<string, BaseSyntaxElement> = new Map();
 
 	constructor(context: ProcedureDeclarationContext, document: TextDocument) {
 		super(context, document);
@@ -126,7 +124,6 @@ export class PropertyDeclarationElement extends DeclarationElement implements Ha
 
 class PropertyGetDeclarationElement extends DeclarationElement {
 	identifier: IdentifierElement;
-	declaredNames: Map<string, BaseSyntaxElement> = new Map();
 
 	constructor(context: ProcedureDeclarationContext, document: TextDocument, getContext: PropertyGetDeclarationContext) {
 		super(context, document);
@@ -136,7 +133,6 @@ class PropertyGetDeclarationElement extends DeclarationElement {
 
 class PropertyLetDeclarationElement extends DeclarationElement {
 	identifier: IdentifierElement;
-	declaredNames: Map<string, BaseSyntaxElement> = new Map();
 
 	constructor(context: ProcedureDeclarationContext, document: TextDocument, setContext: PropertySetDeclarationContext) {
 		super(context, document);
@@ -146,7 +142,6 @@ class PropertyLetDeclarationElement extends DeclarationElement {
 
 class PropertySetDeclarationElement extends DeclarationElement {
 	identifier: IdentifierElement;
-	declaredNames: Map<string, BaseSyntaxElement> = new Map();
 
 	constructor(context: ProcedureDeclarationContext, document: TextDocument, setContext: PropertySetDeclarationContext) {
 		super(context, document);
@@ -154,8 +149,62 @@ class PropertySetDeclarationElement extends DeclarationElement {
 	}
 }
 
-function isPropertyDeclarationElement(element: BaseSyntaxElement): element is PropertyDeclarationElement {
+function isPropertyDeclarationElement(element: IdentifiableSyntaxElement): element is PropertyDeclarationElement {
 	return 'getDeclarations' in element;
+}
+
+abstract class BaseEnumDeclarationElement extends ScopeElement implements HasSemanticToken, HasSymbolInformation {
+	identifier: IdentifierElement;
+	tokenModifiers: SemanticTokenModifiers[] = [];
+	declaredNames: Map<string, EnumMemberDeclarationElement[]> = new Map();
+
+	abstract tokenType: SemanticTokenTypes;
+	abstract symbolInformation: SymbolInformation;
+
+	get name(): string {
+		return this.identifier.text;
+	}
+
+	constructor(context: EnumDeclarationContext | EnumMemberContext, document: TextDocument) {
+		super(context, document);
+		this.identifier = new IdentifierElement(context.untypedName().ambiguousIdentifier()!, document);
+	}
+
+}
+
+export class EnumDeclarationElement extends BaseEnumDeclarationElement implements ScopeElement {
+	tokenType: SemanticTokenTypes;
+
+	constructor(context: EnumDeclarationContext, document: TextDocument) {
+		super(context, document);
+		this.tokenType = SemanticTokenTypes.enum;
+		this.identifier = new IdentifierElement(context.untypedName().ambiguousIdentifier()!, document);
+		context.enumMemberList().enumElement().forEach(enumElementContext =>
+			this._pushDeclaredName(new EnumMemberDeclarationElement(enumElementContext.enumMember()!, document))
+		);
+	}
+
+	get symbolInformation(): SymbolInformation {
+		return SymbolInformationFactory.create(
+			this, SymbolKind.Enum
+		);
+	}
+}
+
+class EnumMemberDeclarationElement extends BaseEnumDeclarationElement {
+	tokenType: SemanticTokenTypes;
+
+	constructor(context: EnumMemberContext, document: TextDocument) {
+		super(context, document);
+		this.tokenType = SemanticTokenTypes.enumMember;
+		this.identifier = new IdentifierElement(context.untypedName().ambiguousIdentifier()!, document);
+	}
+
+	get symbolInformation(): SymbolInformation {
+		return SymbolInformationFactory.create(
+			this, SymbolKind.EnumMember
+		);
+	}
 }
 
 
