@@ -34,7 +34,7 @@ export abstract class BaseProjectDocument {
 	}
 
 	get currentScopeElement() {
-		return this._elementParents[-1];
+		return this._elementParents.at(-1);
 	}
 
 	// get activeAttributeElement() {
