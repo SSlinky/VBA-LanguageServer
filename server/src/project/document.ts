@@ -61,8 +61,10 @@ export abstract class BaseProjectDocument {
 				return new VbaClassDocument(workspace, filename, document, SymbolKind.Class);
 			case 'bas':
 				return new VbaModuleDocument(workspace, filename, document, SymbolKind.Class);
+			case 'frm':
+				return new VbaModuleDocument(workspace, filename, document, SymbolKind.Class);
 			default:
-				throw new Error("Expected *.cls or *.bas but got *." + extension);
+				throw new Error("Expected *.cls, *.bas, or *.frm but got *." + extension);
 		}
 	}
 
