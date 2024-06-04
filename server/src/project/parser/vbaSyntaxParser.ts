@@ -1,7 +1,7 @@
 import { TextDocument } from 'vscode-languageserver-textdocument';
 
 import { vbaLexer } from '../../antlr/out/vbaLexer';
-import {  ClassModuleContext, EnumDeclarationContext, IgnoredAttrContext, ProceduralModuleContext, ProcedureDeclarationContext, UdtDeclarationContext, WhileStatementContext, vbaParser } from '../../antlr/out/vbaParser';
+import {  ClassModuleContext, ConstItemContext, EnumDeclarationContext, IgnoredAttrContext, ProceduralModuleContext, ProceduralModuleDeclarationElementContext, ProcedureDeclarationContext, UdtDeclarationContext, WhileStatementContext, vbaParser } from '../../antlr/out/vbaParser';
 import { vbaListener } from '../../antlr/out/vbaListener';
 
 import { VbaClassDocument, VbaModuleDocument } from '../document';
@@ -9,7 +9,7 @@ import { sleep } from '../../utils/helpers';
 import { CancellationToken } from 'vscode-languageserver';
 import { CharStream, CommonTokenStream, DefaultErrorStrategy, ErrorNode, ParseTreeWalker, Parser, RecognitionException } from 'antlr4ng';
 import { ClassElement, IgnoredAttributeElement, ModuleElement } from '../elements/module';
-import { DeclarationElement, EnumDeclarationElement, TypeDeclarationElement } from '../elements/memory';
+import { ConstDeclarationElement, DeclarationElement, EnumDeclarationElement, TypeDeclarationElement } from '../elements/memory';
 import { WhileLoopElement } from '../elements/flow';
 
 export class SyntaxParser {
@@ -161,6 +161,11 @@ class VbaListener extends vbaListener {
         this.document.registerFoldableElement(element)
             .registerSemanticToken(element)
             .registerSymbolInformation(element);
+        element.declaredNames.forEach(names =>
+            names.forEach(name => this.document
+                .registerSemanticToken(name)
+                .registerSymbolInformation(name))
+        );
     };
 
     enterWhileStatement = (ctx: WhileStatementContext) => {

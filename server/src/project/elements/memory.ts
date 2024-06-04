@@ -1,17 +1,18 @@
-import { AmbiguousIdentifierContext, EnumDeclarationContext, EnumMemberContext, FunctionDeclarationContext, ProcedureDeclarationContext, PropertyGetDeclarationContext, PropertySetDeclarationContext, PublicTypeDeclarationContext, SubroutineDeclarationContext, UdtDeclarationContext, UntypedNameContext } from '../../antlr/out/vbaParser';
-
 import { TextDocument } from 'vscode-languageserver-textdocument';
+import { SemanticTokenModifiers, SemanticTokenTypes, SymbolInformation, SymbolKind } from 'vscode-languageserver';
+import { AmbiguousIdentifierContext, ConstItemContext, EnumDeclarationContext, EnumMemberContext, FunctionDeclarationContext, ProcedureDeclarationContext, PropertyGetDeclarationContext, PropertySetDeclarationContext, ReservedMemberNameContext, SubroutineDeclarationContext, UdtDeclarationContext, UdtElementContext, UntypedNameContext, VariableDclContext } from '../../antlr/out/vbaParser';
 
 import { BaseContextSyntaxElement, HasSemanticToken, HasSymbolInformation, IdentifiableSyntaxElement, NamedSyntaxElement } from './base';
-import { SemanticTokenModifiers, SemanticTokenTypes, SymbolInformation, SymbolKind } from 'vscode-languageserver';
+
 import { ScopeElement } from './special';
+import { VbaClassDocument, VbaModuleDocument } from '../document';
 import { SymbolInformationFactory } from '../../capabilities/symbolInformation';
 import '../../extensions/parserExtensions';
-import { VbaClassDocument, VbaModuleDocument } from '../document';
+
 
 
 export class IdentifierElement extends BaseContextSyntaxElement {
-	constructor(ctx: UntypedNameContext | AmbiguousIdentifierContext, doc: TextDocument) {
+	constructor(ctx: UntypedNameContext | ConstItemContext | AmbiguousIdentifierContext | ReservedMemberNameContext, doc: TextDocument) {
 		super(ctx, doc);
 	}
 }
@@ -253,13 +254,16 @@ export class TypeDeclarationElement  extends ScopeElement implements HasSemantic
 	tokenModifiers: SemanticTokenModifiers[] = [];
 	identifier: IdentifierElement;
 	symbolKind: SymbolKind;
-	declaredNames: Map<string, IdentifiableSyntaxElement[]> = new Map(); // Get variable declarations going
+	declaredNames: Map<string, TypeMemberDeclarationElement[]> = new Map();
 
 	constructor(context: UdtDeclarationContext, document: TextDocument) {
 		super(context, document);
 		this.symbolKind = SymbolKind.Struct;
 		this.tokenType = SemanticTokenTypes.struct;
 		this.identifier = new IdentifierElement(context.untypedName(), document);
+		context.udtMemberList().udtElement().forEach(member =>
+			this._pushDeclaredName(new TypeMemberDeclarationElement(member, document))
+		);
 	}
 
 	get name(): string { return this.identifier.text; }
@@ -270,7 +274,20 @@ export class TypeDeclarationElement  extends ScopeElement implements HasSemantic
 	}
 }
 
-// }
+export class TypeMemberDeclarationElement extends BaseVariableDeclarationStatementElement {
+	tokenModifiers: SemanticTokenModifiers[] = [];
+	identifier: IdentifierElement;
+	
+	get name(): string {
+		return this.identifier.text;
+	}
+
+	constructor(context: UdtElementContext, document: TextDocument) {
+		super(context, document, SemanticTokenTypes.property, SymbolKind.Property);
+		const identifierContext = context.udtMember()?.untypedNameMemberDcl()?.ambiguousIdentifier() ?? context.udtMember()?.reservedNameMemberDcl()?.reservedMemberName();
+		this.identifier = new IdentifierElement(identifierContext!, document);
+	}
+}
 
 // export class VariableDeclarationsElement extends BaseVariableDeclarationStatementElement {
 // 	declarations: VariableDeclarationElement[] = [];
