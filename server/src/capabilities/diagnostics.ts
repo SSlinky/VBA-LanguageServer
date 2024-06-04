@@ -57,6 +57,14 @@ export class DuplicateAttributeDiagnostic extends BaseDiagnostic {
 	}
 }
 
+export class IgnoredAttributeDiagnostic extends BaseDiagnostic {
+	message = "This attribute will be ignored.";
+	severity = DiagnosticSeverity.Information;
+	constructor(range: Range) {
+		super(range);
+	}
+}
+
 export class MissingOptionExplicitDiagnostic extends BaseDiagnostic {
 	message = "Option Explicit is missing from module header.";
 	severity = DiagnosticSeverity.Warning;

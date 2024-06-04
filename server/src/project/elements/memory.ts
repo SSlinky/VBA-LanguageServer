@@ -40,7 +40,7 @@ export abstract class DeclarationElement extends FoldableElement implements Scop
 		}
 
 		const propertyDeclaration = new PropertyDeclarationElement(context, document.textDocument);
-		const predeclaredElement = document.currentScopeElement.declaredNames.get(propertyDeclaration.identifier.text);
+		const predeclaredElement = document.currentScopeElement?.declaredNames.get(propertyDeclaration.identifier.text);
 		if (predeclaredElement && isPropertyDeclarationElement(predeclaredElement)) {
 			predeclaredElement.addPropertyDeclaration(context, document.textDocument);
 			return predeclaredElement;

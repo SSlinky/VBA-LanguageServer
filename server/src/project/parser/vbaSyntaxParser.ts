@@ -1,7 +1,7 @@
 import { TextDocument } from 'vscode-languageserver-textdocument';
 
 import { vbaLexer } from '../../antlr/out/vbaLexer';
-import {  ClassModuleContext, ModuleContext, ProceduralModuleBodyContext, ProceduralModuleContext, ProcedureDeclarationContext, vbaParser } from '../../antlr/out/vbaParser';
+import {  ClassModuleContext, IgnoredAttrContext, ModuleContext, ProceduralModuleBodyContext, ProceduralModuleContext, ProcedureDeclarationContext, vbaParser } from '../../antlr/out/vbaParser';
 import { vbaListener } from '../../antlr/out/vbaListener';
 
 import { VbaClassDocument, VbaModuleDocument } from '../document';
@@ -9,7 +9,7 @@ import { FoldableElement } from '../elements/special';
 import { sleep } from '../../utils/helpers';
 import { CancellationToken } from 'vscode-languageserver';
 import { CharStream, CommonTokenStream, ConsoleErrorListener, DefaultErrorStrategy, ParseTreeWalker, Parser, RecognitionException, Recognizer } from 'antlr4ng';
-import { ClassElement, ModuleElement } from '../elements/module';
+import { ClassElement, IgnoredAttributeElement, ModuleElement } from '../elements/module';
 import { DeclarationElement } from '../elements/memory';
 
 export class SyntaxParser {
@@ -93,15 +93,20 @@ class VbaListener extends vbaListener {
         this.document = document;
     }
 
-    enterProceduralModule = (ctx: ProceduralModuleContext) => {
-        const element = new ModuleElement(ctx, this.document.textDocument);
+    enterClassModule = (ctx: ClassModuleContext) => {
+        const element = new ClassElement(ctx, this.document.textDocument);
         this.document.registerSymbolInformation(element)
             .registerDiagnosticElement(element)
             .registerScopedElement(element);
     };
 
-    enterClassModule = (ctx: ClassModuleContext) => {
-        const element = new ClassElement(ctx, this.document.textDocument);
+    enterIgnoredAttr = (ctx: IgnoredAttrContext) => {
+        const element = new IgnoredAttributeElement(ctx, this.document.textDocument);
+        this.document.registerDiagnosticElement(element);
+    };
+
+    enterProceduralModule = (ctx: ProceduralModuleContext) => {
+        const element = new ModuleElement(ctx, this.document.textDocument);
         this.document.registerSymbolInformation(element)
             .registerDiagnosticElement(element)
             .registerScopedElement(element);

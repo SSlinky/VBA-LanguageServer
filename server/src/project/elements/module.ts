@@ -1,9 +1,9 @@
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { Diagnostic, Range, SymbolInformation, SymbolKind } from 'vscode-languageserver';
-import { ClassModuleContext, ProceduralModuleContext } from '../../antlr/out/vbaParser';
+import { ClassModuleContext, IgnoredAttrContext, ProceduralModuleContext } from '../../antlr/out/vbaParser';
 import { BaseContextSyntaxElement, BaseSyntaxElement, HasDiagnosticCapability, HasSymbolInformation, ScopeElement } from './base';
 import { SymbolInformationFactory } from '../../capabilities/symbolInformation';
-import { MissingAttributeDiagnostic, MissingOptionExplicitDiagnostic } from '../../capabilities/diagnostics';
+import { IgnoredAttributeDiagnostic, MissingAttributeDiagnostic, MissingOptionExplicitDiagnostic } from '../../capabilities/diagnostics';
 import '../../extensions/stringExtensions';
 
 
@@ -136,6 +136,21 @@ export class ClassElement extends BaseModuleElement {
 
 		return false;
 	}
+}
+
+export class IgnoredAttributeElement extends BaseContextSyntaxElement implements HasDiagnosticCapability {
+	diagnostics: Diagnostic[] = [];
+
+	constructor(context: IgnoredAttrContext, document: TextDocument) {
+		super(context, document);
+	}
+
+	evaluateDiagnostics(): void {
+		this.diagnostics.push(
+			new IgnoredAttributeDiagnostic(this.range)
+		)
+	}
+
 }
 
 

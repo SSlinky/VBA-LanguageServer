@@ -78,7 +78,7 @@ classModule
 proceduralModuleHeader
     : endOfLine* nameAttr?
     ;
-classModuleHeader: (endOfLine+ (classAttr | nameAttr))* WS?;
+classModuleHeader: (endOfLine+ (classAttr | nameAttr | ignoredAttr))* WS?;
 
 // VBA Library Projects are allowed to have GoobalNamespace and creatable as true.
 classAttr
@@ -88,6 +88,10 @@ classAttr
     | ATTRIBUTE WS? VB_PREDECLAREDID WS? EQ WS? booleanLiteralIdentifier
     | ATTRIBUTE WS? VB_EXPOSED WS? EQ WS? booleanLiteralIdentifier
     | ATTRIBUTE WS? VB_CUSTOMIZABLE WS? EQ WS? booleanLiteralIdentifier
+    ;
+
+ignoredAttr
+    : ATTRIBUTE WS? ambiguousIdentifier WS? EQ WS? expression
     ;
 
 nameAttr
@@ -2563,7 +2567,7 @@ STRINGLITERAL
     ;
 
 INTEGERLITERAL
-    : [-]? (DIGIT DIGIT*
+    : MINUS? (DIGIT DIGIT*
     | '&H' [0-9A-F]+
     | '&' [O]? [0-7]+) [%&^]?
     ;
