@@ -1,37 +1,44 @@
-import { CancellationToken, Diagnostic, LSPErrorCodes, PublishDiagnosticsParams, ResponseError, SemanticTokens, SymbolInformation, SymbolKind } from 'vscode-languageserver';
+import { CancellationToken, Diagnostic, PublishDiagnosticsParams, SymbolInformation, SymbolKind } from 'vscode-languageserver';
 import { Workspace } from './workspace';
 import { FoldableElement } from './elements/special';
-import { BaseSyntaxElement, HasAttribute, HasDiagnosticCapability, HasSemanticToken, HasSymbolInformation } from './elements/base';
+import { BaseSyntaxElement, HasDiagnosticCapability, HasSemanticToken, HasSymbolInformation, IdentifiableSyntaxElement, ScopeElement } from './elements/base';
 import { Range, TextDocument } from 'vscode-languageserver-textdocument';
 import { SyntaxParser } from './parser/vbaSyntaxParser';
 import { FoldingRange } from '../capabilities/folding';
 import { SemanticTokensManager } from '../capabilities/semanticTokens';
-import { sleep } from '../utils/helpers';
 
 
 export abstract class BaseProjectDocument {
+	readonly name: string;
 	readonly workspace: Workspace;
 	readonly textDocument: TextDocument;
-	readonly name: string;
 	
+	protected _hasDiagnosticElements: HasDiagnosticCapability[] = [];
 	protected _unhandledNamedElements: [] = [];
 	protected _publicScopeDeclarations: Map<string, any> = new Map();
 	protected _documentScopeDeclarations: Map<string, Map<string, any>> = new Map();
-	protected _hasDiagnosticElements: HasDiagnosticCapability[] = [];
 	
 	protected _diagnostics: Diagnostic[] = [];
-	protected _elementParents: BaseSyntaxElement[] = [];
-	protected _attributeElements: HasAttribute[] = [];
+	protected _elementParents: ScopeElement[] = [];
+	// protected _attributeElements: HasAttribute[] = [];
 	protected _foldableElements: FoldingRange[] = [];
 	protected _symbolInformations: SymbolInformation[] = [];
 	protected _semanticTokens: SemanticTokensManager = new SemanticTokensManager();
 	
-	isBusy = false;
+	protected _isBusy = true;
 	abstract symbolKind: SymbolKind
 
-	get activeAttributeElement() {
-		return this._attributeElements?.at(-1);
+	get Busy() {
+		return this._isBusy;
 	}
+
+	get currentScopeElement() {
+		return this._elementParents.at(-1);
+	}
+
+	// get activeAttributeElement() {
+	// 	return this._attributeElements?.at(-1);
+	// }
 
 	constructor(workspace: Workspace, name: string, document: TextDocument) {
 		this.textDocument = document;
@@ -54,8 +61,10 @@ export abstract class BaseProjectDocument {
 				return new VbaClassDocument(workspace, filename, document, SymbolKind.Class);
 			case 'bas':
 				return new VbaModuleDocument(workspace, filename, document, SymbolKind.Class);
+			case 'frm':
+				return new VbaModuleDocument(workspace, filename, document, SymbolKind.Class);
 			default:
-				throw new Error("Expected *.cls or *.bas but got *." + extension);
+				throw new Error("Expected *.cls, *.bas, or *.frm but got *." + extension);
 		}
 	}
 
@@ -63,20 +72,33 @@ export abstract class BaseProjectDocument {
 		return this._semanticTokens.getSemanticTokens(range);
 	};
 
-	async languageServerSymbolInformationAsync(token: CancellationToken): Promise<SymbolInformation[]> {
-		while (this.isBusy) {
-			await sleep(5);
-			if (token.isCancellationRequested) {
-				return [];
-			}
-		}
+	languageServerFoldingRanges(): FoldingRange[] {
+		return this._foldableElements;
+	}
+
+	languageServerSymbolInformation(): SymbolInformation[] {
 		return this._symbolInformations;
 	}
 
+	languageServerDiagnostics(): PublishDiagnosticsParams {
+		this._hasDiagnosticElements.forEach(e =>
+			e.evaluateDiagnostics()
+		);
+		return {
+			uri: this.textDocument.uri,
+			diagnostics: this._hasDiagnosticElements
+				.map((e) => e.diagnostics).flat(1) };
+	}
+
 	parseAsync = async (token: CancellationToken): Promise<void> => {
-		this.isBusy = true;
+		if (!this._isBusy) {
+			console.log("Parser busy!");
+			console.log(`v${this.textDocument.version}: ${this.textDocument.uri}`);
+			this._isBusy = true;
+		}
 		if (await (new SyntaxParser()).parseAsync(this, token)) {
-			this.isBusy = false;
+			console.log("Parser idle!");
+			this._isBusy = false;
 		}
 		this._hasDiagnosticElements.forEach(element => {
 			element.evaluateDiagnostics;
@@ -94,8 +116,8 @@ export abstract class BaseProjectDocument {
 	}
 
 	registerDiagnosticElement(element: HasDiagnosticCapability) {
-		console.log("Registering diagnostic element");
 		this._hasDiagnosticElements.push(element);
+		return this;
 	}
 
 	/**
@@ -104,10 +126,10 @@ export abstract class BaseProjectDocument {
 	 * @param element the element to register.
 	 * @returns nothing of interest.
 	 */
-	registerAttributeElement = (element: HasAttribute) => {
-		this._attributeElements.push(element);
-		return this;
-	};
+	// registerAttributeElement = (element: HasAttribute) => {
+	// 	this._attributeElements.push(element);
+	// 	return this;
+	// };
 
 	/**
 	 * Pops an element from the attribute elements stack.
@@ -116,16 +138,17 @@ export abstract class BaseProjectDocument {
 	 * @param element the element to register.
 	 * @returns the element at the end of the stack.
 	 */
-	deregisterAttributeElement = () => {
-		return this._attributeElements.pop();
-	};
+	// deregisterAttributeElement = () => {
+	// 	return this._attributeElements.pop();
+	// };
 
 	registerFoldableElement = (element: FoldableElement) => {
 		this._foldableElements.push(new FoldingRange(element));
 		return this;
 	};
 
-	registerNamedElement(element: BaseSyntaxElement) {
+	registerNamedElement(element: IdentifiableSyntaxElement) {
+		this.currentScopeElement?.pushDeclaredName(element);
 		return this;
 	}
 
@@ -136,7 +159,7 @@ export abstract class BaseProjectDocument {
 	 * @param element the element to register.
 	 * @returns this for chaining.
 	 */
-	registerScopedElement(element: BaseSyntaxElement) {
+	registerScopedElement(element: ScopeElement) {
 		this._elementParents.push(element);
 		return this;
 	}
@@ -155,42 +178,22 @@ export abstract class BaseProjectDocument {
 	/**
 	 * Registers a semantic token element for tracking with the SemanticTokenManager.
 	 * @param element element The element that has a semantic token.
-	 * @returns void.
+	 * @returns this for chaining.
 	 */
-	registerSemanticToken = (element: HasSemanticToken): void => {
+	registerSemanticToken = (element: HasSemanticToken) => {
 		this._semanticTokens.add(element);
+		return this;
 	};
 
 	/**
 	 * Registers a SymbolInformation.
 	 * @param element The element that has symbol information.
-	 * @returns a number for some reason.
+	 * @returns this for chaining.
 	 */
-	registerSymbolInformation = (element: HasSymbolInformation): number => {
-		return this._symbolInformations.push(element.symbolInformation);
+	registerSymbolInformation = (element: HasSymbolInformation) => {
+		this._symbolInformations.push(element.symbolInformation);
+		return this;
 	};
-
-	/** Get document information */
-	async getFoldingRanges(token: CancellationToken): Promise<FoldingRange[]> {
-		while (this.isBusy) {
-			await sleep(5);
-			if (token.isCancellationRequested) {
-				return [];
-			}
-		}
-		this.workspace.connection.console.info('Processing request for Folding Range');
-		return this._foldableElements;
-	}
-
-	getDiagnostics(): PublishDiagnosticsParams {
-		this._hasDiagnosticElements.forEach(e =>
-			e.evaluateDiagnostics()
-		);
-		return {
-			uri: this.textDocument.uri,
-			diagnostics: this._hasDiagnosticElements
-				.map((e) => e.diagnostics).flat(1) };
-	}
 }
 
 

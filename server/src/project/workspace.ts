@@ -1,8 +1,9 @@
-import { CancellationToken, CancellationTokenSource, CompletionItem, CompletionParams, DidChangeConfigurationNotification, DidChangeConfigurationParams, DidChangeWatchedFilesParams, DocumentSymbolParams, FoldingRange, FoldingRangeParams, Hover, HoverParams, PublishDiagnosticsParams, SemanticTokensParams, SemanticTokensRangeParams, SymbolInformation, TextDocuments, WorkspaceFoldersChangeEvent, _Connection } from 'vscode-languageserver';
+import { CancellationToken, CancellationTokenSource, CompletionItem, CompletionParams, DidChangeConfigurationNotification, DidChangeConfigurationParams, DidChangeWatchedFilesParams, DidOpenTextDocumentParams, DocumentSymbolParams, FoldingRange, FoldingRangeParams, Hover, HoverParams, PublishDiagnosticsParams, SemanticTokensParams, SemanticTokensRangeParams, SymbolInformation, TextDocuments, WorkspaceFoldersChangeEvent, _Connection } from 'vscode-languageserver';
 import { BaseProjectDocument } from './document';
 import { LanguageServerConfiguration } from '../server';
 import { hasConfigurationCapability } from '../capabilities/workspaceFolder';
 import { TextDocument } from 'vscode-languageserver-textdocument';
+import { sleep } from '../utils/helpers';
 
 
 /**
@@ -62,7 +63,7 @@ class WorkspaceEvents {
 	private readonly _configuration: LanguageServerConfiguration;
 	private _parseCancellationToken?: CancellationTokenSource;
 
-	activeDocument?: BaseProjectDocument;
+	private _activeDocument?: BaseProjectDocument;
 
 	constructor(params: {connection: _Connection, workspace: Workspace, configuration: LanguageServerConfiguration}) {
 		this._connection = params.connection;
@@ -74,8 +75,41 @@ class WorkspaceEvents {
 		this._documents.listen(params.connection);
 	}
 
+	/**
+	 * 
+	 * @param version the target document version (zero for any version).
+	 * @param token the cancellation token.
+	 * @returns the document when it is ready or undefined.
+	 */
+	private async activeParsedDocument(version: number, token: CancellationToken): Promise<BaseProjectDocument|undefined> {
+		let document: BaseProjectDocument | undefined;
+		document = this._activeDocument;
+		
+		// Sleep between attempting to grab the document.
+		// Loop while we have undefined or an earlier version.
+		while (!document || document.textDocument.version < version) {
+			if (token.isCancellationRequested) {
+				return;
+			}
+			await sleep(5);
+			document = this._activeDocument;
+		}
+
+		// Return if the version somehow outpaced us.
+		if (version > 0 && document.textDocument.version != version) {
+			return;
+		}
+
+		// Return the parsed document.
+		while (document.Busy) {
+			await sleep(5);
+		}
+		return document;
+	}
+
 	private initialiseConnectionEvents(connection: _Connection) {
 		connection.onInitialized(() => this._onInitialized());
+		connection.onDidOpenTextDocument(params => this._onDidOpenTextDocument(params));
 		connection.onCompletion(params => this._onCompletion(params));
 		connection.onCompletionResolve(item => this._onCompletionResolve(item));
 		connection.onDidChangeConfiguration(params => this._onDidChangeConfiguration(params));
@@ -90,11 +124,11 @@ class WorkspaceEvents {
 		connection.onRequest((method: string, params: object | object[] | any) => {
 			switch (method) {
 				case 'textDocument/semanticTokens/full': {
-					return this.activeDocument?.languageServerSemanticTokens();
+					return this._activeDocument?.languageServerSemanticTokens();
 				}
 				case 'textDocument/semanticTokens/range': {
 					const rangeParams = params as SemanticTokensRangeParams;
-					return this.activeDocument?.languageServerSemanticTokens(rangeParams.range);
+					return this._activeDocument?.languageServerSemanticTokens(rangeParams.range);
 				}
 				default:
 					console.error(`Unresolved request path: ${method}`);
@@ -103,7 +137,7 @@ class WorkspaceEvents {
 	}
 
 	private _sendDiagnostics() {
-		this._connection.sendDiagnostics(this.activeDocument?.getDiagnostics() ?? {uri: "", diagnostics: []});
+		this._connection.sendDiagnostics(this._activeDocument?.languageServerDiagnostics() ?? {uri: "", diagnostics: []});
 	}
 
 	private _initialiseDocumentsEvents() {
@@ -121,7 +155,7 @@ class WorkspaceEvents {
 	}
 
 	private _onDidChangeConfiguration(params: DidChangeConfigurationParams): void {
-		console.log(`onDidChangeConfiguration: ${params}`);
+		console.log(`onDidChangeConfiguration: ${params.settings}`);
 	}
 
 	private _onDidChangeWatchedFiles(params: DidChangeWatchedFilesParams) {
@@ -134,11 +168,16 @@ class WorkspaceEvents {
 	}
 
 	private async _onDocumentSymbolAsync(params: DocumentSymbolParams, token: CancellationToken): Promise<SymbolInformation[]> {
-		return await this.activeDocument?.languageServerSymbolInformationAsync(token) ?? [];
+		const document = await this.activeParsedDocument(0, token);
+		return document?.languageServerSymbolInformation() ?? [];
 	}
 
 	private async _onFoldingRanges(params: FoldingRangeParams, token: CancellationToken): Promise<FoldingRange[]> {
-		return await this._workspace.activeDocument?.getFoldingRanges(token) ?? [];
+		// VSCode is an eager beaver and sends the folding range request before onDidChange or onDidOpen.
+		await sleep(200);
+		const document = await this.activeParsedDocument(0, token);
+		const result = document?.languageServerFoldingRanges();
+		return result ?? [];
 	}
 
 	private _onHover(params: HoverParams): Hover {
@@ -164,15 +203,28 @@ class WorkspaceEvents {
 	 * This event handler is called whenever a `TextDocuments<TextDocument>` is changed.
 	 * @param doc The document that changed.
 	 */
-	async onDidChangeContentAsync(doc: TextDocument) {
+	async _onDidOpenTextDocument(params: DidOpenTextDocumentParams) {
+		await this._handleChangeOrOpenAsync(TextDocument.create(
+			params.textDocument.uri,
+			params.textDocument.languageId,
+			params.textDocument.version,
+			params.textDocument.text
+		));
+	}
+
+	async onDidChangeContentAsync(document: TextDocument) {
+		await this._handleChangeOrOpenAsync(document);
 		// this._parseCancellationToken?.cancel();
 		// this._parseCancellationToken?.dispose();
+	}
 
-		this.activeDocument = BaseProjectDocument.create(this._workspace, doc);
+	protected async _handleChangeOrOpenAsync(document: TextDocument) {
+		this._activeDocument = BaseProjectDocument.create(this._workspace, document);
 		this._parseCancellationToken = new CancellationTokenSource();
-		await this.activeDocument.parseAsync(this._parseCancellationToken.token);
+		await this._activeDocument.parseAsync(this._parseCancellationToken.token);
 		this._sendDiagnostics();
 		this._parseCancellationToken = undefined;
-		this._workspace.activateDocument(this.activeDocument);
+		this._workspace.activateDocument(this._activeDocument);
 	}
 }
+

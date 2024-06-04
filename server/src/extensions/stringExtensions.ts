@@ -1,9 +1,5 @@
-import '.';
-
-declare global {
-	export interface String {
-		stripQuotes(): string;
-	}
+interface String {
+	stripQuotes(): string;
 }
 
 String.prototype.stripQuotes = function (): string {

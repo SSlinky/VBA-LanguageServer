@@ -1,5 +1,4 @@
 import { Range, SymbolKind } from 'vscode-languageserver';
-import { BaseTypeContext, ComplexTypeContext } from '../antlr/out/vbaParser';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 // import { ParserRuleContext } from 'antlr4ts';
 
@@ -21,44 +20,44 @@ import { TextDocument } from 'vscode-languageserver-textdocument';
 // };
 
 
-declare module '../antlr/out/vbaParser' {
-	export interface BaseTypeContext {
-		toSymbolKind(): SymbolKind;
-	}
+// declare module '../antlr/out/vbaParser' {
+// 	export interface BaseTypeContext {
+// 		toSymbolKind(): SymbolKind;
+// 	}
 
-   export interface ComplexTypeContext {
-		toSymbolKind(): SymbolKind;
-	}
-}
+//    export interface ComplexTypeContext {
+// 		toSymbolKind(): SymbolKind;
+// 	}
+// }
 
-BaseTypeContext.prototype.toSymbolKind = function (): SymbolKind {
-   return toSymbolKind(this);
-};
+// BaseTypeContext.prototype.toSymbolKind = function (): SymbolKind {
+//    return toSymbolKind(this);
+// };
 
-ComplexTypeContext.prototype.toSymbolKind = function (): SymbolKind {
-   return toSymbolKind(this);
-};
+// ComplexTypeContext.prototype.toSymbolKind = function (): SymbolKind {
+//    return toSymbolKind(this);
+// };
 
-function toSymbolKind(context: BaseTypeContext | ComplexTypeContext): SymbolKind {
-	switch (context.text.toLocaleLowerCase()) {
-		case 'boolean':
-			return SymbolKind.Boolean;
-		case 'byte':
-		case 'string':
-			return SymbolKind.String;
-		case 'double':
-		case 'currency':
-      case 'integer':
-		case 'long':
-		case 'longPtr':
-		case 'longLong':
-			return SymbolKind.Number;
-		case 'object':
-			return SymbolKind.Object;
-		default:
-			return SymbolKind.Class;
-	}
-}
+// function toSymbolKind(context: BaseTypeContext | ComplexTypeContext): SymbolKind {
+// 	switch (context.text.toLocaleLowerCase()) {
+// 		case 'boolean':
+// 			return SymbolKind.Boolean;
+// 		case 'byte':
+// 		case 'string':
+// 			return SymbolKind.String;
+// 		case 'double':
+// 		case 'currency':
+//       case 'integer':
+// 		case 'long':
+// 		case 'longPtr':
+// 		case 'longLong':
+// 			return SymbolKind.Number;
+// 		case 'object':
+// 			return SymbolKind.Object;
+// 		default:
+// 			return SymbolKind.Class;
+// 	}
+// }
 
 /**
  *  const File: 1;
