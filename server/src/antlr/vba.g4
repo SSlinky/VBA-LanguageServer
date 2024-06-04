@@ -441,10 +441,21 @@ arrayDesignator: '(' wsc? ')';
 // 5.3.1.5 Parameter Lists
 procedureParameters: '(' wsc? parameterList? wsc? ')';
 propertyParameters: '(' wsc? (parameterList wsc? ',' wsc?)? valueParam wsc? ')';
-parameterList
+validParameterList
     : (positionalParameters wsc? ',' wsc? optionalParameters)
     | (positionalParameters  (wsc? ',' wsc? paramArray)?)
     | optionalParameters
+    | paramArray
+    ;
+invalidParameterList
+    : anyParam (wsc? ',' wsc? anyParam)*
+    ;
+
+parameterList: (validParameterList | invalidParameterList);
+
+anyParam
+    : positionalParam
+    | optionalParam
     | paramArray
     ;
   
