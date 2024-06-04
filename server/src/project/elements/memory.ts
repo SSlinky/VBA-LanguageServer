@@ -207,26 +207,46 @@ class EnumMemberDeclarationElement extends BaseEnumDeclarationElement {
 	}
 }
 
-// abstract class BaseVariableDeclarationStatementElement extends BaseContextSyntaxElement {
-// 	abstract declarations: VariableDeclarationElement[];
+abstract class BaseVariableDeclarationStatementElement extends BaseContextSyntaxElement implements HasSemanticToken, HasSymbolInformation, NamedSyntaxElement {
+	tokenType: SemanticTokenTypes;
+	tokenModifiers: SemanticTokenModifiers[] = [];
+	readonly symbolKind: SymbolKind;
+	
+	abstract identifier: IdentifierElement;
 
-// 	constructor(context: ConstStmtContext | VariableStmtContext, document: TextDocument) {
-// 		super(context, document);
-// 	}
-// }
+	get name(): string {
+		return this.identifier.text;
+	}
 
-// export class ConstDeclarationsElement extends BaseVariableDeclarationStatementElement {
-// 	declarations: VariableDeclarationElement[] = [];
+	get symbolInformation(): SymbolInformation {
+		return SymbolInformation.create(
+			this.identifier.text,
+			this.symbolKind,
+			this.range,
+			this.document.uri
+		);
+	}
 
-// 	constructor(context: ConstStmtContext, document: TextDocument) {
-// 		super(context, document);
-// 		context.constSubStmt().forEach((element) =>
-// 			this.declarations.push(new VariableDeclarationElement(
-// 				element, document
-// 			))
-// 		);
-// 	}
-// }
+	constructor(context: VariableDclContext | ConstItemContext | UdtElementContext, document: TextDocument, tokenType: SemanticTokenTypes, symbolKind: SymbolKind) {
+		super(context, document);
+		this.tokenType = tokenType;
+		this.symbolKind = symbolKind;
+	}
+}
+
+export class ConstDeclarationElement extends BaseVariableDeclarationStatementElement {
+	tokenModifiers: SemanticTokenModifiers[] = [];
+	identifier: IdentifierElement;
+	
+	get name(): string {
+		return this.identifier.text;
+	}
+
+	constructor(context: ConstItemContext, document: TextDocument) {
+		super(context, document, SemanticTokenTypes.variable, SymbolKind.Constant);
+		this.identifier = new IdentifierElement(context, document);
+	}
+}
 
 export class TypeDeclarationElement  extends ScopeElement implements HasSemanticToken, HasSymbolInformation, NamedSyntaxElement {
 	tokenType: SemanticTokenTypes;

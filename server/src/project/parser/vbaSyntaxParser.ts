@@ -121,6 +121,12 @@ class VbaListener extends vbaListener {
         this.document.deregisterScopedElement();
     };
 
+    enterConstItem = (ctx: ConstItemContext) => {
+        const element = new ConstDeclarationElement(ctx, this.document.textDocument);
+        this.document.registerSemanticToken(element)
+            .registerSymbolInformation(element);
+    };
+
     enterIgnoredAttr = (ctx: IgnoredAttrContext) => {
         const element = new IgnoredAttributeElement(ctx, this.document.textDocument);
         this.document.registerDiagnosticElement(element);

@@ -34,7 +34,7 @@ export interface IdentifiableSyntaxElement extends NamedSyntaxElement {
 }
 
 export interface HasSymbolInformation extends NamedSyntaxElement {
-	symbolInformation: SymbolInformation;
+	get symbolInformation(): SymbolInformation;
 }
 
 export interface HasSemanticToken extends NamedSyntaxElement, IdentifiableSyntaxElement {
