@@ -155,9 +155,9 @@ class VbaListener extends vbaListener {
         this.document.registerDiagnosticElement(element);
     };
 
-	// visitErrorNode(node: ErrorNode) {
-    //     console.log(node.payload);
-    // }
+	visitErrorNode(node: ErrorNode) {
+        console.log(node.getPayload());
+    }
 
     // enterAttributeStmt = (ctx: AttributeStmtContext) => {
     //     this.document.activeAttributeElement?.processAttribute(ctx);
