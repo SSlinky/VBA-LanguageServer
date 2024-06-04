@@ -147,11 +147,11 @@ class VbaListener extends vbaListener {
         const element = DeclarationElement.create(ctx, this.document);
         this.document.registerSymbolInformation(element)
             .registerFoldableElement(element)
-            .registerNamedElement(element)
             .registerScopedElement(element);
 
         if (element.isPropertyElement() && element.countDeclarations === 1) {
-            this.document.registerDiagnosticElement(element);
+            this.document.registerDiagnosticElement(element)
+                .registerNamedElement(element);
         }
     };
 
