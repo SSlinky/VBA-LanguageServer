@@ -144,12 +144,15 @@ class VbaListener extends vbaListener {
     };
 
     enterProcedureDeclaration = (ctx: ProcedureDeclarationContext) => {
-        // TODO: figure out how to handle scope for properties.
         const element = DeclarationElement.create(ctx, this.document);
         this.document.registerSymbolInformation(element)
             .registerFoldableElement(element)
             .registerNamedElement(element)
             .registerScopedElement(element);
+
+        if (element.isPropertyElement() && element.countDeclarations === 1) {
+            this.document.registerDiagnosticElement(element);
+        }
     };
 
     exitProcedureDeclaration = (ctx: ProcedureDeclarationContext) => {

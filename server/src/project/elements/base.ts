@@ -2,7 +2,7 @@ import { ParserRuleContext } from 'antlr4ng';
 import { Diagnostic, Range, SemanticTokenModifiers, SemanticTokenTypes, SymbolInformation, SymbolKind } from 'vscode-languageserver';
 import { Position, TextDocument } from 'vscode-languageserver-textdocument';
 import { FoldingRangeKind } from '../../capabilities/folding';
-import { IdentifierElement } from './memory';
+import { IdentifierElement, PropertyDeclarationElement } from './memory';
 import '../../extensions/parserExtensions';
 
 export interface ContextOptionalSyntaxElement {
@@ -31,6 +31,7 @@ export interface NamedSyntaxElement extends SyntaxElement {
 
 export interface IdentifiableSyntaxElement extends NamedSyntaxElement {
 	identifier: IdentifierElement;
+	isPropertyElement(): this is PropertyDeclarationElement
 }
 
 export interface HasSymbolInformation extends NamedSyntaxElement {
@@ -55,6 +56,7 @@ export interface FoldingRangeElement {
 
 export interface ScopeElement {
 	declaredNames: Map<string, IdentifiableSyntaxElement[]>;
+	pushDeclaredName(element: IdentifiableSyntaxElement): void
 }
 
 export abstract class BaseSyntaxElement implements ContextOptionalSyntaxElement {

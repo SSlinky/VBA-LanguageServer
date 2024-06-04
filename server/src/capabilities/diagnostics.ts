@@ -60,6 +60,14 @@ export class DuplicateAttributeDiagnostic extends BaseDiagnostic {
 	}
 }
 
+export class DuplicateDeclarationDiagnostic extends BaseDiagnostic {
+	message = "Duplicate declaration in current scope";
+	severity = DiagnosticSeverity.Error;
+	constructor(range: Range) {
+		super(range);
+	}
+}
+
 export class IgnoredAttributeDiagnostic extends BaseDiagnostic {
 	message = "This attribute will be ignored.";
 	severity = DiagnosticSeverity.Information;

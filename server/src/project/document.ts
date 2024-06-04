@@ -1,7 +1,7 @@
 import { CancellationToken, Diagnostic, PublishDiagnosticsParams, SymbolInformation, SymbolKind } from 'vscode-languageserver';
 import { Workspace } from './workspace';
 import { FoldableElement } from './elements/special';
-import { BaseSyntaxElement, HasDiagnosticCapability, HasSemanticToken, HasSymbolInformation, ScopeElement } from './elements/base';
+import { BaseSyntaxElement, HasDiagnosticCapability, HasSemanticToken, HasSymbolInformation, IdentifiableSyntaxElement, ScopeElement } from './elements/base';
 import { Range, TextDocument } from 'vscode-languageserver-textdocument';
 import { SyntaxParser } from './parser/vbaSyntaxParser';
 import { FoldingRange } from '../capabilities/folding';
@@ -147,7 +147,8 @@ export abstract class BaseProjectDocument {
 		return this;
 	};
 
-	registerNamedElement(element: BaseSyntaxElement) {
+	registerNamedElement(element: IdentifiableSyntaxElement) {
+		this.currentScopeElement?.pushDeclaredName(element);
 		return this;
 	}
 

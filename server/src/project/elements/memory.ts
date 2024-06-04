@@ -1,13 +1,14 @@
 import { TextDocument } from 'vscode-languageserver-textdocument';
-import { SemanticTokenModifiers, SemanticTokenTypes, SymbolInformation, SymbolKind } from 'vscode-languageserver';
+import { Diagnostic, SemanticTokenModifiers, SemanticTokenTypes, SymbolInformation, SymbolKind } from 'vscode-languageserver';
 import { AmbiguousIdentifierContext, ConstItemContext, EnumDeclarationContext, EnumMemberContext, FunctionDeclarationContext, ProcedureDeclarationContext, PropertyGetDeclarationContext, PropertySetDeclarationContext, ReservedMemberNameContext, SubroutineDeclarationContext, UdtDeclarationContext, UdtElementContext, UntypedNameContext, VariableDclContext } from '../../antlr/out/vbaParser';
 
-import { BaseContextSyntaxElement, HasSemanticToken, HasSymbolInformation, IdentifiableSyntaxElement, NamedSyntaxElement } from './base';
+import { BaseContextSyntaxElement, HasDiagnosticCapability, HasSemanticToken, HasSymbolInformation, IdentifiableSyntaxElement, NamedSyntaxElement } from './base';
 
 import { ScopeElement } from './special';
-import { VbaClassDocument, VbaModuleDocument } from '../document';
+import { BaseProjectDocument, VbaClassDocument, VbaModuleDocument } from '../document';
 import { SymbolInformationFactory } from '../../capabilities/symbolInformation';
 import '../../extensions/parserExtensions';
+import { DuplicateDeclarationDiagnostic } from '../../capabilities/diagnostics';
 
 
 
@@ -17,44 +18,59 @@ export class IdentifierElement extends BaseContextSyntaxElement {
 	}
 }
 
-export abstract class DeclarationElement extends ScopeElement {
+export abstract class DeclarationElement extends ScopeElement implements HasDiagnosticCapability {
+	abstract diagnostics: Diagnostic[];
 	abstract identifier: IdentifierElement;
 
 	constructor(context: ProcedureDeclarationContext, document: TextDocument) {
 		super(context, document);
 	}
+
+	evaluateDiagnostics(): void {
+		return;
+	}
+
 	get name(): string {
 		throw new Error('Method not implemented.');
 	}
 
 	static create(context: ProcedureDeclarationContext, document: VbaClassDocument | VbaModuleDocument) {
 		let methodContext: SubroutineDeclarationContext | FunctionDeclarationContext | PropertyGetDeclarationContext | null;
+
+		// Create a sub if we have one.
 		methodContext = context.subroutineDeclaration();
 		if (methodContext) {
 			return new SubDeclarationElement(context, document.textDocument, methodContext);
 		}
 
+		// Create a function if we have one.
 		methodContext = context.functionDeclaration();
 		if (methodContext) {
 			return new FunctionDeclarationElement(context, document.textDocument, methodContext);
 		}
 
+		// Check if we already have a property with this name.
 		const propertyDeclaration = new PropertyDeclarationElement(context, document.textDocument);
-		const predeclaredElements = document.currentScopeElement?.declaredNames.get(propertyDeclaration.identifier.text);
-		predeclaredElements?.forEach(predeclaredElement => {
-			if (predeclaredElement && isPropertyDeclarationElement(predeclaredElement)) {
-				predeclaredElement.addPropertyDeclaration(context, document.textDocument);
-				return predeclaredElement;
+		const identifierText = propertyDeclaration.identifier.text;
+		const predeclaredElements = document.currentScopeElement?.declaredNames.get(identifierText) ?? [];
+
+		// Add to an existing property rather than creating.
+		for (const element of predeclaredElements) {
+			if (element.isPropertyElement() && element.identifier.text === identifierText) {
+				element.addPropertyDeclaration(context, document.textDocument);
+				return element;
 			}
-		});
+		}
+
+		// Return a new property.
 		return propertyDeclaration;
 	}
-
 }
 
 export class SubDeclarationElement extends DeclarationElement implements HasSymbolInformation {
 	identifier: IdentifierElement;
 	symbolInformation: SymbolInformation;
+	diagnostics: Diagnostic[] = [];
 
 	constructor(context: ProcedureDeclarationContext, document: TextDocument, methodContext: SubroutineDeclarationContext) {
 		super(context, document);
@@ -73,6 +89,7 @@ export class SubDeclarationElement extends DeclarationElement implements HasSymb
 export class FunctionDeclarationElement extends DeclarationElement implements HasSymbolInformation {
 	identifier: IdentifierElement;
 	symbolInformation: SymbolInformation;
+	diagnostics: Diagnostic[] = [];
 
 	constructor(context: ProcedureDeclarationContext, document: TextDocument, methodContext: FunctionDeclarationContext) {
 		super(context, document);
@@ -89,10 +106,17 @@ export class FunctionDeclarationElement extends DeclarationElement implements Ha
 
 export class PropertyDeclarationElement extends DeclarationElement implements HasSymbolInformation {
 	identifier: IdentifierElement;
+	diagnostics: Diagnostic[] = [];
 	symbolInformation: SymbolInformation;
 	getDeclarations: PropertyGetDeclarationElement[] = [];
 	letDeclarations: PropertyLetDeclarationElement[] = [];
 	setDeclarations: PropertyLetDeclarationElement[] = [];
+
+	get countDeclarations(): number {
+		return this.getDeclarations.length
+			+ this.letDeclarations.length
+			+ this.setDeclarations.length;
+	}
 
 	constructor(context: ProcedureDeclarationContext, document: TextDocument) {
 		super(context, document);
@@ -103,6 +127,10 @@ export class PropertyDeclarationElement extends DeclarationElement implements Ha
 			this.range,
 			this.document.uri
 		);
+	}
+
+	evaluateDiagnostics(): void {
+		this._evaluateDuplicateDeclarationsDiagnostics();
 	}
 
 	addPropertyDeclaration(context: ProcedureDeclarationContext, document: TextDocument) {
@@ -121,10 +149,19 @@ export class PropertyDeclarationElement extends DeclarationElement implements Ha
 				return this.setDeclarations[0].identifier;
 		}
 	}
+
+	private _evaluateDuplicateDeclarationsDiagnostics(): void {
+		[this.getDeclarations, this.letDeclarations, this.setDeclarations].forEach(declarations => {
+			declarations.forEach((declaration, i) => {
+				if (i > 0) this.diagnostics.push(new DuplicateDeclarationDiagnostic(declaration.identifier.range));
+			});
+		});
+	}
 }
 
 class PropertyGetDeclarationElement extends DeclarationElement {
 	identifier: IdentifierElement;
+	diagnostics: Diagnostic[] = [];
 
 	constructor(context: ProcedureDeclarationContext, document: TextDocument, getContext: PropertyGetDeclarationContext) {
 		super(context, document);
@@ -134,6 +171,7 @@ class PropertyGetDeclarationElement extends DeclarationElement {
 
 class PropertyLetDeclarationElement extends DeclarationElement {
 	identifier: IdentifierElement;
+	diagnostics: Diagnostic[] = [];
 
 	constructor(context: ProcedureDeclarationContext, document: TextDocument, setContext: PropertySetDeclarationContext) {
 		super(context, document);
@@ -143,15 +181,12 @@ class PropertyLetDeclarationElement extends DeclarationElement {
 
 class PropertySetDeclarationElement extends DeclarationElement {
 	identifier: IdentifierElement;
+	diagnostics: Diagnostic[] = [];
 
 	constructor(context: ProcedureDeclarationContext, document: TextDocument, setContext: PropertySetDeclarationContext) {
 		super(context, document);
 		this.identifier = new IdentifierElement(setContext.subroutineName()!.ambiguousIdentifier()!, document);
 	}
-}
-
-function isPropertyDeclarationElement(element: IdentifiableSyntaxElement): element is PropertyDeclarationElement {
-	return 'getDeclarations' in element;
 }
 
 abstract class BaseEnumDeclarationElement extends ScopeElement implements HasSemanticToken, HasSymbolInformation {
@@ -181,7 +216,7 @@ export class EnumDeclarationElement extends BaseEnumDeclarationElement implement
 		this.tokenType = SemanticTokenTypes.enum;
 		this.identifier = new IdentifierElement(context.untypedName().ambiguousIdentifier()!, document);
 		context.enumMemberList().enumElement().forEach(enumElementContext =>
-			this._pushDeclaredName(new EnumMemberDeclarationElement(enumElementContext.enumMember()!, document))
+			this.pushDeclaredName(new EnumMemberDeclarationElement(enumElementContext.enumMember()!, document))
 		);
 	}
 
@@ -228,6 +263,10 @@ abstract class BaseVariableDeclarationStatementElement extends BaseContextSyntax
 		);
 	}
 
+	isPropertyElement(): this is PropertyDeclarationElement {
+		return false;
+	}
+
 	constructor(context: VariableDclContext | ConstItemContext | UdtElementContext, document: TextDocument, tokenType: SemanticTokenTypes, symbolKind: SymbolKind) {
 		super(context, document);
 		this.tokenType = tokenType;
@@ -262,7 +301,7 @@ export class TypeDeclarationElement  extends ScopeElement implements HasSemantic
 		this.tokenType = SemanticTokenTypes.struct;
 		this.identifier = new IdentifierElement(context.untypedName(), document);
 		context.udtMemberList().udtElement().forEach(member =>
-			this._pushDeclaredName(new TypeMemberDeclarationElement(member, document))
+			this.pushDeclaredName(new TypeMemberDeclarationElement(member, document))
 		);
 	}
 
