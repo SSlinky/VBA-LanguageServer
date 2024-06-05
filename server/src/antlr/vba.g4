@@ -101,8 +101,8 @@ nameAttr
 //---------------------------------------------------------------------------------------
 // 5.1 Module Body Structure
 // Everything from here down is user generated code.
-proceduralModuleBody: proceduralModuleDeclarationSection? endOfLine* proceduralModuleCode;
-classModuleBody: classModuleDeclarationSection? classModuleCode;
+proceduralModuleBody: proceduralModuleCode;
+classModuleBody: classModuleCode;
 unrestrictedName
     : reservedIdentifier
     | name
@@ -121,17 +121,16 @@ untypedName
 
 //---------------------------------------------------------------------------------------
 // 5.2 Module Declaration Section Structure
-proceduralModuleDeclarationSection
-    : (endOfLine+ proceduralModuleDeclarationElement)+
-    | ((endOfLine+ proceduralModuleDirectiveElement)* endOfLine+ defDirective) (proceduralModuleDeclarationElement endOfLineNoWs)*
-    ;
-classModuleDeclarationSection
-    : (classModuleDeclarationElement endOfLine+)+
-    | ((classModuleDirectiveElement endOfLine+)* defDirective) (classModuleDeclarationElement endOfLine+)*
-    ;
+// proceduralModuleDeclarationSection
+//     : (endOfLine+ proceduralModuleDeclarationElement)+
+//     | ((endOfLine+ proceduralModuleDirectiveElement)* endOfLine+ defDirective) (proceduralModuleDeclarationElement endOfLineNoWs)*
+//     ;
+// classModuleDeclarationSection
+//     : (classModuleDeclarationElement endOfLine+)+
+//     | ((classModuleDirectiveElement endOfLine+)* defDirective) (classModuleDeclarationElement endOfLine+)*
+//     ;
 proceduralModuleDirectiveElement
-    : commonOptionDirective
-    | optionPrivateDirective
+    : optionPrivateDirective
     | defDirective
     ;
 proceduralModuleDeclarationElement
@@ -140,18 +139,15 @@ proceduralModuleDeclarationElement
     | publicConstDeclaration
     | publicExternalProcedureDeclaration
     | globalEnumDeclaration
-    | commonOptionDirective
     | optionPrivateDirective
     ;
 classModuleDirectiveElement
-    : commonOptionDirective
-    | defDirective
+    : defDirective
     | implementsDirective
     ;
 classModuleDeclarationElement
     : commonModuleDeclarationElement
     | eventDeclaration
-    | commonOptionDirective
     | implementsDirective
     ;
 
@@ -360,8 +356,13 @@ classModuleCodeElement
 // Added AttributeStatement.
 commonModuleCodeElement
     : remStatement
-    | procedureDeclaration
     | attributeStatement
+    | procedureDeclaration
+    | commonOptionDirective
+    | proceduralModuleDirectiveElement
+    | proceduralModuleDeclarationElement
+    | classModuleDirectiveElement
+    | classModuleDeclarationElement
     ;
 procedureDeclaration
     : subroutineDeclaration
