@@ -8,7 +8,7 @@ import { ScopeElement } from './special';
 import { VbaClassDocument, VbaModuleDocument } from '../document';
 import { SymbolInformationFactory } from '../../capabilities/symbolInformation';
 import '../../extensions/parserExtensions';
-import { DuplicateDeclarationDiagnostic } from '../../capabilities/diagnostics';
+import { DuplicateDeclarationDiagnostic, ElementOutOfPlaceDiagnostic } from '../../capabilities/diagnostics';
 
 
 
@@ -215,38 +215,48 @@ abstract class BaseEnumDeclarationElement extends ScopeElement implements HasSem
 
 }
 
-export class EnumDeclarationElement extends BaseEnumDeclarationElement implements ScopeElement {
+export class EnumDeclarationElement extends BaseEnumDeclarationElement implements ScopeElement, HasDiagnosticCapability {
+	diagnostics: Diagnostic[] = [];
 	tokenType: SemanticTokenTypes;
-
-	constructor(context: EnumDeclarationContext, document: TextDocument) {
-		super(context, document);
-		this.tokenType = SemanticTokenTypes.enum;
-		this.identifier = new IdentifierElement(context.untypedName().ambiguousIdentifier()!, document);
-		context.enumMemberList().enumElement().forEach(enumElementContext =>
-			this.pushDeclaredName(new EnumMemberDeclarationElement(enumElementContext.enumMember()!, document))
-		);
-	}
+	isDeclaredAfterMethod: boolean;
 
 	get symbolInformation(): SymbolInformation {
 		return SymbolInformationFactory.create(
 			this, SymbolKind.Enum
 		);
 	}
+
+	constructor(context: EnumDeclarationContext, document: TextDocument, isDeclaredAfterMethod: boolean) {
+		super(context, document);
+		this.tokenType = SemanticTokenTypes.enum;
+		this.isDeclaredAfterMethod = isDeclaredAfterMethod;
+		this.identifier = new IdentifierElement(context.untypedName().ambiguousIdentifier()!, document);
+		context.enumMemberList().enumElement().forEach(enumElementContext =>
+			this.pushDeclaredName(new EnumMemberDeclarationElement(enumElementContext.enumMember()!, document))
+		);
+	}
+
+	evaluateDiagnostics(): void {
+		if (this.isDeclaredAfterMethod) {
+			this.diagnostics.push(new ElementOutOfPlaceDiagnostic(this.range, 'Enum declaration'));
+		}
+	}
+
 }
 
 class EnumMemberDeclarationElement extends BaseEnumDeclarationElement {
 	tokenType: SemanticTokenTypes;
 
-	constructor(context: EnumMemberContext, document: TextDocument) {
-		super(context, document);
-		this.tokenType = SemanticTokenTypes.enumMember;
-		this.identifier = new IdentifierElement(context.untypedName().ambiguousIdentifier()!, document);
-	}
-
 	get symbolInformation(): SymbolInformation {
 		return SymbolInformationFactory.create(
 			this, SymbolKind.EnumMember
 		);
+	}
+
+	constructor(context: EnumMemberContext, document: TextDocument) {
+		super(context, document);
+		this.tokenType = SemanticTokenTypes.enumMember;
+		this.identifier = new IdentifierElement(context.untypedName().ambiguousIdentifier()!, document);
 	}
 }
 

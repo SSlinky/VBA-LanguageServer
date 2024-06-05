@@ -12,9 +12,11 @@ abstract class BaseModuleElement extends ScopeElement implements HasSymbolInform
 	protected abstract _name: string;
 	symbolKind: SymbolKind;
 	diagnostics: Diagnostic[] = [];
+	context: ProceduralModuleContext | ClassModuleContext;
 
 	constructor(context: ProceduralModuleContext | ClassModuleContext, document: TextDocument, symbolKind: SymbolKind) {
 		super(context, document);
+		this.context = context;
 		this.symbolKind = symbolKind;
 	}
 
@@ -29,6 +31,32 @@ abstract class BaseModuleElement extends ScopeElement implements HasSymbolInform
 	}
 
 	abstract evaluateDiagnostics(): void;
+
+	protected get _hasOptionExplicit(): boolean {
+		const getCodeElements = () => {
+			if (this._isClassModule(this.context)) {
+				return this.context.classModuleBody().classModuleCode().classModuleCodeElement()
+			}
+			return this.context.proceduralModuleBody().proceduralModuleCode().proceduralModuleCodeElement();
+		}
+		const codeElements = getCodeElements()
+		if (!codeElements) {
+			return false;
+		}
+
+		for (const declaration of codeElements) {
+			const element = declaration.commonModuleCodeElement();
+			if (element && element.commonOptionDirective()?.optionExplicitDirective()) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	private _isClassModule(context: ProceduralModuleContext | ClassModuleContext): context is ClassModuleContext {
+		return 'classModuleHeader' in context;
+	} 
 }
 
 export class ModuleElement extends BaseModuleElement {
@@ -42,7 +70,7 @@ export class ModuleElement extends BaseModuleElement {
 	}
 
 	evaluateDiagnostics(): void {
-		if (!this._hasOptionExplicit()) {
+		if (!this._hasOptionExplicit) {
 			const header = this.context.proceduralModuleHeader();
 			const startLine = header.stop?.line ?? 0 + 1;
 			this.diagnostics.push(new MissingOptionExplicitDiagnostic(
@@ -67,21 +95,6 @@ export class ModuleElement extends BaseModuleElement {
 
 		return name?.stripQuotes() ?? 'Unknown Module';
 	}
-
-	private _hasOptionExplicit(): boolean {
-		const moduleDeclarations = this.context.proceduralModuleBody().proceduralModuleDeclarationSection()?.proceduralModuleDeclarationElement();
-		if (!moduleDeclarations) {
-			return false;
-		}
-
-		for (const declaration of moduleDeclarations) {
-			if (declaration.commonOptionDirective()?.optionExplicitDirective()) {
-				return true;
-			}
-		}
-
-		return false;
-	}
 }
 
 export class ClassElement extends BaseModuleElement {
@@ -95,7 +108,7 @@ export class ClassElement extends BaseModuleElement {
 	}
 
 	evaluateDiagnostics(): void {
-		if (!this._hasOptionExplicit()) {
+		if (!this._hasOptionExplicit) {
 			const header = this.context.classModuleHeader();
 			const startLine = header.stop?.line ?? 0 + 1;
 			this.diagnostics.push(new MissingOptionExplicitDiagnostic(
@@ -121,21 +134,6 @@ export class ClassElement extends BaseModuleElement {
 		const nameAttribute = nameAttributes[0];
 		return nameAttribute.STRINGLITERAL().getText().stripQuotes();
 	}
-
-	private _hasOptionExplicit(): boolean {
-		const moduleDeclarations = this.context.classModuleBody().classModuleDeclarationSection()?.classModuleDeclarationElement();
-		if (!moduleDeclarations) {
-			return false;
-		}
-
-		for (const declaration of moduleDeclarations) {
-			if (declaration.commonOptionDirective()?.optionExplicitDirective()) {
-				return true;
-			}
-		}
-
-		return false;
-	}
 }
 
 export class IgnoredAttributeElement extends BaseContextSyntaxElement implements HasDiagnosticCapability {
@@ -148,7 +146,7 @@ export class IgnoredAttributeElement extends BaseContextSyntaxElement implements
 	evaluateDiagnostics(): void {
 		this.diagnostics.push(
 			new IgnoredAttributeDiagnostic(this.range)
-		)
+		);
 	}
 
 }

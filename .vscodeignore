@@ -1,8 +1,11 @@
 # Project
+.bin
 .gitignore
+.github/**
 .eslintignore
 .vscode/**
 .travis.yml
+scripts/**
 **/tsconfig.json
 **/tsconfig.base.json
 contributing.md
@@ -26,6 +29,9 @@ sample*/**
 **/test/**
 **/testFixture/**
 
+# Node modules
+node_modules/antlr4ng-cli/**
+
 # Client node modules
 client/node_modules/**
 !client/node_modules/vscode-jsonrpc/**
@@ -34,3 +40,11 @@ client/node_modules/**
 !client/node_modules/vscode-languageserver-types/**
 !client/node_modules/{minimatch,brace-expansion,concat-map,balanced-match}/**
 !client/node_modules/{semver,lru-cache,yallist}/**
+
+# Server node modules
+server/node_modules/**
+!server/node_modules/vscode-jsonrpc/**
+!server/node_modules/vscode-languageserver/**
+!server/node_modules/vscode-languageserver-protocol/**
+!server/node_modules/vscode-languageserver-textdocument/**
+!server/node_modules/vscode-languageserver-types/**
