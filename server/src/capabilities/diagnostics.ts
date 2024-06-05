@@ -83,3 +83,12 @@ export class MissingOptionExplicitDiagnostic extends BaseDiagnostic {
 		super(range);
 	}
 }
+
+export class ElementOutOfPlaceDiagnostic extends BaseDiagnostic {
+	message: string;
+	severity = DiagnosticSeverity.Error;
+	constructor(range: Range, elementName: string) {
+		super(range);
+		this.message = `${elementName}s cannot appear below a Sub, Function, or Property declaration.`
+	}
+}

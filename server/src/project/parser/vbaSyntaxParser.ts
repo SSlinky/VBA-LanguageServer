@@ -1,7 +1,7 @@
 import { TextDocument } from 'vscode-languageserver-textdocument';
 
 import { vbaLexer } from '../../antlr/out/vbaLexer';
-import {  ClassModuleContext, ConstItemContext, EnumDeclarationContext, IgnoredAttrContext, ProceduralModuleContext, ProceduralModuleDeclarationElementContext, ProcedureDeclarationContext, UdtDeclarationContext, WhileStatementContext, vbaParser } from '../../antlr/out/vbaParser';
+import {  ClassModuleContext, ConstItemContext, EnumDeclarationContext, IgnoredAttrContext, ProceduralModuleContext, ProcedureDeclarationContext, UdtDeclarationContext, WhileStatementContext, vbaParser } from '../../antlr/out/vbaParser';
 import { vbaListener } from '../../antlr/out/vbaListener';
 
 import { VbaClassDocument, VbaModuleDocument } from '../document';
@@ -87,6 +87,7 @@ class VbaParser extends vbaParser {
 
 class VbaListener extends vbaListener {
 	document: VbaClassDocument | VbaModuleDocument;
+    protected _isAfterMethodDeclaration = false;
 
 	constructor(document: VbaClassDocument | VbaModuleDocument) {
         super();
@@ -94,11 +95,12 @@ class VbaListener extends vbaListener {
     }
 
     enterEnumDeclaration = (ctx: EnumDeclarationContext) => {
-        const element = new EnumDeclarationElement(ctx, this.document.textDocument);
+        const element = new EnumDeclarationElement(ctx, this.document.textDocument, this._isAfterMethodDeclaration);
         this.document.registerFoldableElement(element)
             .registerScopedElement(element)
             .registerSemanticToken(element)
-            .registerSymbolInformation(element);
+            .registerSymbolInformation(element)
+            .registerDiagnosticElement(element);
         element.declaredNames.forEach(names =>
             names.forEach(name => this.document
                 .registerSemanticToken(name)
@@ -156,6 +158,7 @@ class VbaListener extends vbaListener {
     };
 
     exitProcedureDeclaration = (ctx: ProcedureDeclarationContext) => {
+        this._isAfterMethodDeclaration = true;
         this.document.deregisterScopedElement();
     };
 
