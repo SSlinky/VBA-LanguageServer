@@ -1,17 +1,23 @@
 import { CancellationToken, Diagnostic, PublishDiagnosticsParams, SymbolInformation, SymbolKind } from 'vscode-languageserver';
 import { Workspace } from './workspace';
 import { FoldableElement } from './elements/special';
-import { BaseSyntaxElement, HasDiagnosticCapability, HasSemanticToken, HasSymbolInformation, IdentifiableSyntaxElement, ScopeElement } from './elements/base';
+import { HasDiagnosticCapability, HasSemanticToken, HasSymbolInformation, IdentifiableSyntaxElement, ScopeElement } from './elements/base';
 import { Range, TextDocument } from 'vscode-languageserver-textdocument';
 import { SyntaxParser } from './parser/vbaSyntaxParser';
 import { FoldingRange } from '../capabilities/folding';
 import { SemanticTokensManager } from '../capabilities/semanticTokens';
 
+export interface DocumentSettings {
+	maxDocumentLines: number;
+	maxNumberOfProblems: number;
+	doWarnOptionExplicitMissing: boolean;
+}
 
 export abstract class BaseProjectDocument {
 	readonly name: string;
 	readonly workspace: Workspace;
 	readonly textDocument: TextDocument;
+	protected _documentConfiguration?: DocumentSettings;
 	
 	protected _hasDiagnosticElements: HasDiagnosticCapability[] = [];
 	protected _unhandledNamedElements: [] = [];
@@ -26,16 +32,53 @@ export abstract class BaseProjectDocument {
 	protected _semanticTokens: SemanticTokensManager = new SemanticTokensManager();
 	
 	protected _isBusy = true;
+	// protected _hasParseResult = false;
 	abstract symbolKind: SymbolKind
 
-	get Busy() {
+	get isBusy() {
 		return this._isBusy;
 	}
+
+	get isOversize() {
+		// Workaround for async getter.
+		return (async () =>
+			this.textDocument.lineCount > (await this.getDocumentConfiguration()).maxDocumentLines
+		)();
+	}
+
+	// get hasParseResult() {
+	// 	return this._hasParseResult;
+	// }
 
 	get currentScopeElement() {
 		return this._elementParents.at(-1);
 	}
 
+	async getDocumentConfiguration(): Promise<DocumentSettings> {
+		// Get the stored configuration.
+		if (this._documentConfiguration) {
+			return this._documentConfiguration;
+		}
+		
+		// Get the configuration from the client.
+		if (this.workspace.hasConfigurationCapability) {
+			this._documentConfiguration = await this.workspace.requestDocumentSettings(this.textDocument.uri);
+			if (this._documentConfiguration) {
+				return this._documentConfiguration;
+			}
+		}
+
+		// Use the defaults.
+		this._documentConfiguration = {
+			maxDocumentLines: 1500,
+			maxNumberOfProblems: 100,
+			doWarnOptionExplicitMissing: true,
+		};
+		return this._documentConfiguration;
+	}
+
+	clearDocumentConfiguration = () => this._documentConfiguration = undefined;
+	
 	// get activeAttributeElement() {
 	// 	return this._attributeElements?.at(-1);
 	// }
@@ -90,20 +133,19 @@ export abstract class BaseProjectDocument {
 				.map((e) => e.diagnostics).flat(1) };
 	}
 
-	parseAsync = async (token: CancellationToken): Promise<void> => {
-		if (!this._isBusy) {
-			console.log("Parser busy!");
-			console.log(`v${this.textDocument.version}: ${this.textDocument.uri}`);
-			this._isBusy = true;
-		}
-		if (await (new SyntaxParser()).parseAsync(this, token)) {
-			console.log("Parser idle!");
+	async parseAsync(token: CancellationToken): Promise<void> {
+		if (await this.isOversize) {
+			console.log(`Document oversize: ${this.textDocument.lineCount} lines.`);
+            console.warn(`Syntax parsing has been disabled to prevent crashing.`);
 			this._isBusy = false;
+			return;
 		}
+		await (new SyntaxParser()).parseAsync(this, token)
 		this._hasDiagnosticElements.forEach(element => {
 			element.evaluateDiagnostics;
 			this._diagnostics.concat(element.diagnostics);
 		});
+		this._isBusy = false;
 	};
 
 	registerNamedElementDeclaration(element: any) {

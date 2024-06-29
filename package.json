@@ -48,13 +48,25 @@
 		},
 		"configuration": {
 			"type": "object",
-			"title": "Default configuration",
+			"title": "VBA Pro",
 			"properties": {
+				"vbaLanguageServer.maxDocumentLines": {
+					"scope": "resource",
+					"type": "number",
+					"default": 1000,
+					"description": "Limits the file size the language server will attempt to parse."
+				},
 				"vbaLanguageServer.maxNumberOfProblems": {
 					"scope": "resource",
 					"type": "number",
 					"default": 100,
 					"description": "Controls the maximum number of problems produced by the server."
+				},
+				"vbaLanguageServer.doWarnOptionExplicitMissing": {
+					"scope": "resource",
+					"type": "boolean",
+					"default": true,
+					"description": "The language server should warn when Option Explicit is not present."
 				},
 				"vbaLanguageServer.trace.server": {
 					"scope": "window",
@@ -84,7 +96,7 @@
 		]
 	},
 	"scripts": {
-		"vscode:prepublish": "npm run compile",
+		"vscode:prepublish": "npm run antlr4ng && npm run compile",
 		"compile": "tsc -b",
 		"watch": "tsc -b -w",
 		"lint": "eslint ./client/src ./server/src --ext .ts,.tsx",

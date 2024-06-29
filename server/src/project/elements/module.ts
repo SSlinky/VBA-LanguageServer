@@ -7,17 +7,22 @@ import { IgnoredAttributeDiagnostic, MissingAttributeDiagnostic, MissingOptionEx
 import '../../extensions/stringExtensions';
 import { ScopeElement } from './special';
 
+interface DocumentSettings {
+	doWarnOptionExplicitMissing: boolean;
+}
 
 abstract class BaseModuleElement extends ScopeElement implements HasSymbolInformation, HasDiagnosticCapability {
 	protected abstract _name: string;
 	symbolKind: SymbolKind;
 	diagnostics: Diagnostic[] = [];
 	context: ProceduralModuleContext | ClassModuleContext;
+	settings: DocumentSettings;
 
-	constructor(context: ProceduralModuleContext | ClassModuleContext, document: TextDocument, symbolKind: SymbolKind) {
+	constructor(context: ProceduralModuleContext | ClassModuleContext, document: TextDocument, symbolKind: SymbolKind, documentSettings: DocumentSettings) {
 		super(context, document);
 		this.context = context;
 		this.symbolKind = symbolKind;
+		this.settings = documentSettings;
 	}
 
 	get name(): string {
@@ -63,14 +68,14 @@ export class ModuleElement extends BaseModuleElement {
 	context: ProceduralModuleContext;
 	protected _name: string;
 
-	constructor(context: ProceduralModuleContext, document: TextDocument) {
-		super(context, document, SymbolKind.File);
+	constructor(context: ProceduralModuleContext, document: TextDocument, documentSettings: DocumentSettings) {
+		super(context, document, SymbolKind.File, documentSettings);
 		this.context = context;
 		this._name = this._getName(context);
 	}
 
 	evaluateDiagnostics(): void {
-		if (!this._hasOptionExplicit) {
+		if (this.settings.doWarnOptionExplicitMissing && !this._hasOptionExplicit) {
 			const header = this.context.proceduralModuleHeader();
 			const startLine = header.stop?.line ?? 0 + 1;
 			this.diagnostics.push(new MissingOptionExplicitDiagnostic(
@@ -101,14 +106,14 @@ export class ClassElement extends BaseModuleElement {
 	context: ClassModuleContext;
 	protected _name: string;
 
-	constructor(context: ClassModuleContext, document: TextDocument) {
-		super(context, document, SymbolKind.Class);
+	constructor(context: ClassModuleContext, document: TextDocument, documentSettings: DocumentSettings) {
+		super(context, document, SymbolKind.Class, documentSettings);
 		this.context = context;
 		this._name = this._getName(context);
 	}
 
 	evaluateDiagnostics(): void {
-		if (!this._hasOptionExplicit) {
+		if (this.settings.doWarnOptionExplicitMissing && !this._hasOptionExplicit) {
 			const header = this.context.classModuleHeader();
 			const startLine = header.stop?.line ?? 0 + 1;
 			this.diagnostics.push(new MissingOptionExplicitDiagnostic(

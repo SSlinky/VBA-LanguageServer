@@ -4,8 +4,7 @@ import { vbaLexer } from '../../antlr/out/vbaLexer';
 import {  ClassModuleContext, ConstItemContext, EnumDeclarationContext, IgnoredAttrContext, ProceduralModuleContext, ProcedureDeclarationContext, UdtDeclarationContext, WhileStatementContext, vbaParser } from '../../antlr/out/vbaParser';
 import { vbaListener } from '../../antlr/out/vbaListener';
 
-import { VbaClassDocument, VbaModuleDocument } from '../document';
-import { sleep } from '../../utils/helpers';
+import { DocumentSettings, VbaClassDocument, VbaModuleDocument } from '../document';
 import { CancellationToken } from 'vscode-languageserver';
 import { CharStream, CommonTokenStream, DefaultErrorStrategy, ErrorNode, ParseTreeWalker, Parser, RecognitionException } from 'antlr4ng';
 import { ClassElement, IgnoredAttributeElement, ModuleElement } from '../elements/module';
@@ -13,56 +12,17 @@ import { ConstDeclarationElement, DeclarationElement, EnumDeclarationElement, Ty
 import { WhileLoopElement } from '../elements/flow';
 
 export class SyntaxParser {
-    private static _lockIdentifier = 0;
-
-    private static _acquireLock(): number {
-        this._lockIdentifier += 1;
-        return this._lockIdentifier;
-    }
-
-    private static _hasLock(lockIdentifier: number): boolean {
-        return this._lockIdentifier === lockIdentifier;
-    }
-
-    private static _releaseLock(): void {
-        this._lockIdentifier = 0;
-    }
-
     async parseAsync(document: VbaClassDocument | VbaModuleDocument, token: CancellationToken): Promise<boolean> {
-        // token.onCancellationRequested(e => {
-        //     throw new Error("No");
-        // });
-
-        // Refuse to do anything that seems like too much work.
-        if (document.textDocument.lineCount > 2000) {
-            // TODO: Make this an option that people can increase or decrease.
-            console.log(`Document oversize: ${document.textDocument.lineCount} lines.`);
-            console.warn(`Syntax parsing has been disabled to prevent crashing.`);
-            return false;
-        }
-
-        // Wait a few seconds to see if any other input has ocurred.
-        const lock = SyntaxParser._acquireLock();
-        await sleep(1000);
-        if (!SyntaxParser._hasLock(lock)) {
-            console.info('Newer lock detected. Cancelling parse.');
-            return false;
-        }
-        SyntaxParser._releaseLock();
-
-        // Parse the document.
-        this.parse(document);
-        return true;
-    }
-
-    parse(document: VbaClassDocument | VbaModuleDocument) {
-        console.info('Parsing the document.');
+        console.debug(`Parse requested: ${document.textDocument.version}`);
         const listener = new VbaListener(document);
+        await listener.ensureHasSettings();
         const parser = this.createParser(document.textDocument);
         ParseTreeWalker.DEFAULT.walk(
             listener,
-            parser.startRule()
+            parser.startRule(),
+            token
         );
+        return true;
     }
 
     private createParser(doc: TextDocument): VbaParser {
@@ -87,11 +47,16 @@ class VbaParser extends vbaParser {
 
 class VbaListener extends vbaListener {
 	document: VbaClassDocument | VbaModuleDocument;
+    protected _documentSettings?: DocumentSettings;
     protected _isAfterMethodDeclaration = false;
 
 	constructor(document: VbaClassDocument | VbaModuleDocument) {
         super();
         this.document = document;
+    }
+
+    async ensureHasSettings() {
+        this._documentSettings = await this.document.getDocumentConfiguration();
     }
 
     enterEnumDeclaration = (ctx: EnumDeclarationContext) => {
@@ -113,7 +78,7 @@ class VbaListener extends vbaListener {
     };
 
     enterClassModule = (ctx: ClassModuleContext) => {
-        const element = new ClassElement(ctx, this.document.textDocument);
+        const element = new ClassElement(ctx, this.document.textDocument, this._documentSettings ?? {doWarnOptionExplicitMissing: true});
         this.document.registerSymbolInformation(element)
             .registerDiagnosticElement(element)
             .registerScopedElement(element);
@@ -135,7 +100,7 @@ class VbaListener extends vbaListener {
     };
 
     enterProceduralModule = (ctx: ProceduralModuleContext) => {
-        const element = new ModuleElement(ctx, this.document.textDocument);
+        const element = new ModuleElement(ctx, this.document.textDocument, this._documentSettings ?? {doWarnOptionExplicitMissing: true});
         this.document.registerSymbolInformation(element)
             .registerDiagnosticElement(element)
             .registerScopedElement(element);
