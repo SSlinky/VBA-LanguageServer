@@ -7,7 +7,7 @@
 3. Install NPM
 4. `npm install` to install dependencies.
 5. `npm run textMate` first time and every time grammar is changed.
-6. `npm run antlr4ts` first time and every time grammar is changed.
+6. `npm run antlr4ng` first time and every time grammar is changed.
 7. (Optional) Install [ANTLR4 grammar syntax support](https://marketplace.visualstudio.com/items?itemName=mike-lischke.vscode-antlr4) VSCode extension.
 
 To contribute, you'll need to [create a pull request from a fork](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request-from-a-fork).
