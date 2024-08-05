@@ -1,4 +1,9 @@
-out
+#Out file is required by command
+#`npm run textMate`, so a placeholder is included in client/out to ensure `out`
+#folder is available
+**/out/*
+!client/out/*.tmp
+
 .antlr
 node_modules
 client/server
