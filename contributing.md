@@ -16,7 +16,7 @@ To contribute, you'll need to [create a pull request from a fork](https://docs.g
 
 ## Debugging Language Server
 
-* Use the Client + Server launch configuration (refer to [/.vscode/launch.json](../blob/master/.vscode/launch.json)).
+* Use the Client + Server launch configuration (refer to [/.vscode/launch.json](./.vscode/launch.json)).
 
 ## Debugging Antlr Grammar
 
