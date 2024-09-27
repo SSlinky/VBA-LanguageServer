@@ -1,4 +1,5 @@
 # Contributing
+**Signed commits are turned on for this repo.**
 
 ## Setup
 
@@ -11,10 +12,11 @@
 7. (Optional) Install [ANTLR4 grammar syntax support](https://marketplace.visualstudio.com/items?itemName=mike-lischke.vscode-antlr4) VSCode extension.
 
 To contribute, you'll need to [create a pull request from a fork](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request-from-a-fork).
+**Signed commits are turned on for this repo.**
 
 ## Debugging Language Server
 
-* Use the Client + Server launch configuration.
+* Use the Client + Server launch configuration (refer to [/.vscode/launch.json](./.vscode/launch.json)).
 
 ## Debugging Antlr Grammar
 
