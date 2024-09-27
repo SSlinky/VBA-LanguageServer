@@ -48,7 +48,14 @@ export class Workspace {
 		this.activateDocument(document);
 		this._parseCancellationTokenSource?.cancel();
 		this._parseCancellationTokenSource = new CancellationTokenSource();
-		await this._activeDocument?.parseAsync(this._parseCancellationTokenSource.token);
+
+		// Exceptions thrown by the parser should be ignored.
+		try {
+			await this._activeDocument?.parseAsync(this._parseCancellationTokenSource.token);
+		} catch (error) {
+			this.connection.console.log(`Parser error: ${error}`)
+		}
+
 		this._parseCancellationTokenSource = undefined;
 		this.connection.sendDiagnostics(this._activeDocument?.languageServerDiagnostics() ?? {uri: "", diagnostics: []});
 	}

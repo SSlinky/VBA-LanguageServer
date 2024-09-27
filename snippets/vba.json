@@ -69,7 +69,7 @@
 		"prefix": "func",
 		"description": "Function",
 		"body": [
-			"${1:Public }Function ${2:Identifier}($3) As $4",
+			"${1:Public }Function ${2:Identifier}($3) As ${4:Variant}",
 			"Attribute $2.VB_Description = \"${5:Dosctring}.\"",
 			"'   $5.",
 			"'",

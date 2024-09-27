@@ -6,6 +6,7 @@ import { Range, TextDocument } from 'vscode-languageserver-textdocument';
 import { SyntaxParser } from './parser/vbaSyntaxParser';
 import { FoldingRange } from '../capabilities/folding';
 import { SemanticTokensManager } from '../capabilities/semanticTokens';
+import { ParseCancellationException } from 'antlr4ng';
 
 export interface DocumentSettings {
 	maxDocumentLines: number;
@@ -134,13 +135,28 @@ export abstract class BaseProjectDocument {
 	}
 
 	async parseAsync(token: CancellationToken): Promise<void> {
+		// Handle already cancelled.
+		if (token.isCancellationRequested) {
+			throw new ParseCancellationException(Error('Parse operation cancelled before it started.'));
+		}
+
+		// Listen for cancellation event.
+		token.onCancellationRequested(() => {
+			throw new ParseCancellationException(new Error('Parse operation cancelled during parse.'));
+		})
+
+		// Don't parse oversize documents.
 		if (await this.isOversize) {
 			console.log(`Document oversize: ${this.textDocument.lineCount} lines.`);
             console.warn(`Syntax parsing has been disabled to prevent crashing.`);
 			this._isBusy = false;
 			return;
 		}
+
+		// Parse the document.
 		await (new SyntaxParser()).parseAsync(this, token)
+
+		// Evaluate the diagnostics.
 		this._hasDiagnosticElements.forEach(element => {
 			element.evaluateDiagnostics;
 			this._diagnostics.concat(element.diagnostics);
