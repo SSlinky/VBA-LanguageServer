@@ -211,6 +211,7 @@ commonModuleDeclarationElement
     | privateTypeDeclaration
     | publicTypeDeclaration
     | privateEnumDeclaration
+    | enumLongptrDeclaration
     | publicEnumDeclaration
     | privateExternalProcedureDeclaration
     ;
@@ -315,7 +316,8 @@ reservedMemberName
 globalEnumDeclaration: GLOBAL wsc  enumDeclaration;
 publicEnumDeclaration: (PUBLIC wsc)? enumDeclaration;
 privateEnumDeclaration: PRIVATE wsc enumDeclaration;
-enumDeclaration: ENUM wsc untypedName endOfStatement+ enumMemberList endOfStatement+ END wsc ENUM ;
+enumDeclaration: ENUM wsc untypedName endOfStatement+ enumMemberList endOfStatement+ END wsc ENUM;
+enumLongptrDeclaration: PRIVATE wsc ENUM wsc LONGPTR endOfStatement+ enumMemberList endOfStatement+ END wsc ENUM;
 enumMemberList: enumElement (endOfStatement enumElement)*;
 enumElement
     : remStatement
