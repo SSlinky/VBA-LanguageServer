@@ -5,14 +5,13 @@ import {  ClassModuleContext, ConstItemContext, EnumDeclarationContext, IgnoredA
 import { vbaListener } from '../../antlr/out/vbaListener';
 
 import { DocumentSettings, VbaClassDocument, VbaModuleDocument } from '../document';
-import { CancellationToken } from 'vscode-languageserver';
 import { CharStream, CommonTokenStream, DefaultErrorStrategy, ErrorNode, ParseTreeWalker, Parser, RecognitionException } from 'antlr4ng';
 import { ClassElement, IgnoredAttributeElement, ModuleElement } from '../elements/module';
-import { ConstDeclarationElement, DeclarationElement, EnumDeclarationElement, TypeDeclarationElement } from '../elements/memory';
+import { ConstDeclarationElement, ProcedureDeclarationElement, EnumDeclarationElement, TypeDeclarationElement } from '../elements/memory';
 import { WhileLoopElement } from '../elements/flow';
 
 export class SyntaxParser {
-    async parseAsync(document: VbaClassDocument | VbaModuleDocument, token: CancellationToken): Promise<boolean> {
+    async parseAsync(document: VbaClassDocument | VbaModuleDocument): Promise<boolean> {
         console.debug(`Parse requested: ${document.textDocument.version}`);
         const listener = new VbaListener(document);
         await listener.ensureHasSettings();
@@ -59,12 +58,18 @@ class VbaListener extends vbaListener {
     }
 
     enterEnumDeclaration = (ctx: EnumDeclarationContext) => {
-        const element = new EnumDeclarationElement(ctx, this.document.textDocument, this._isAfterMethodDeclaration);
+        const element = new EnumDeclarationElement(ctx,
+            this.document.textDocument,
+            this._isAfterMethodDeclaration,
+            );
+
+        // Element registrations.
         this.document.registerFoldableElement(element)
-            .registerScopedElement(element)
             .registerSemanticToken(element)
             .registerSymbolInformation(element)
             .registerDiagnosticElement(element);
+        
+        // this.document.registerScope()
         element.declaredNames.forEach(names =>
             names.forEach(name => this.document
                 .registerSemanticToken(name)
@@ -72,25 +77,27 @@ class VbaListener extends vbaListener {
         );
     };
 
-    exitEnumDeclaration = (_: EnumDeclarationContext) => {
-        this.document.deregisterScopedElement();
-    };
+    // exitEnumDeclaration = (_: EnumDeclarationContext) => {
+    //     this.document.deregisterScope();
+    // };
 
     enterClassModule = (ctx: ClassModuleContext) => {
         const element = new ClassElement(ctx, this.document.textDocument, this._documentSettings ?? {doWarnOptionExplicitMissing: true});
         this.document.registerSymbolInformation(element)
-            .registerDiagnosticElement(element)
-            .registerScopedElement(element);
+            .registerDiagnosticElement(element);
+        this.document.registerScope();
     };
 
-    exitClassModule = (ctx: ClassModuleContext) => {
-        this.document.deregisterScopedElement();
+    exitClassModule = (_: ClassModuleContext) => {
+        this.document.deregisterScope();
     };
 
     enterConstItem = (ctx: ConstItemContext) => {
         const element = new ConstDeclarationElement(ctx, this.document.textDocument);
         this.document.registerSemanticToken(element)
-            .registerSymbolInformation(element);
+            .registerSymbolInformation(element)
+            .registerNamedElementDeclaration(element)
+            .registerDiagnosticElement(element);
     };
 
     enterIgnoredAttr = (ctx: IgnoredAttrContext) => {
@@ -101,29 +108,36 @@ class VbaListener extends vbaListener {
     enterProceduralModule = (ctx: ProceduralModuleContext) => {
         const element = new ModuleElement(ctx, this.document.textDocument, this._documentSettings ?? {doWarnOptionExplicitMissing: true});
         this.document.registerSymbolInformation(element)
-            .registerDiagnosticElement(element)
-            .registerScopedElement(element);
-    };
+            .registerDiagnosticElement(element);
+        this.document.registerScope();
+        };
 
-    exitProceduralModule = (ctx: ProceduralModuleContext) => {
-        this.document.deregisterScopedElement();
+    exitProceduralModule = (_: ProceduralModuleContext) => {
+        this.document.deregisterScope();
     };
 
     enterProcedureDeclaration = (ctx: ProcedureDeclarationContext) => {
-        const element = DeclarationElement.create(ctx, this.document);
+        const element = ProcedureDeclarationElement.create(ctx, this.document);
         this.document.registerSymbolInformation(element)
-            .registerFoldableElement(element)
-            .registerScopedElement(element);
+            .registerDiagnosticElement(element)
+            .registerFoldableElement(element);
 
         if (element.isPropertyElement() && element.countDeclarations === 1) {
             this.document.registerDiagnosticElement(element)
                 .registerNamedElement(element);
+        } else {
+            // TODO: Figure out how to do properties differently as it affects the way you access them.
+            // Maybe all need some `{ get-let: type, get-set: type, set: type, let: type }` types where functions will have get-let or get-set,
+            // variables will have a getter and a setter of the same type (set or let) and properties will have whatever they have.
+            this.document.registerNamedElementDeclaration(element);
         }
+
+        this.document.registerScope();
     };
 
-    exitProcedureDeclaration = (ctx: ProcedureDeclarationContext) => {
+    exitProcedureDeclaration = (_: ProcedureDeclarationContext) => {
         this._isAfterMethodDeclaration = true;
-        this.document.deregisterScopedElement();
+        this.document.deregisterScope();
     };
 
     enterUdtDeclaration = (ctx: UdtDeclarationContext) => {

@@ -1,14 +1,16 @@
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { Diagnostic, SemanticTokenModifiers, SemanticTokenTypes, SymbolInformation, SymbolKind } from 'vscode-languageserver';
-import { AmbiguousIdentifierContext, ConstItemContext, EnumDeclarationContext, EnumMemberContext, FunctionDeclarationContext, ProcedureDeclarationContext, PropertyGetDeclarationContext, PropertySetDeclarationContext, ReservedMemberNameContext, SubroutineDeclarationContext, UdtDeclarationContext, UdtElementContext, UntypedNameContext, VariableDclContext } from '../../antlr/out/vbaParser';
+import { AmbiguousIdentifierContext, ConstItemContext, EnumDeclarationContext, EnumMemberContext, FunctionDeclarationContext, ProcedureDeclarationContext, PropertyGetDeclarationContext, PropertySetDeclarationContext, PublicConstDeclarationContext, ReservedMemberNameContext, SubroutineDeclarationContext, UdtDeclarationContext, UdtElementContext, UntypedNameContext, VariableDclContext } from '../../antlr/out/vbaParser';
 
-import { BaseContextSyntaxElement, HasDiagnosticCapability, HasSemanticToken, HasSymbolInformation, NamedSyntaxElement } from './base';
+import { BaseContextSyntaxElement, DeclarationElement, HasDiagnosticCapability, HasSemanticToken, HasSymbolInformation, NamedSyntaxElement } from './base';
 
-import { ScopeElement } from './special';
 import { VbaClassDocument, VbaModuleDocument } from '../document';
 import { SymbolInformationFactory } from '../../capabilities/symbolInformation';
 import '../../extensions/parserExtensions';
 import { DuplicateDeclarationDiagnostic, ElementOutOfPlaceDiagnostic } from '../../capabilities/diagnostics';
+import { ScopeElement } from './special';
+import { Scope } from '../scope';
+import { ParserRuleContext } from 'antlr4ng';
 
 
 
@@ -18,7 +20,7 @@ export class IdentifierElement extends BaseContextSyntaxElement {
 	}
 }
 
-export abstract class DeclarationElement extends ScopeElement implements HasDiagnosticCapability {
+export abstract class ProcedureDeclarationElement extends ScopeElement {
 	abstract diagnostics: Diagnostic[];
 	abstract identifier: IdentifierElement;
 
@@ -31,7 +33,7 @@ export abstract class DeclarationElement extends ScopeElement implements HasDiag
 	}
 
 	get name(): string {
-		throw new Error('Method not implemented.');
+		return this.identifier.text;
 	}
 
 	static create(context: ProcedureDeclarationContext, document: VbaClassDocument | VbaModuleDocument) {
@@ -67,7 +69,7 @@ export abstract class DeclarationElement extends ScopeElement implements HasDiag
 	}
 }
 
-export class SubDeclarationElement extends DeclarationElement implements HasSymbolInformation {
+export class SubDeclarationElement extends ProcedureDeclarationElement implements DeclarationElement, HasSymbolInformation {
 	identifier: IdentifierElement;
 	symbolInformation: SymbolInformation;
 	diagnostics: Diagnostic[] = [];
@@ -86,7 +88,7 @@ export class SubDeclarationElement extends DeclarationElement implements HasSymb
 	}
 }
 
-export class FunctionDeclarationElement extends DeclarationElement implements HasSymbolInformation {
+export class FunctionDeclarationElement extends ProcedureDeclarationElement implements DeclarationElement, HasSymbolInformation {
 	identifier: IdentifierElement;
 	symbolInformation: SymbolInformation;
 	diagnostics: Diagnostic[] = [];
@@ -104,7 +106,7 @@ export class FunctionDeclarationElement extends DeclarationElement implements Ha
 	}
 }
 
-export class PropertyDeclarationElement extends DeclarationElement implements HasSymbolInformation {
+export class PropertyDeclarationElement extends ProcedureDeclarationElement implements HasSymbolInformation {
 	identifier: IdentifierElement;
 	diagnostics: Diagnostic[] = [];
 	symbolInformation: SymbolInformation;
@@ -166,7 +168,7 @@ export class PropertyDeclarationElement extends DeclarationElement implements Ha
 	}
 }
 
-class PropertyGetDeclarationElement extends DeclarationElement {
+class PropertyGetDeclarationElement extends ProcedureDeclarationElement {
 	identifier: IdentifierElement;
 	diagnostics: Diagnostic[] = [];
 
@@ -176,7 +178,7 @@ class PropertyGetDeclarationElement extends DeclarationElement {
 	}
 }
 
-class PropertyLetDeclarationElement extends DeclarationElement {
+class PropertyLetDeclarationElement extends ProcedureDeclarationElement {
 	identifier: IdentifierElement;
 	diagnostics: Diagnostic[] = [];
 
@@ -186,7 +188,7 @@ class PropertyLetDeclarationElement extends DeclarationElement {
 	}
 }
 
-class PropertySetDeclarationElement extends DeclarationElement {
+class PropertySetDeclarationElement extends ProcedureDeclarationElement {
 	identifier: IdentifierElement;
 	diagnostics: Diagnostic[] = [];
 
@@ -212,13 +214,14 @@ abstract class BaseEnumDeclarationElement extends ScopeElement implements HasSem
 		super(context, document);
 		this.identifier = new IdentifierElement(context.untypedName().ambiguousIdentifier()!, document);
 	}
-
 }
 
-export class EnumDeclarationElement extends BaseEnumDeclarationElement implements ScopeElement, HasDiagnosticCapability {
+export class EnumDeclarationElement extends BaseEnumDeclarationElement implements HasDiagnosticCapability {
+	// scope: Scope;
 	diagnostics: Diagnostic[] = [];
 	tokenType: SemanticTokenTypes;
 	isDeclaredAfterMethod: boolean;
+	enumMembers: EnumMemberDeclarationElement[];
 
 	get symbolInformation(): SymbolInformation {
 		return SymbolInformationFactory.create(
@@ -226,14 +229,13 @@ export class EnumDeclarationElement extends BaseEnumDeclarationElement implement
 		);
 	}
 
-	constructor(context: EnumDeclarationContext, document: TextDocument, isDeclaredAfterMethod: boolean) {
+	constructor(context: EnumDeclarationContext, document: TextDocument, isDeclaredAfterMethod: boolean, scope?: Scope) {
 		super(context, document);
+		// this.scope = scope;
 		this.tokenType = SemanticTokenTypes.enum;
 		this.isDeclaredAfterMethod = isDeclaredAfterMethod;
 		this.identifier = new IdentifierElement(context.untypedName().ambiguousIdentifier()!, document);
-		context.enumMemberList().enumElement().forEach(enumElementContext =>
-			this.pushDeclaredName(new EnumMemberDeclarationElement(enumElementContext.enumMember()!, document))
-		);
+		this.enumMembers = context.enumMemberList().enumElement().map(e => new EnumMemberDeclarationElement(e.enumMember()!, document))
 	}
 
 	evaluateDiagnostics(): void {
@@ -241,7 +243,6 @@ export class EnumDeclarationElement extends BaseEnumDeclarationElement implement
 			this.diagnostics.push(new ElementOutOfPlaceDiagnostic(this.range, 'Enum declaration'));
 		}
 	}
-
 }
 
 class EnumMemberDeclarationElement extends BaseEnumDeclarationElement {
@@ -258,13 +259,16 @@ class EnumMemberDeclarationElement extends BaseEnumDeclarationElement {
 		this.tokenType = SemanticTokenTypes.enumMember;
 		this.identifier = new IdentifierElement(context.untypedName().ambiguousIdentifier()!, document);
 	}
+
+	evaluateDiagnostics(): void { }
 }
 
-abstract class BaseVariableDeclarationStatementElement extends BaseContextSyntaxElement implements HasSemanticToken, HasSymbolInformation, NamedSyntaxElement {
+abstract class BaseVariableDeclarationStatementElement extends BaseContextSyntaxElement implements DeclarationElement {
 	tokenType: SemanticTokenTypes;
 	tokenModifiers: SemanticTokenModifiers[] = [];
+	diagnostics: Diagnostic[] = [];
 	readonly symbolKind: SymbolKind;
-	
+	abstract isPublic: boolean;
 	abstract identifier: IdentifierElement;
 
 	get name(): string {
@@ -280,29 +284,58 @@ abstract class BaseVariableDeclarationStatementElement extends BaseContextSyntax
 		);
 	}
 
-	isPropertyElement(): this is PropertyDeclarationElement {
-		return false;
-	}
-
 	constructor(context: VariableDclContext | ConstItemContext | UdtElementContext, document: TextDocument, tokenType: SemanticTokenTypes, symbolKind: SymbolKind) {
 		super(context, document);
 		this.tokenType = tokenType;
 		this.symbolKind = symbolKind;
 	}
+
+	// Empty method so that implementation is optional.
+	evaluateDiagnostics(): void { }
+
+	isPropertyElement(): this is PropertyDeclarationElement {
+		return false;
+	}
 }
 
 export class ConstDeclarationElement extends BaseVariableDeclarationStatementElement {
-	tokenModifiers: SemanticTokenModifiers[] = [];
 	identifier: IdentifierElement;
-	
-	get name(): string {
-		return this.identifier.text;
-	}
+	isPublic: boolean;
 
 	constructor(context: ConstItemContext, document: TextDocument) {
 		super(context, document, SemanticTokenTypes.variable, SymbolKind.Constant);
-		this.identifier = new IdentifierElement(context, document);
+		const identifierContext = ConstDeclarationElement._getIdentifierContext(context);
+		this.identifier = new IdentifierElement(identifierContext, document);
+
+		// Public/Global and private are at module level.
+		// Local cannot have a modifier, i.e., they are private.
+		//  publicConstDeclaration -> moduleConstDeclaration -> constDeclaration -> constItemList -> constItem
+		// privateConstDeclaration -> moduleConstDeclaration -> constDeclaration -> constItemList -> constItem
+		// 							   localConstDeclaration -> constDeclaration -> constItemList -> constItem
+		const constDeclaration = context.parent!.parent!.parent!.parent!;
+		if(this._isPublicConst(constDeclaration)) {
+			// TODO: Add logic to get module option private module when no modifiers present.
+			//		 *Assuming module level declaration (add this to variable and method too).
+			this.isPublic = !!constDeclaration.GLOBAL() || !!constDeclaration.PUBLIC();
+		} else {
+			this.isPublic = false;
+		}
 	}
+
+	// We're always going to have a context here, and if we don't, we'd want it to break anyway.
+	private static _getIdentifierContext(context: ConstItemContext): AmbiguousIdentifierContext {
+		const name = context.typedNameConstItem()?.typedName().ambiguousIdentifier()
+			?? context.untypedNameConstItem()?.ambiguousIdentifier();
+		return name!;
+	}
+
+	private _isPublicConst(ctx: ParserRuleContext): ctx is PublicConstDeclarationContext {
+		return 'PUBLIC' in ctx;
+	}
+
+	// private _isPrivateConst(ctx: ParserRuleContext): ctx is PrivateConstDeclarationContext {
+	// 	return 'PRIVATE' in ctx;
+	// }
 }
 
 export class TypeDeclarationElement  extends ScopeElement implements HasSemanticToken, HasSymbolInformation, NamedSyntaxElement {
@@ -328,10 +361,19 @@ export class TypeDeclarationElement  extends ScopeElement implements HasSemantic
 			this as NamedSyntaxElement, this.symbolKind
 		);
 	}
+
+	pushDeclaredName(e: TypeMemberDeclarationElement) {
+		if (!this.declaredNames.has(e.identifier.text)) {
+			this.declaredNames.set(e.identifier.text, [e]);
+		} else {
+			this.declaredNames.get(e.identifier.text)?.push(e);
+		}
+	}
+	evaluateDiagnostics(): void { }
 }
 
 export class TypeMemberDeclarationElement extends BaseVariableDeclarationStatementElement {
-	tokenModifiers: SemanticTokenModifiers[] = [];
+	isPublic = false; // temp fix for implementation - TODO: don't inherit base variable.
 	identifier: IdentifierElement;
 	
 	get name(): string {

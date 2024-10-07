@@ -1,12 +1,14 @@
-import { CancellationToken, Diagnostic, PublishDiagnosticsParams, SymbolInformation, SymbolKind } from 'vscode-languageserver';
+import { CancellationToken, Diagnostic, DocumentDiagnosticReport, DocumentDiagnosticReportKind, PublishDiagnosticsParams, SymbolInformation, SymbolKind } from 'vscode-languageserver';
 import { Workspace } from './workspace';
-import { FoldableElement } from './elements/special';
-import { HasDiagnosticCapability, HasSemanticToken, HasSymbolInformation, IdentifiableSyntaxElement, ScopeElement } from './elements/base';
+import { FoldableElement, IdentifiableScopeElement } from './elements/special';
+import { DeclarationElement, HasDiagnosticCapability, HasSemanticToken, HasSymbolInformation, IdentifiableSyntaxElement } from './elements/base';
 import { Range, TextDocument } from 'vscode-languageserver-textdocument';
 import { SyntaxParser } from './parser/vbaSyntaxParser';
 import { FoldingRange } from '../capabilities/folding';
 import { SemanticTokensManager } from '../capabilities/semanticTokens';
 import { ParseCancellationException } from 'antlr4ng';
+import { Scope } from './scope';
+import { DuplicateDeclarationDiagnostic, ShadowDeclarationDiagnostic } from '../capabilities/diagnostics';
 
 export interface DocumentSettings {
 	maxDocumentLines: number;
@@ -22,11 +24,11 @@ export abstract class BaseProjectDocument {
 	
 	protected _hasDiagnosticElements: HasDiagnosticCapability[] = [];
 	protected _unhandledNamedElements: [] = [];
-	protected _publicScopeDeclarations: Map<string, any> = new Map();
+	// protected _publicScopeDeclarations: Map<string, any> = new Map();
 	protected _documentScopeDeclarations: Map<string, Map<string, any>> = new Map();
 	
 	protected _diagnostics: Diagnostic[] = [];
-	protected _elementParents: ScopeElement[] = [];
+	protected _elementParents: Scope[] = [];
 	// protected _attributeElements: HasAttribute[] = [];
 	protected _foldableElements: FoldingRange[] = [];
 	protected _symbolInformations: SymbolInformation[] = [];
@@ -52,7 +54,16 @@ export abstract class BaseProjectDocument {
 	// }
 
 	get currentScopeElement() {
-		return this._elementParents.at(-1);
+		return this._elementParents.at(-1) ?? this.workspace.globalScope;
+	}
+
+	get moduleScope() {
+		const scope = this._elementParents.at(0);
+		if (!scope) {
+			throw new Error("Expected module scope!");
+		}
+
+		return scope;
 	}
 
 	async getDocumentConfiguration(): Promise<DocumentSettings> {
@@ -124,14 +135,12 @@ export abstract class BaseProjectDocument {
 		return this._symbolInformations;
 	}
 
-	languageServerDiagnostics(): PublishDiagnosticsParams {
-		this._hasDiagnosticElements.forEach(e =>
-			e.evaluateDiagnostics()
-		);
+	languageServerDiagnostics(): DocumentDiagnosticReport {
 		return {
-			uri: this.textDocument.uri,
-			diagnostics: this._hasDiagnosticElements
-				.map((e) => e.diagnostics).flat(1) };
+			kind: DocumentDiagnosticReportKind.Full,
+			items: this._hasDiagnosticElements
+				.map((e) => e.diagnostics).flat(1)
+		};
 	}
 
 	async parseAsync(token: CancellationToken): Promise<void> {
@@ -154,7 +163,7 @@ export abstract class BaseProjectDocument {
 		}
 
 		// Parse the document.
-		await (new SyntaxParser()).parseAsync(this, token)
+		await (new SyntaxParser()).parseAsync(this)
 
 		// Evaluate the diagnostics.
 		this._hasDiagnosticElements.forEach(element => {
@@ -164,13 +173,24 @@ export abstract class BaseProjectDocument {
 		this._isBusy = false;
 	};
 
-	registerNamedElementDeclaration(element: any) {
-		// Check workspace if public.
-		// Check for existing entry in local scope.
-		// Check for overriding name in method (if relevant)
-		// Check for overriding name in document scope.
-		// Check for overriding name in workspace.
-		throw new Error("Not implemented");
+	registerNamedElementDeclaration(element: IdentifiableScopeElement) {
+		const scope = element.isPublic ? this.workspace.globalScope : this.currentScopeElement;
+
+		// Check for duplicate declarations
+		if (!!scope.declaredNames.has(element.name)) {
+			element.diagnostics.push(new DuplicateDeclarationDiagnostic(element.identifier.range))
+		}
+
+		// Check for variable shadowing.
+		// TODO: This doesn't work for vars declared at a higher level AFTER the lower level.
+		// e.g.: Private Const FOO
+		//		 Public Const FOO
+		if (!!scope.parentScope?.findDeclaration(element.name)) {
+			element.diagnostics.push(new ShadowDeclarationDiagnostic(element.identifier.range))
+		}
+		
+		scope.pushDeclaredName(element);
+		return this;
 	}
 
 	registerDiagnosticElement(element: HasDiagnosticCapability) {
@@ -205,30 +225,39 @@ export abstract class BaseProjectDocument {
 		return this;
 	};
 
-	registerNamedElement(element: IdentifiableSyntaxElement) {
+	registerPublicNamedElement(element: DeclarationElement) {
+		this.workspace.globalScope.pushDeclaredName(element);
+		return this;
+	}
+
+	registerNamedElement(element: DeclarationElement) {
 		this.currentScopeElement?.pushDeclaredName(element);
 		return this;
 	}
 
 	/**
-	 * Registers an element as a parent to be attached to subsequent elemements.
+	 * Registers scope as a parent to be attached to subsequent elemements.
 	 * Should be called when the parser context is entered and matched with
-	 * deregisterScopedElement when the context exits.
-	 * @param element the element to register.
-	 * @returns this for chaining.
+	 * deregisterScope when the context exits.
+	 * @param scope the element to register.
+	 * @returns the registered scope.
 	 */
-	registerScopedElement(element: ScopeElement) {
-		this._elementParents.push(element);
-		return this;
+	registerScope(): Scope {
+		const parent = this.currentScopeElement;
+		const scope = new Scope(parent);
+		
+		parent.children.push(scope)
+		this._elementParents.push(scope);
+		return scope;
 	}
 
 	/**
-	 * Deregisters an element as a parent so it isn't attached to subsequent elemements.
+	 * Deregisters a scope as a parent so it isn't attached to subsequent elemements.
 	 * Should be called when the parser context is exited and matched with
-	 * deregisterScopedElement when the context is entered.
+	 * registerScope when the context is entered.
 	 * @returns this for chaining.
 	 */
-	deregisterScopedElement = () => {
+	deregisterScope = () => {
 		this._elementParents.pop();
 		return this;
 	};

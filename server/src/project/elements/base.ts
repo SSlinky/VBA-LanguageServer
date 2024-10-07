@@ -4,6 +4,7 @@ import { Position, TextDocument } from 'vscode-languageserver-textdocument';
 import { FoldingRangeKind } from '../../capabilities/folding';
 import { IdentifierElement, PropertyDeclarationElement } from './memory';
 import '../../extensions/parserExtensions';
+import { IdentifiableScopeElement } from './special';
 
 export interface ContextOptionalSyntaxElement {
 	range?: Range;
@@ -54,9 +55,9 @@ export interface FoldingRangeElement {
 	foldingRangeKind?: FoldingRangeKind;
 }
 
-export interface ScopeElement {
-	declaredNames: Map<string, IdentifiableSyntaxElement[]>;
-	pushDeclaredName(element: IdentifiableSyntaxElement): void
+export interface DeclarationElement extends HasDiagnosticCapability, NamedSyntaxElement {
+	isPublic: boolean;
+	isPropertyElement(): this is PropertyDeclarationElement
 }
 
 export abstract class BaseSyntaxElement implements ContextOptionalSyntaxElement {

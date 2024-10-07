@@ -1,9 +1,10 @@
-import { CancellationToken, CancellationTokenSource, CompletionItem, CompletionParams, DidChangeConfigurationNotification, DidChangeWatchedFilesParams, DidOpenTextDocumentParams, DocumentSymbolParams, FoldingRange, FoldingRangeParams, Hover, HoverParams, SemanticTokensRangeParams, SymbolInformation, TextDocuments, WorkspaceFoldersChangeEvent, _Connection } from 'vscode-languageserver';
+import { CancellationToken, CancellationTokenSource, CompletionItem, CompletionParams, DidChangeConfigurationNotification, DidChangeWatchedFilesParams, DidOpenTextDocumentParams, DocumentDiagnosticParams, DocumentDiagnosticReport, DocumentDiagnosticReportKind, DocumentSymbolParams, FoldingRange, FoldingRangeParams, Hover, HoverParams, SemanticTokensRangeParams, SymbolInformation, TextDocuments, WorkspaceFoldersChangeEvent, _Connection } from 'vscode-languageserver';
 import { BaseProjectDocument } from './document';
 import { LanguageServerConfiguration } from '../server';
 import { hasConfigurationCapability } from '../capabilities/workspaceFolder';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { sleep } from '../utils/helpers';
+import { GlobalScope } from './scope';
 
 
 /**
@@ -12,6 +13,7 @@ import { sleep } from '../utils/helpers';
  */
 export class Workspace {
 	private _events: WorkspaceEvents;
+	private _globalScope: GlobalScope;
 	private _documents: BaseProjectDocument[] = [];
 	private _activeDocument?: BaseProjectDocument;
 	private _publicScopeDeclarations: Map<string, any> = new Map();
@@ -28,7 +30,12 @@ export class Workspace {
 		return this._activeDocument;
 	}
 
+	get globalScope() {
+		return this._globalScope;
+	}
+
 	constructor(params: {connection: _Connection, capabilities: LanguageServerConfiguration}) {
+		this._globalScope = new GlobalScope();
 		this.connection = params.connection;
 		this._hasConfigurationCapability = hasConfigurationCapability(params.capabilities);
 		this._events = new WorkspaceEvents({
@@ -57,7 +64,6 @@ export class Workspace {
 		}
 
 		this._parseCancellationTokenSource = undefined;
-		this.connection.sendDiagnostics(this._activeDocument?.languageServerDiagnostics() ?? {uri: "", diagnostics: []});
 	}
 
 	/**
@@ -86,6 +92,7 @@ export class Workspace {
 
 	clearDocumentsConfiguration = () => {
 		this._documents.forEach(d => d.clearDocumentConfiguration());
+		this.connection.languages.diagnostics.refresh();
 	}
 }
 
@@ -94,6 +101,7 @@ class WorkspaceEvents {
 	private readonly _workspace: Workspace;
 	private readonly _documents: TextDocuments<TextDocument>;
 	private readonly _configuration: LanguageServerConfiguration;
+	private readonly _parsedDocuments: Map<string, BaseProjectDocument>;
 
 	private _activeDocument?: BaseProjectDocument;
 
@@ -101,6 +109,7 @@ class WorkspaceEvents {
 		this._workspace = params.workspace;
 		this._configuration = params.configuration;
 		this._documents = new TextDocuments(TextDocument);
+		this._parsedDocuments = new Map<string, BaseProjectDocument>();
 		this.initialiseConnectionEvents(params.connection);
 		this._initialiseDocumentsEvents();
 		this._documents.listen(params.connection);
@@ -138,6 +147,33 @@ class WorkspaceEvents {
 		return document;
 	}
 
+	private async getParsedDocument(uri: string, version: number, token: CancellationToken): Promise<BaseProjectDocument|undefined> {
+		// Handle token cancellation.
+		if (token.isCancellationRequested) { throw new Error("Request cancelled before start."); }
+		token.onCancellationRequested(() => { throw new Error("Request cancelled during run."); });
+
+		let document: BaseProjectDocument | undefined;
+		document = this._parsedDocuments.get(uri);
+
+		// Ensure we have the appropriately versioned document.
+		while (!document || document.textDocument.version < version) {
+			await sleep(5);
+			document = this._parsedDocuments.get(uri);
+		}
+
+		// Return nothing if the document version is newer than requested.
+		if (version > 0 && document.textDocument.version != version) {
+			return;
+		}
+
+		// Ensure the document is parsed.
+		while (document.isBusy) {
+			await sleep(5);
+		}
+
+		return document;
+	}
+
 	private initialiseConnectionEvents(connection: _Connection) {
 		connection.onInitialized(() => this._onInitialized());
 		connection.onDidOpenTextDocument(params => this._onDidOpenTextDocumentAsync(params));
@@ -147,6 +183,7 @@ class WorkspaceEvents {
 		connection.onDidChangeWatchedFiles(params => this._onDidChangeWatchedFiles(params));
 		connection.onDocumentSymbol(async (params, token) => await this._onDocumentSymbolAsync(params, token));
 		connection.onHover(params => this._onHover(params));
+		connection.languages.diagnostics.on(async (params, token) => await this._onDiagnosticAsync(params, token));
 
 		if (hasConfigurationCapability(this._configuration)) {
 			connection.onFoldingRanges(async (params, token) => this._onFoldingRangesAsync(params, token));
@@ -197,8 +234,16 @@ class WorkspaceEvents {
 		return document?.languageServerSymbolInformation() ?? [];
 	}
 
-	private async _onFoldingRangesAsync(params: FoldingRangeParams, token: CancellationToken): Promise<FoldingRange[]> {
+	private async _onDiagnosticAsync(params: DocumentDiagnosticParams, token: CancellationToken): Promise<DocumentDiagnosticReport> {
 		const document = await this.activeParsedDocument(0, token);
+		return document?.languageServerDiagnostics() ?? {
+			kind: DocumentDiagnosticReportKind.Full,
+			items: []
+		} satisfies DocumentDiagnosticReport;
+	}
+
+	private async _onFoldingRangesAsync(params: FoldingRangeParams, token: CancellationToken): Promise<FoldingRange[]> {
+		const document = await this.getParsedDocument(params.textDocument.uri, 0, token);
 		const result = document?.languageServerFoldingRanges();
 		return result ?? [];
 	}
@@ -242,7 +287,9 @@ class WorkspaceEvents {
 	}
 
 	protected async _handleChangeOrOpenAsync(document: TextDocument) {
-		this._activeDocument = BaseProjectDocument.create(this._workspace, document);
+		const doc = BaseProjectDocument.create(this._workspace, document);
+		this._parsedDocuments.set(document.uri, doc);
+		this._activeDocument = doc;
 		await this._workspace.parseActiveDocument(this._activeDocument);
 	}
 }

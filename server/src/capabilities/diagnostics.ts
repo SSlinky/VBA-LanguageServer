@@ -68,6 +68,14 @@ export class DuplicateDeclarationDiagnostic extends BaseDiagnostic {
 	}
 }
 
+export class ShadowDeclarationDiagnostic extends BaseDiagnostic {
+	message = "Declaration is shadowed in the local scope.";
+	severity = DiagnosticSeverity.Error;
+	constructor(range: Range) {
+		super(range);
+	}
+}
+
 export class IgnoredAttributeDiagnostic extends BaseDiagnostic {
 	message = "This attribute will be ignored.";
 	severity = DiagnosticSeverity.Information;

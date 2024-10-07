@@ -45,6 +45,8 @@ class LanguageServer {
 			
 		});
 
+		
+
 		this.connection.listen();
 	}
 }
@@ -56,6 +58,10 @@ export class LanguageServerConfiguration {
 		documentSymbolProvider: true,
 		foldingRangeProvider: true,
 		textDocumentSync: TextDocumentSyncKind.Incremental,
+		diagnosticProvider: {
+			interFileDependencies: false,
+			workspaceDiagnostics: false
+		},
 		
 		// Implement soon.
 		codeActionProvider: false,
