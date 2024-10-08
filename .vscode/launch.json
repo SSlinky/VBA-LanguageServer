@@ -46,6 +46,16 @@
 			"startRule": "startRule",
 			"printParseTree": true,
 			"visualParseTree": true
+		},
+		{
+			"name": "Debug ANTLR4 Pre grammar",
+			"type": "antlr-debug",
+			"request": "launch",
+			"input": "${file}",
+			"grammar": "server/src/antlr/vbapre.g4",
+			"startRule": "startRule",
+			"printParseTree": true,
+			"visualParseTree": true
 		}
 	],
 	"compounds": [
