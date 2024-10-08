@@ -154,7 +154,7 @@ export abstract class BaseProjectDocument {
 		}
 
 		// Parse the document.
-		await (new SyntaxParser()).parseAsync(this, token)
+		await (new SyntaxParser()).parseAsync(this)
 
 		// Evaluate the diagnostics.
 		this._hasDiagnosticElements.forEach(element => {

@@ -5,14 +5,13 @@ import {  ClassModuleContext, ConstItemContext, EnumDeclarationContext, IgnoredA
 import { vbaListener } from '../../antlr/out/vbaListener';
 
 import { DocumentSettings, VbaClassDocument, VbaModuleDocument } from '../document';
-import { CancellationToken } from 'vscode-languageserver';
 import { CharStream, CommonTokenStream, DefaultErrorStrategy, ErrorNode, ParseTreeWalker, Parser, RecognitionException } from 'antlr4ng';
 import { ClassElement, IgnoredAttributeElement, ModuleElement } from '../elements/module';
 import { ConstDeclarationElement, DeclarationElement, EnumDeclarationElement, TypeDeclarationElement } from '../elements/memory';
 import { WhileLoopElement } from '../elements/flow';
 
 export class SyntaxParser {
-    async parseAsync(document: VbaClassDocument | VbaModuleDocument, token: CancellationToken): Promise<boolean> {
+    async parseAsync(document: VbaClassDocument | VbaModuleDocument): Promise<boolean> {
         console.debug(`Parse requested: ${document.textDocument.version}`);
         const listener = new VbaListener(document);
         await listener.ensureHasSettings();
