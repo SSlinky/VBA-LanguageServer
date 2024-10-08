@@ -10,3 +10,4 @@ client/server
 .vscode-test
 sample*/**
 *.vsix
+*.tsbuildinfo
