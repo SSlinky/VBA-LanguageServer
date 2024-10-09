@@ -102,21 +102,23 @@
 		"lint": "eslint ./client/src ./server/src --ext .ts,.tsx",
 		"postinstall": "cd client && npm install && cd ../server && npm install && cd ..",
 		"test": "sh ./scripts/e2e.sh",
+		"testps": "powershell ./scripts/e2e.ps1",
 		"textMate": "npx js-yaml client/src/syntaxes/vba.tmLanguage.yaml > client/out/vba.tmLanguage.json",
-		"antlr4ng": "antlr4ng -Dlanguage=TypeScript -visitor ./server/src/antlr/vba.g4 -o ./server/src/antlr/out/"
+		"antlr4ng": "antlr4ng -Dlanguage=TypeScript -visitor ./server/src/antlr/vba.g4 -o ./server/src/antlr/out/",
+		"antlr4ngPre": "antlr4ng -Dlanguage=TypeScript -visitor ./server/src/antlr/vbapre.g4 -o ./server/src/antlr/out/"
 	},
 	"dependencies": {
 		"antlr4ng": "^3.0.7"
 	},
 	"devDependencies": {
-		"@types/mocha": "^10.0.8",
-		"@types/node": "^22.7.4",
-		"@typescript-eslint/eslint-plugin": "^8.8.0",
-		"@typescript-eslint/parser": "^8.8.0",
+		"@types/mocha": "^10.0.9",
+		"@types/node": "^22.7.5",
+		"@typescript-eslint/eslint-plugin": "^8.8.1",
+		"@typescript-eslint/parser": "^8.8.1",
 		"antlr4ng-cli": "^2.0.0",
-		"eslint": "^9.11.1",
+		"eslint": "^9.12.0",
 		"js-yaml": "^4.1.0",
 		"mocha": "^10.7.3",
-		"typescript": "^5.6.2"
+		"typescript": "^5.6.3"
 	}
 }
