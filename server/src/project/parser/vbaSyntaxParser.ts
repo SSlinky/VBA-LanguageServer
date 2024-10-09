@@ -19,8 +19,7 @@ export class SyntaxParser {
         const parser = this.createParser(document.textDocument);
         ParseTreeWalker.DEFAULT.walk(
             listener,
-            parser.startRule(),
-            token
+            parser.startRule()
         );
         return true;
     }
