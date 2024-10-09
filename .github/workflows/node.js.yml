@@ -27,7 +27,7 @@ jobs:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
     - run: npm ci
-    - run: npm ls
-    - run: npm run antlr4ng
+    - name: npm run antlr4ng
+      run: npm run antlr4ng && ls -R ./server/src/antlr/out/  
     - run: npm run compile
     - run: npm test
