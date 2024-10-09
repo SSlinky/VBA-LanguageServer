@@ -28,6 +28,6 @@ jobs:
         cache: 'npm'
     - run: npm ci
     - name: npm run antlr4ng
-      run: npm run antlr4ngci && ls -R ./server/src/antlr/out/  
+      run: npm run antlr4ngci && ls -R ./out/  
     - run: npm run compile
     - run: npm test
