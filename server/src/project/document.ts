@@ -14,6 +14,10 @@ export interface DocumentSettings {
 	maxDocumentLines: number;
 	maxNumberOfProblems: number;
 	doWarnOptionExplicitMissing: boolean;
+	environment: {
+		os: string;
+		version: string;
+	}
 }
 
 export abstract class BaseProjectDocument {
@@ -85,6 +89,10 @@ export abstract class BaseProjectDocument {
 			maxDocumentLines: 1500,
 			maxNumberOfProblems: 100,
 			doWarnOptionExplicitMissing: true,
+			environment: {
+				os: "Win64",
+				version: "Vba7"
+			}
 		};
 		return this._documentConfiguration;
 	}

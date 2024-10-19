@@ -68,6 +68,28 @@
 					"default": true,
 					"description": "The language server should warn when Option Explicit is not present."
 				},
+				"vbaLanguageServer.environment.os": {
+					"scope": "resource",
+					"type": "string",
+					"enum": [
+						"Win16",
+						"Win32",
+						"Win64",
+						"Mac"
+					],
+					"default": "Win64",
+					"description": "Controls which compiler sections to display."
+				},
+				"vbaLanguageServer.environment.version": {
+					"scope": "resource",
+					"type": "string",
+					"enum": [
+						"Vba6",
+						"Vba7"
+					],
+					"default": "Vba7",
+					"description": "Controls which compiler sections to display."
+				},
 				"vbaLanguageServer.trace.server": {
 					"scope": "window",
 					"type": "string",
