@@ -7,31 +7,42 @@ options {
 // PARSER RULES
 startRule
     : document EOF
+    // : anyOtherLine EOF
     ;
 
 document
-    : documentLine*
+    : (documentLines | compilerIfBlock)*
     ;
 
-documentLine
-	: compilerIfBlock
-	| anyOtherLine
-	| endOfLine
-	;
+documentLines
+    : (anyOtherLine | endOfLine)+
+    ;
 
 compilerIfBlock
-    : compilerIfStatement anyOtherLine*
-        (compilerElseIfStatement anyOtherLine*)?
-        (compilerElseStatement anyOtherLine*)?
+    : compilerConditionalBlock+
+        compilerDefaultBlock?
         compilerEndIfStatement
     ;
 
+compilerConditionalBlock
+    : compilerConditionalStatement (anyOtherLine | endOfLine)*
+    ;
+
+compilerDefaultBlock
+    : compilerElseStatement anyOtherLine*
+    ;
+    
+compilerConditionalStatement
+    : compilerIfStatement
+    | compilerElseIfStatement
+    ;
+
 compilerIfStatement
-    : IF booleanExpression THEN endOfStatement
+    : IF WS? booleanExpression WS? THEN endOfStatement
     ;
 
 compilerElseIfStatement
-    : ELSEIF booleanExpression THEN endOfStatement
+    : ELSEIF WS? booleanExpression WS? THEN endOfStatement
     ;
 
 compilerElseStatement
@@ -45,7 +56,11 @@ compilerEndIfStatement
 // *************************
 
 booleanExpression
-    : NOT? compilerConstant ((AND | OR | XOR | EQV | IMP | NOT)+ compilerConstant)*
+    : booleanPart+
+    ;
+
+booleanPart
+    : WS? (AND | OR | XOR | EQV | IMP)? WS? NOT? WS? compilerConstant
     ;
 
 compilerConstant
@@ -58,15 +73,15 @@ compilerConstant
     ;
 
 anyWord
-    : ANYCHARS
+    : ANYCHARS+
     ;
 
 anyOtherLine
-    : anyWord+ endOfLine?
+    : (WS* anyWord)+ //endOfLine?
     ;
 
 endOfLine
-    : (NEWLINE | commentBody | remStatement)
+    : (WS* (NEWLINE | commentBody | remStatement))+
     ;
 
 endOfLineNoWs
@@ -88,7 +103,9 @@ remStatement: REMCOMMENT;
 // LEXER RULES
 
 NEWLINE
-    : ([\r\n\u2028\u2029] WS?)+
+    // Match at least one new line but then any number
+    // of blank lines, including white space.
+    : ([\r\n\u2028\u2029]) (WS* ([\r\n\u2028\u2029]))*
     ;
 
 ELSE
@@ -148,10 +165,14 @@ LINE_CONTINUATION
     ;
 
 WS
-    : ([ \t\u0019\u3000])+ -> channel(HIDDEN)
+    : NBSP NBSP*
     ;
 
-UNDERSCORE
+fragment NBSP
+    : [ \t\u0019\u3000]
+    ;
+
+fragment UNDERSCORE
     : '_'
     ;
 
@@ -194,5 +215,9 @@ NOT
 
 // Any non-whitespace or new line characters.
 ANYCHARS
-    : ([^ \t\u0019\u3000\r\n\u2028\u2029])+
+    : ANYCHAR
+    ;
+
+fragment ANYCHAR
+    : .
     ;

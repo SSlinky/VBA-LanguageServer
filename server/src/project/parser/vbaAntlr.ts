@@ -1,0 +1,65 @@
+import { vbaLexer } from '../../antlr/out/vbaLexer';
+import { vbaParser } from '../../antlr/out/vbaParser';
+import { CharStream, CommonTokenStream, TokenStream } from 'antlr4ng';
+import { DefaultErrorStrategy, Parser, RecognitionException } from 'antlr4ng';
+import { vbapreLexer } from '../../antlr/out/vbapreLexer';
+import { vbapreParser } from '../../antlr/out/vbapreParser';
+
+export class VbaLexer extends vbaLexer {
+    constructor(input: CharStream) {
+        super(input);
+    }
+
+	static create(doc: string): VbaLexer {
+		return new VbaLexer(CharStream.fromString(doc))
+	}
+}
+
+export class VbaParser extends vbaParser {
+	constructor(input: TokenStream) {
+		super(input);
+		
+	}
+
+	static create(document: string): VbaParser {
+        const lexer = VbaLexer.create(document);
+        const parser = new VbaParser(new CommonTokenStream(lexer));
+        parser.removeErrorListeners();
+        parser.errorHandler = new VbaErrorHandler();
+        return parser;
+	}
+}
+
+export class VbaPreLexer extends vbapreLexer {
+    constructor(input: CharStream) {
+        super(input);
+    }
+
+	static create(doc: string): VbaPreLexer {
+		return new VbaPreLexer(CharStream.fromString(doc))
+	}
+}
+
+export class VbaPreParser extends vbapreParser {
+	constructor(input: TokenStream) {
+		super(input);
+	}
+
+	static create(document: string): VbaPreParser {
+        const lexer = VbaPreLexer.create(document);
+        const parser = new VbaPreParser(new CommonTokenStream(lexer));
+        parser.removeErrorListeners();
+        parser.errorHandler = new VbaErrorHandler();
+        return parser;
+	}
+}
+
+export class VbaErrorHandler extends DefaultErrorStrategy {
+    recover(recognizer: Parser, e: RecognitionException): void {
+        const inputStream = recognizer.inputStream;
+        // if (!recognizer.isMatchedEOF) {
+            inputStream.consume();
+        // }
+        this.endErrorCondition(recognizer);
+    }
+}
