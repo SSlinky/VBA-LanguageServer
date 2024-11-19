@@ -1,9 +1,9 @@
 import { CancellationToken, Diagnostic, DocumentDiagnosticReport, DocumentDiagnosticReportKind, PublishDiagnosticsParams, SymbolInformation, SymbolKind } from 'vscode-languageserver';
 import { Workspace } from './workspace';
 import { FoldableElement, IdentifiableScopeElement } from './elements/special';
-import { DeclarationElement, HasDiagnosticCapability, HasSemanticToken, HasSymbolInformation, IdentifiableSyntaxElement } from './elements/base';
+import { BaseContextSyntaxElement, DeclarationElement, HasDiagnosticCapability, HasNamedSemanticToken, HasSemanticToken, HasSymbolInformation, IdentifiableSyntaxElement } from './elements/base';
 import { Range, TextDocument } from 'vscode-languageserver-textdocument';
-import { SyntaxParser } from './parser/vbaSyntaxParser';
+import { SyntaxParser } from './parser/vbaParser';
 import { FoldingRange } from '../capabilities/folding';
 import { SemanticTokensManager } from '../capabilities/semanticTokens';
 import { ParseCancellationException } from 'antlr4ng';
@@ -275,10 +275,15 @@ export abstract class BaseProjectDocument {
 	 * @param element element The element that has a semantic token.
 	 * @returns this for chaining.
 	 */
-	registerSemanticToken = (element: HasSemanticToken) => {
+	registerSemanticToken = (element: HasNamedSemanticToken) => {
 		this._semanticTokens.add(element);
 		return this;
 	};
+
+	registerCommentBlock = (element: HasSemanticToken) => {
+		this._semanticTokens.addComment(element);
+		return this;
+	}
 
 	/**
 	 * Registers a SymbolInformation.

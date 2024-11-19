@@ -1,5 +1,5 @@
 import {InitializeResult, Range, SemanticTokenModifiers, SemanticTokenTypes, uinteger, _LanguagesImpl, SemanticTokens, SemanticTokensParams, SemanticTokensRangeParams} from 'vscode-languageserver';
-import { HasSemanticToken } from '../project/elements/base';
+import { BaseContextSyntaxElement, HasNamedSemanticToken, HasSemanticToken } from '../project/elements/base';
 
 const registeredTokenTypes = new Map<string, number>((Object.keys(SemanticTokenTypes) as (keyof typeof SemanticTokenTypes)[]).map((k, i) => ([k, i])));
 const registeredTokenModifiers = new Map<string, number>((Object.keys(SemanticTokenModifiers) as (keyof typeof SemanticTokenModifiers)[]).map((k, i) => ([k, 2**i])));
@@ -33,9 +33,9 @@ export class SemanticToken {
 	length: uinteger;
 	tokenType: uinteger;
 	tokenModifiers: uinteger = 0;
-	element: HasSemanticToken;
+	element: HasNamedSemanticToken | HasSemanticToken;
 
-	constructor(element: HasSemanticToken, line: uinteger, startChar: uinteger, length: uinteger, tokenType: SemanticTokenTypes, tokenModifiers: SemanticTokenModifiers[]) {
+	constructor(element: HasNamedSemanticToken | HasSemanticToken, line: uinteger, startChar: uinteger, length: uinteger, tokenType: SemanticTokenTypes, tokenModifiers: SemanticTokenModifiers[]) {
 		this.element = element;
 		this.line = line;
 		this.char = startChar;
@@ -44,15 +44,31 @@ export class SemanticToken {
 		tokenModifiers.forEach((x) => this.tokenModifiers += registeredTokenModifiers.get(x) ?? 0);
 	}	
 
-	static create(element: HasSemanticToken): SemanticToken {
-		return new SemanticToken(
-			element,
-			element.identifier.range.start.line,
-			element.identifier.range.start.character,
-			element.identifier.context.getText().length,
-			element.tokenType,
-			element.tokenModifiers
-		);
+	static create(st: HasSemanticToken): SemanticToken;
+	static create(nst: HasNamedSemanticToken): SemanticToken;
+	static create(element: HasSemanticToken | HasNamedSemanticToken): SemanticToken {
+		if (((o: any): o is HasNamedSemanticToken => 'identifier' in o)(element)) {
+			return new SemanticToken(
+				element,
+				element.identifier.range.start.line,
+				element.identifier.range.start.character,
+				element.identifier.context.getText().length,
+				element.tokenType,
+				element.tokenModifiers
+			);
+		}
+		if (((o: any): o is HasSemanticToken => 'tokenType' in o)(element)) {
+			return new SemanticToken(
+				element,
+				element.range.start.line,
+				element.range.start.character,
+				element.context.getText().length,
+				element.tokenType,
+				element.tokenModifiers
+			);
+		}
+
+		throw new Error("This will never be thrown but it appeases the linter.");
 	}
 
 	toNewRange(range: Range): SemanticToken {
@@ -98,7 +114,11 @@ export class SemanticTokensManager {
 	private _tokensInRange = (range: Range) =>
 		this._tokens.filter(token => token.element.isChildOf(range));
 
-	add(element: HasSemanticToken) {
+	add(element: HasNamedSemanticToken) {
+		this._tokens.push(SemanticToken.create(element));
+	}
+
+	addComment(element: HasSemanticToken) {
 		this._tokens.push(SemanticToken.create(element));
 	}
 

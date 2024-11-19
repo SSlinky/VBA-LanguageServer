@@ -39,7 +39,14 @@ export interface HasSymbolInformation extends NamedSyntaxElement {
 	get symbolInformation(): SymbolInformation;
 }
 
-export interface HasSemanticToken extends NamedSyntaxElement, IdentifiableSyntaxElement {
+export interface HasNamedSemanticToken extends NamedSyntaxElement, IdentifiableSyntaxElement {
+	tokenType: SemanticTokenTypes;
+	tokenModifiers: SemanticTokenModifiers[];
+}
+
+export interface HasSemanticToken extends SyntaxElement {
+	range: Range;
+	context: ParserRuleContext;
 	tokenType: SemanticTokenTypes;
 	tokenModifiers: SemanticTokenModifiers[];
 }

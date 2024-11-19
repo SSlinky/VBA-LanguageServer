@@ -2,7 +2,7 @@ import { TextDocument } from 'vscode-languageserver-textdocument';
 import { Diagnostic, SemanticTokenModifiers, SemanticTokenTypes, SymbolInformation, SymbolKind } from 'vscode-languageserver';
 import { AmbiguousIdentifierContext, ConstItemContext, EnumDeclarationContext, EnumMemberContext, FunctionDeclarationContext, ProcedureDeclarationContext, PropertyGetDeclarationContext, PropertySetDeclarationContext, PublicConstDeclarationContext, ReservedMemberNameContext, SubroutineDeclarationContext, UdtDeclarationContext, UdtElementContext, UntypedNameContext, VariableDclContext } from '../../antlr/out/vbaParser';
 
-import { BaseContextSyntaxElement, DeclarationElement, HasDiagnosticCapability, HasSemanticToken, HasSymbolInformation, NamedSyntaxElement } from './base';
+import { BaseContextSyntaxElement, DeclarationElement, HasDiagnosticCapability, HasNamedSemanticToken, HasSymbolInformation, IdentifiableSyntaxElement, NamedSyntaxElement } from './base';
 
 import { VbaClassDocument, VbaModuleDocument } from '../document';
 import { SymbolInformationFactory } from '../../capabilities/symbolInformation';
@@ -198,7 +198,7 @@ class PropertySetDeclarationElement extends ProcedureDeclarationElement {
 	}
 }
 
-abstract class BaseEnumDeclarationElement extends ScopeElement implements HasSemanticToken, HasSymbolInformation {
+abstract class BaseEnumDeclarationElement extends ScopeElement implements HasNamedSemanticToken, HasSymbolInformation, NamedSyntaxElement, IdentifiableSyntaxElement {
 	identifier: IdentifierElement;
 	tokenModifiers: SemanticTokenModifiers[] = [];
 	declaredNames: Map<string, EnumMemberDeclarationElement[]> = new Map();
@@ -338,7 +338,7 @@ export class ConstDeclarationElement extends BaseVariableDeclarationStatementEle
 	// }
 }
 
-export class TypeDeclarationElement  extends ScopeElement implements HasSemanticToken, HasSymbolInformation, NamedSyntaxElement {
+export class TypeDeclarationElement  extends ScopeElement implements HasNamedSemanticToken, HasSymbolInformation, NamedSyntaxElement, IdentifiableSyntaxElement {
 	tokenType: SemanticTokenTypes;
 	tokenModifiers: SemanticTokenModifiers[] = [];
 	identifier: IdentifierElement;
