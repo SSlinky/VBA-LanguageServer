@@ -428,7 +428,7 @@ repository:
         patterns:
           - include: "#lineContinuation"
       apostropheComments:
-        name: comment.line.apostropheXX.vba
+        name: comment.line.apostrophe.vba
         match: (?i)\s*'.*
       remarkComments:
         name: comment.line.remark.vba
@@ -460,6 +460,7 @@ repository:
         patterns:
           - include: "#comments"
           - include: "#literals"
+          - include: "#operators"
 
       moduleOption:
         name: keyword.control.vba
