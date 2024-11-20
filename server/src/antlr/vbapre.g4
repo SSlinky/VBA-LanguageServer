@@ -29,7 +29,7 @@ compilerConditionalBlock
     ;
 
 compilerDefaultBlock
-    : compilerElseStatement anyOtherLine*
+    : compilerElseStatement (anyOtherLine | endOfLine)*
     ;
     
 compilerConditionalStatement
@@ -60,7 +60,7 @@ booleanExpression
     ;
 
 booleanPart
-    : WS? (AND | OR | XOR | EQV | IMP)? WS? NOT? WS? compilerConstant
+    : WS? (AND | OR | XOR | EQV | IMP)? WS? NOT? WS? (compilerConstant | anyWord)
     ;
 
 compilerConstant
