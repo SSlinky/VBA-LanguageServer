@@ -1,10 +1,10 @@
 import * as ts from "typescript";
 import { ParserRuleContext } from 'antlr4ng';
 import { FoldingRangeKind } from '../../capabilities/folding';
-import { BaseContextSyntaxElement, DeclarationElement, FoldingRangeElement, HasNamedSemanticToken, HasSemanticToken, IdentifiableSyntaxElement } from './base';
-import { Range, TextDocument } from 'vscode-languageserver-textdocument';
+import { BaseContextSyntaxElement, DeclarationElement, FoldingRangeElement, HasSemanticToken, IdentifiableSyntaxElement } from './base';
+import { TextDocument } from 'vscode-languageserver-textdocument';
 import { IdentifierElement, PropertyDeclarationElement } from './memory';
-import { Diagnostic, SemanticTokenModifiers, SemanticTokenTypes } from 'vscode-languageserver';
+import { Diagnostic, integer, Range, SemanticTokenModifiers, SemanticTokenTypes } from 'vscode-languageserver';
 import { CompilerConditionalBlockContext, CompilerConditionalStatementContext, CompilerDefaultBlockContext, CompilerIfBlockContext } from '../../antlr/out/vbapreParser';
 
 
@@ -120,12 +120,56 @@ export class CompilerIfBlockElement extends BaseContextSyntaxElement {
 	}
 }
 
-class InactiveConstantBlockElement extends BaseContextSyntaxElement implements HasSemanticToken {
+class InactiveConstantBlockElement extends BaseContextSyntaxElement {
 	tokenType: SemanticTokenTypes;
 	tokenModifiers: SemanticTokenModifiers[] = [];
+	lines: InactiveLineElement[];
 
 	constructor(ctx: CompilerConditionalBlockContext | CompilerDefaultBlockContext, doc: TextDocument) {
 		super(ctx, doc)
 		this.tokenType = SemanticTokenTypes.comment;
+		this.lines = this._createLines();
+	}
+
+	private _createLines(): InactiveLineElement[] {
+		const inactiveLines = this.text.split('\r\n');
+		let stopIndex = (this.context?.start?.start ?? 0);
+
+		// Generate the individual ranges.
+		const ranges: Range[] = [];
+		for (const line of inactiveLines) {
+			// Ignore blank lines.
+			if (line.length === 0) {
+				continue;
+			}
+
+			// Create a range from the segment.
+			const startIndex = stopIndex;
+			stopIndex += line.length + 2;
+			ranges.push(Range.create(
+				this.document.positionAt(startIndex),
+				this.document.positionAt(stopIndex)
+			));
+		}
+
+		// Return InactiveLineElement objects.
+		return ranges.map(range => new InactiveLineElement(this.context, this.document, range))
+	}
+}
+
+export class InactiveLineElement extends BaseContextSyntaxElement implements HasSemanticToken {
+	tokenType: SemanticTokenTypes;
+	tokenModifiers: SemanticTokenModifiers[] = [];
+
+	get text(): string {
+		return this.document.getText(this.range);
+	}
+
+	constructor(ctx: ParserRuleContext, doc: TextDocument, range?: Range) {
+		super(ctx, doc)
+		this.tokenType = SemanticTokenTypes.comment;
+		if (range) {
+			this.range = range;
+		}
 	}
 }

@@ -1,15 +1,15 @@
-import { ErrorNode } from 'antlr4ng';
+import { ErrorNode, ParserRuleContext } from 'antlr4ng';
 import { vbaListener } from '../../antlr/out/vbaListener';
 import { ConstItemContext, EnumDeclarationContext, IgnoredAttrContext, ProcedureDeclarationContext, UdtDeclarationContext, WhileStatementContext } from '../../antlr/out/vbaParser';
 
-import { DocumentSettings, VbaClassDocument, VbaModuleDocument } from '../document';
+import { BaseProjectDocument, DocumentSettings, VbaClassDocument, VbaModuleDocument } from '../document';
 
 import { WhileLoopElement } from '../elements/flow';
 import { IgnoredAttributeElement } from '../elements/module';
 import { ConstDeclarationElement, EnumDeclarationElement, TypeDeclarationElement } from '../elements/memory';
 import { vbapreListener } from '../../antlr/out/vbapreListener';
-import { CompilerIfBlockContext } from '../../antlr/out/vbapreParser';
-import { CompilerIfBlockElement } from '../elements/special';
+import { CompilerConditionalStatementContext, CompilerElseStatementContext, CompilerEndIfStatementContext, CompilerIfBlockContext} from '../../antlr/out/vbapreParser';
+import { CompilerIfBlockElement, InactiveLineElement } from '../elements/special';
 
 
 class CommonParserCapability {
@@ -180,16 +180,16 @@ export class VbaListener extends vbaListener {
 
 export class VbaPreListener extends vbapreListener {
     common: CommonParserCapability;
-    private _documentText: string;
+    private _document: BaseProjectDocument;
 
     get text(): string {
-        return this._documentText;
+        return this._document.redactedText;
     }
 
     constructor(document: VbaClassDocument | VbaModuleDocument) {
         super();
         this.common = new CommonParserCapability(document);
-        this._documentText = document.textDocument.getText();
+        this._document = document;
     }
 
     static async createAsync(document: VbaClassDocument | VbaModuleDocument): Promise<VbaPreListener> {
@@ -203,8 +203,20 @@ export class VbaPreListener extends vbapreListener {
         const docprops = this.common.documentSettings;
         const element = new CompilerIfBlockElement(ctx, doc.textDocument, docprops);
 
-        element.inactiveChildren.forEach(e => doc.registerCommentBlock(e));
-        // TODO: Semantic tokens don't appear to be able to go across lines
-        // so I'll need to add _each line_ separately!
+        element.inactiveChildren.forEach(e => {
+            doc.registerSubtractElement(e);
+            e.lines.forEach(c => doc.registerCommentOutElement(c));
+        });
+    }
+
+    enterCompilerElseStatement = (ctx: CompilerElseStatementContext) => this._registerInactiveLine(ctx);
+    enterCompilerEndIfStatement = (ctx: CompilerEndIfStatementContext) => this._registerInactiveLine(ctx);
+    enterCompilerConditionalStatement = (ctx: CompilerConditionalStatementContext) => this._registerInactiveLine(ctx);
+
+    private _registerInactiveLine(ctx: ParserRuleContext) {
+        const doc = this.common.document;
+        doc.registerSubtractElement(
+            new InactiveLineElement(ctx, doc.textDocument)
+        );
     }
 }

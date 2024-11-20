@@ -37,6 +37,7 @@ export abstract class BaseProjectDocument {
 	protected _foldableElements: FoldingRange[] = [];
 	protected _symbolInformations: SymbolInformation[] = [];
 	protected _semanticTokens: SemanticTokensManager = new SemanticTokensManager();
+	protected _redactedElements: BaseContextSyntaxElement[] = [];
 	
 	protected _isBusy = true;
 	// protected _hasParseResult = false;
@@ -56,6 +57,10 @@ export abstract class BaseProjectDocument {
 	// get hasParseResult() {
 	// 	return this._hasParseResult;
 	// }
+
+	get redactedText() {
+		return this._subtractTextFromRanges(this._redactedElements.map(x => x.range));
+	}
 
 	get currentScopeElement() {
 		return this._elementParents.at(-1) ?? this.workspace.globalScope;
@@ -280,8 +285,13 @@ export abstract class BaseProjectDocument {
 		return this;
 	};
 
-	registerCommentBlock = (element: HasSemanticToken) => {
+	registerCommentOutElement = (element: HasSemanticToken) => {
 		this._semanticTokens.addComment(element);
+		return this;
+	}
+
+	registerSubtractElement = (element: BaseContextSyntaxElement) => {
+		this._redactedElements.push(element);
 		return this;
 	}
 
@@ -294,6 +304,46 @@ export abstract class BaseProjectDocument {
 		this._symbolInformations.push(element.symbolInformation);
 		return this;
 	};
+
+
+	private _subtractTextFromRanges(ranges: Range[]): string {
+		const text = this.textDocument.getText();
+		return ranges.reduce((x, y) => this._subtractTextRange(x, y), text);
+	}
+
+	/**
+	 * Subtracts text by replacing it with white space.
+	 * @param text the text to act on.
+	 * @param range the range to subtract.
+	 * @returns the original text with the range replaced by spaces.
+	 */
+	private _subtractTextRange(text: string, range: Range): string {
+		const docLines = text.split('\r\n');
+
+		if (range.start.line === range.end.line) {
+			// When the start and end lines are the same, subtract a substring.
+			const x = range.end.character;
+			const y = range.start.character;
+			const i = range.start.line - 1;
+			const line = docLines[i];
+			const subtraction = ' '.repeat(x - y + 1);
+			docLines[i] = line.slice(0, y) + subtraction + line.slice(x + 1);
+			return docLines.join('\r\n');
+		} else {
+			// When they aren't, subtract whole lines between start and end.
+			const x = range.end.line;
+			const y = range.start.line;
+
+			// Replace the subtracted lines with spaces to maintain individual
+			// character positional integrity.
+			const result = docLines.map((line, i) => {
+				i >= y && i < x
+					? ' '.repeat(line.length)
+					: line
+			});
+			return result.join('\r\n')
+		}
+	}
 }
 
 
