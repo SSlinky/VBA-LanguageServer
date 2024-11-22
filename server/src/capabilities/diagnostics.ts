@@ -40,7 +40,6 @@ export class WhileWendDeprecatedDiagnostic extends BaseDiagnostic {
 	}
 }
 
-// test
 export class MissingAttributeDiagnostic extends BaseDiagnostic {
 	severity = DiagnosticSeverity.Error;
 	constructor(range: Range, attributeName: string) {

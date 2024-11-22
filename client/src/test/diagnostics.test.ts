@@ -8,6 +8,28 @@ import * as assert from 'assert';
 import { getDocUri, activate } from './helper';
 
 suite('Should get diagnostics', () => {
+	test('diagnostics.class.missingNameAttributeError', async () => {
+		await testDiagnostics(getDocUri('MissingAttributeClass.cls'), [
+			{
+				message: 'Module missing attribute VB_NAME.',
+				range: toRange(1, 0, 1, 0),
+				severity: vscode.DiagnosticSeverity.Error,
+				source: 'ex'
+			}
+		]);
+	});
+
+	test('diagnostics.module.missingNameAttributeError', async () => {
+		await testDiagnostics(getDocUri('MissingAttributeModule.bas'), [
+			{
+				message: 'Module missing attribute VB_NAME.',
+				range: toRange(1, 0, 1, 0),
+				severity: vscode.DiagnosticSeverity.Error,
+				source: 'ex'
+			}
+		]);
+	});
+
 	test('diagnostics.class.noOptionExplicitWarning', async () => {
 		await testDiagnostics(getDocUri('EmptyClass.cls'), [
 			{

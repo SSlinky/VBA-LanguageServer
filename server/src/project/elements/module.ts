@@ -130,6 +130,7 @@ export class ClassElement extends BaseModuleElement {
 	private _getName(context: ClassModuleContext) {
 		const nameAttributes = context.classModuleHeader().nameAttr();
 
+		// TODO: Check if other attributes are required and validate them.
 		if (nameAttributes.length === 0) {
 			this.diagnostics.push(new MissingAttributeDiagnostic(
 				Range.create(this.range.start, this.range.start),
