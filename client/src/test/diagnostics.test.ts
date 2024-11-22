@@ -8,20 +8,50 @@ import * as assert from 'assert';
 import { getDocUri, activate } from './helper';
 
 suite('Should get diagnostics', () => {
-	const docUri = getDocUri('diagnostics.txt');
+	test('diagnostics.class.noOptionExplicitWarning', async () => {
+		await testDiagnostics(getDocUri('EmptyClass.cls'), [
+			{
+				message: 'Option Explicit is missing from module header.',
+				range: toRange(11, 1, 11, 1),
+				severity: vscode.DiagnosticSeverity.Warning,
+				source: 'ex'
+			}
+		]);
+	});
 
-	test('Diagnoses uppercase texts', async () => {
-		await testDiagnostics(docUri, [
-			{ message: 'ANY is all uppercase.', range: toRange(0, 0, 0, 3), severity: vscode.DiagnosticSeverity.Warning, source: 'ex' },
-			{ message: 'ANY is all uppercase.', range: toRange(0, 14, 0, 17), severity: vscode.DiagnosticSeverity.Warning, source: 'ex' },
-			{ message: 'OS is all uppercase.', range: toRange(0, 18, 0, 20), severity: vscode.DiagnosticSeverity.Warning, source: 'ex' }
+	test('diagnostics.module.noOptionExplicitWarning', async () => {
+		await testDiagnostics(getDocUri('EmptyModule.bas'), [
+			{
+				message: 'Option Explicit is missing from module header.',
+				range: toRange(2, 1, 2, 1),
+				severity: vscode.DiagnosticSeverity.Warning,
+				source: 'ex'
+			}
+		]);
+	});
+
+	test('diagnostics.module.generalDiagnostics', async () => {
+		// Diagnostics are sorted by severity!
+		await testDiagnostics(getDocUri('Diagnostics.bas'), [
+			{
+				message: 'The Do...Loop statement provides a more structured and flexible way to perform looping.',
+				range: toRange(7, 4, 7, 8),
+				severity: vscode.DiagnosticSeverity.Information,
+				source: 'ex'
+			},
+			{
+				message: 'Unexpected duplicate operator.',
+				range: toRange(8, 15, 8, 16),
+				severity: vscode.DiagnosticSeverity.Information,
+				source: 'ex'
+			}
 		]);
 	});
 });
 
 function toRange(sLine: number, sChar: number, eLine: number, eChar: number) {
-	const start = new vscode.Position(sLine, sChar);
-	const end = new vscode.Position(eLine, eChar);
+	const start = new vscode.Position(sLine - 1, sChar);
+	const end = new vscode.Position(eLine - 1, eChar);
 	return new vscode.Range(start, end);
 }
 
