@@ -54,6 +54,11 @@ export class VbaListener extends vbaListener {
         this._documentSettings = await this.document.getDocumentConfiguration();
     }
 
+    enterAnyOperator = (ctx: AnyOperatorContext) => {
+        const element = new DuplicateOperatorElement(ctx, this.document.textDocument);
+        this.document.registerDiagnosticElement(element);
+    }
+
     enterEnumDeclaration = (ctx: EnumDeclarationContext) => {
         const element = new EnumDeclarationElement(ctx, this.document.textDocument, this._isAfterMethodDeclaration);
         this.document.registerFoldableElement(element)
