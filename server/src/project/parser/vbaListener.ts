@@ -72,12 +72,12 @@ export class VbaListener extends vbaListener {
     //     this.document.deregisterScopedElement();
     // };
 
-    // enterClassModule = (ctx: ClassModuleContext) => {
-    //     const element = new ClassElement(ctx, this.document.textDocument, this._documentSettings ?? { doWarnOptionExplicitMissing: true });
-    //     this.document.registerSymbolInformation(element)
-    //         .registerDiagnosticElement(element)
-    //         .registerScopedElement(element);
-    // };
+    enterClassModule = (ctx: ClassModuleContext) => {
+        const element = new ClassElement(ctx, this.document.textDocument, this._documentSettings ?? { doWarnOptionExplicitMissing: true });
+        this.document.registerSymbolInformation(element)
+            .registerDiagnosticElement(element)
+            // .registerScopedElement(element);
+    };
 
     // exitClassModule = (ctx: ClassModuleContext) => {
     //     this.document.deregisterScopedElement();
