@@ -32,4 +32,4 @@ jobs:
     - name: npm run antlr4ng
       run: npm run antlr4ng && mv ./server/src/antlr/out/server/src/antlr/* ./server/src/antlr/out
     - run: npm run compile
-    # - run: npm test
+    - run: npm test
