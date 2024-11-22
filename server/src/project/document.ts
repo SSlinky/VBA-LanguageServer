@@ -336,11 +336,9 @@ export abstract class BaseProjectDocument {
 
 			// Replace the subtracted lines with spaces to maintain individual
 			// character positional integrity.
-			const result = docLines.map((line, i) => {
-				i >= y && i < x
-					? ' '.repeat(line.length)
-					: line
-			});
+			const result = docLines.map((line, i) =>
+				i >= y && i < x ? ' '.repeat(line.length) : line
+			);
 			return result.join('\r\n')
 		}
 	}
