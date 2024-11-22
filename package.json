@@ -126,12 +126,13 @@
 		"textMate": "npx js-yaml client/src/syntaxes/vba.tmLanguage.yaml > client/out/vba.tmLanguage.json",
 		"antlr4ng": "antlr4ng -Dlanguage=TypeScript -visitor ./server/src/antlr/vba.g4 -o ./server/src/antlr/out/",
 		"antlr4ngPre": "antlr4ng -Dlanguage=TypeScript -visitor ./server/src/antlr/vbapre.g4 -o ./server/src/antlr/out/",
-		"test": "npm run tmSnapTest && npm run tmUnitTest && npm run testps",
+		"test": "npm run tmSnapTest && npm run tmUnitTest && npm run vsctest",
 		"testsh": "sh ./scripts/e2e.sh",
 		"testps": "powershell ./scripts/e2e.ps1",
 		"tmUnitTest": "vscode-tmgrammar-test ./test/textmate/**/*.vba",
 		"tmSnapTest": "vscode-tmgrammar-snap ./test/textmate/snapshot/*.??s",
-		"tmSnapUpdate": "vscode-tmgrammar-snap --updateSnapshot ./test/textmate/snapshot/*.??s"
+		"tmSnapUpdate": "vscode-tmgrammar-snap --updateSnapshot ./test/textmate/snapshot/*.??s",
+		"vsctest": "vscode-test"
 	},
 	"dependencies": {
 		"antlr4ng": "^3.0.8"
@@ -141,6 +142,8 @@
 		"@types/node": "^22.9.1",
 		"@typescript-eslint/eslint-plugin": "^8.15.0",
 		"@typescript-eslint/parser": "^8.15.0",
+		"@vscode/test-cli": "^0.0.10",
+		"@vscode/test-electron": "^2.4.1",
 		"antlr4ng-cli": "^2.0.0",
 		"eslint": "^9.15.0",
 		"js-yaml": "^4.1.0",
