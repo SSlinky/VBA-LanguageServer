@@ -1,11 +1,11 @@
 import { ErrorNode, ParserRuleContext } from 'antlr4ng';
 import { vbaListener } from '../../antlr/out/vbaListener';
-import { ConstItemContext, EnumDeclarationContext, IgnoredAttrContext, ProcedureDeclarationContext, UdtDeclarationContext, WhileStatementContext } from '../../antlr/out/vbaParser';
+import { AnyOperatorContext, ClassModuleContext, ConstItemContext, EnumDeclarationContext, IgnoredAttrContext, ProceduralModuleContext, ProcedureDeclarationContext, UdtDeclarationContext, WhileStatementContext } from '../../antlr/out/vbaParser';
 
 import { BaseProjectDocument, DocumentSettings, VbaClassDocument, VbaModuleDocument } from '../document';
 
-import { WhileLoopElement } from '../elements/flow';
-import { IgnoredAttributeElement } from '../elements/module';
+import { DuplicateOperatorElement, WhileLoopElement } from '../elements/flow';
+import { ClassElement, IgnoredAttributeElement, ModuleElement } from '../elements/module';
 import { ConstDeclarationElement, EnumDeclarationElement, TypeDeclarationElement } from '../elements/memory';
 import { vbapreListener } from '../../antlr/out/vbapreListener';
 import { CompilerConditionalStatementContext, CompilerElseStatementContext, CompilerEndIfStatementContext, CompilerIfBlockContext} from '../../antlr/out/vbapreParser';
