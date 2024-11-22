@@ -179,10 +179,10 @@ export abstract class BaseProjectDocument {
 		await (new SyntaxParser()).parseAsync(this)
 
 		// Evaluate the diagnostics.
-		this._hasDiagnosticElements.forEach(element => {
-			element.evaluateDiagnostics;
-			this._diagnostics.concat(element.diagnostics);
-		});
+		this._diagnostics = this._hasDiagnosticElements
+			.map(e => e.evaluateDiagnostics())
+			.flat();
+
 		this._isBusy = false;
 	};
 

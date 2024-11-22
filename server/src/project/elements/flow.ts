@@ -1,9 +1,9 @@
 import { Diagnostic } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
-import { WhileStatementContext } from '../../antlr/out/vbaParser';
+import { AnyOperatorContext, WhileStatementContext } from '../../antlr/out/vbaParser';
 
 import { BaseContextSyntaxElement, HasDiagnosticCapability } from './base';
-import { WhileWendDeprecatedDiagnostic } from '../../capabilities/diagnostics';
+import { MultipleOperatorsDiagnostic, WhileWendDeprecatedDiagnostic } from '../../capabilities/diagnostics';
 
 
 export class WhileLoopElement extends BaseContextSyntaxElement implements HasDiagnosticCapability {
@@ -11,11 +11,11 @@ export class WhileLoopElement extends BaseContextSyntaxElement implements HasDia
 
 	constructor(context: WhileStatementContext, document: TextDocument) {
 		super(context, document);
-		
 	}
 
-	evaluateDiagnostics(): void {
+	evaluateDiagnostics() {
 		this.diagnostics.push(new WhileWendDeprecatedDiagnostic(this.range))
+		return this.diagnostics;
 	}
 }
 

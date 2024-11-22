@@ -23,7 +23,7 @@ interface SyntaxElement extends ContextOptionalSyntaxElement {
 
 export interface HasDiagnosticCapability {
 	diagnostics: Diagnostic[];
-	evaluateDiagnostics(): void;
+	evaluateDiagnostics(): Diagnostic[];
 }
 
 export interface NamedSyntaxElement extends SyntaxElement {

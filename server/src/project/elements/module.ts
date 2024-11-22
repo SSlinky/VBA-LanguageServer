@@ -35,7 +35,7 @@ abstract class BaseModuleElement extends ScopeElement implements HasSymbolInform
 		);
 	}
 
-	abstract evaluateDiagnostics(): void;
+	abstract evaluateDiagnostics(): Diagnostic[];
 
 	protected get _hasOptionExplicit(): boolean {
 		const getCodeElements = () => {
@@ -74,7 +74,7 @@ export class ModuleElement extends BaseModuleElement {
 		this._name = this._getName(context);
 	}
 
-	evaluateDiagnostics(): void {
+	evaluateDiagnostics() {
 		if (this.settings.doWarnOptionExplicitMissing && !this._hasOptionExplicit) {
 			const header = this.context.proceduralModuleHeader();
 			const startLine = header.stop?.line ?? 0 + 1;
@@ -85,6 +85,7 @@ export class ModuleElement extends BaseModuleElement {
 				)
 			));
 		}
+		return this.diagnostics;
 	}
 
 	private _getName(context: ProceduralModuleContext) {
@@ -112,7 +113,7 @@ export class ClassElement extends BaseModuleElement {
 		this._name = this._getName(context);
 	}
 
-	evaluateDiagnostics(): void {
+	evaluateDiagnostics() {
 		if (this.settings.doWarnOptionExplicitMissing && !this._hasOptionExplicit) {
 			const header = this.context.classModuleHeader();
 			const startLine = header.stop?.line ?? 0 + 1;
@@ -123,6 +124,7 @@ export class ClassElement extends BaseModuleElement {
 				)
 			));
 		}
+		return this.diagnostics
 	}
 
 	private _getName(context: ClassModuleContext) {
@@ -148,10 +150,11 @@ export class IgnoredAttributeElement extends BaseContextSyntaxElement implements
 		super(context, document);
 	}
 
-	evaluateDiagnostics(): void {
+	evaluateDiagnostics() {
 		this.diagnostics.push(
 			new IgnoredAttributeDiagnostic(this.range)
 		);
+		return this.diagnostics
 	}
 
 }

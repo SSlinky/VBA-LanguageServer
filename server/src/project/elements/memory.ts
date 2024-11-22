@@ -28,8 +28,8 @@ export abstract class ProcedureDeclarationElement extends ScopeElement {
 		super(context, document);
 	}
 
-	evaluateDiagnostics(): void {
-		return;
+	evaluateDiagnostics(): Diagnostic[] {
+		return [];
 	}
 
 	get name(): string {
@@ -132,8 +132,9 @@ export class PropertyDeclarationElement extends ProcedureDeclarationElement impl
 		);
 	}
 
-	evaluateDiagnostics(): void {
+	evaluateDiagnostics() {
 		this._evaluateDuplicateDeclarationsDiagnostics();
+		return this.diagnostics;
 	}
 
 	addPropertyDeclaration(context: ProcedureDeclarationContext, document: TextDocument) {
@@ -238,10 +239,11 @@ export class EnumDeclarationElement extends BaseEnumDeclarationElement implement
 		this.enumMembers = context.enumMemberList().enumElement().map(e => new EnumMemberDeclarationElement(e.enumMember()!, document))
 	}
 
-	evaluateDiagnostics(): void {
+	evaluateDiagnostics() {
 		if (this.isDeclaredAfterMethod) {
 			this.diagnostics.push(new ElementOutOfPlaceDiagnostic(this.range, 'Enum declaration'));
 		}
+		return this.diagnostics
 	}
 }
 
@@ -260,7 +262,9 @@ class EnumMemberDeclarationElement extends BaseEnumDeclarationElement {
 		this.identifier = new IdentifierElement(context.untypedName().ambiguousIdentifier()!, document);
 	}
 
-	evaluateDiagnostics(): void { }
+	evaluateDiagnostics(): Diagnostic[] {
+		return [];
+	}
 }
 
 abstract class BaseVariableDeclarationStatementElement extends BaseContextSyntaxElement implements DeclarationElement {
@@ -291,7 +295,9 @@ abstract class BaseVariableDeclarationStatementElement extends BaseContextSyntax
 	}
 
 	// Empty method so that implementation is optional.
-	evaluateDiagnostics(): void { }
+	evaluateDiagnostics(): Diagnostic[] {
+		return [];
+	}
 
 	isPropertyElement(): this is PropertyDeclarationElement {
 		return false;
@@ -369,7 +375,10 @@ export class TypeDeclarationElement  extends ScopeElement implements HasNamedSem
 			this.declaredNames.get(e.identifier.text)?.push(e);
 		}
 	}
-	evaluateDiagnostics(): void { }
+	
+	evaluateDiagnostics(): Diagnostic[] {
+		return [];
+	}
 }
 
 export class TypeMemberDeclarationElement extends BaseVariableDeclarationStatementElement {

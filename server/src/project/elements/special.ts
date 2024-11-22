@@ -32,7 +32,7 @@ export abstract class ScopeElement extends FoldableElement implements Declaratio
 		super(ctx, doc, foldingRangeKind);
 	}
 
-	abstract evaluateDiagnostics(): void;
+	abstract evaluateDiagnostics(): Diagnostic[];
 	abstract get name(): string;
 }
 
@@ -48,7 +48,7 @@ export abstract class IdentifiableScopeElement extends BaseContextSyntaxElement 
 	isPropertyElement(): this is PropertyDeclarationElement {
 		return 'getDeclarations' in this;
 	}
-	abstract evaluateDiagnostics(): void;
+	abstract evaluateDiagnostics(): Diagnostic[];
 	get name(): string {
 		return this.identifier.text;
 	}
