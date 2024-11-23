@@ -56,14 +56,32 @@ suite('Should get diagnostics', () => {
 		// Diagnostics are sorted by severity!
 		await testDiagnostics(getDocUri('Diagnostics.bas'), [
 			{
+				message: 'Module duplicate attribute VB_Name.',
+				range: toRange(2, 0, 2, 33),
+				severity: vscode.DiagnosticSeverity.Error,
+				source: 'ex'
+			},
+			{
+				message: 'Unknown attribute \'VB_Creatable\' will be ignored.',
+				range: toRange(3, 0, 3, 30),
+				severity: vscode.DiagnosticSeverity.Warning,
+				source: 'ex'
+			},
+			{
+				message: 'Unknown attribute \'VB_Foo\' will be ignored.',
+				range: toRange(4, 0, 4, 24),
+				severity: vscode.DiagnosticSeverity.Warning,
+				source: 'ex'
+			},
+			{
 				message: 'The Do...Loop statement provides a more structured and flexible way to perform looping.',
-				range: toRange(7, 4, 7, 8),
+				range: toRange(10, 4, 10, 8),
 				severity: vscode.DiagnosticSeverity.Information,
 				source: 'ex'
 			},
 			{
 				message: 'Unexpected duplicate operator.',
-				range: toRange(8, 15, 8, 16),
+				range: toRange(11, 15, 11, 16),
 				severity: vscode.DiagnosticSeverity.Error,
 				source: 'ex'
 			}

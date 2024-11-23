@@ -75,10 +75,9 @@ export class ShadowDeclarationDiagnostic extends BaseDiagnostic {
 
 // test
 export class IgnoredAttributeDiagnostic extends BaseDiagnostic {
-	message = "This attribute will be ignored.";
-	severity = DiagnosticSeverity.Information;
-	constructor(range: Range) {
-		super(range);
+	severity = DiagnosticSeverity.Warning;
+	constructor(range: Range, attributeName: string) {
+		super(range, `Unknown attribute '${attributeName}' will be ignored.`);
 	}
 }
 

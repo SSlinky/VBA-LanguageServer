@@ -1,11 +1,12 @@
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { Diagnostic, Range, SymbolInformation, SymbolKind } from 'vscode-languageserver';
-import { ClassModuleContext, IgnoredAttrContext, ProceduralModuleContext } from '../../antlr/out/vbaParser';
+import { ClassModuleContext, IgnoredClassAttrContext, IgnoredProceduralAttrContext, NameAttrContext, ProceduralModuleAttrContext, ProceduralModuleContext } from '../../antlr/out/vbaParser';
 import { BaseContextSyntaxElement, HasDiagnosticCapability, HasSymbolInformation } from './base';
 import { SymbolInformationFactory } from '../../capabilities/symbolInformation';
-import { IgnoredAttributeDiagnostic, MissingAttributeDiagnostic, MissingOptionExplicitDiagnostic } from '../../capabilities/diagnostics';
+import { DuplicateAttributeDiagnostic, IgnoredAttributeDiagnostic, MissingAttributeDiagnostic, MissingOptionExplicitDiagnostic } from '../../capabilities/diagnostics';
 import '../../extensions/stringExtensions';
 import { ScopeElement } from './special';
+import { contextToRange } from '../../utils/helpers';
 
 interface DocumentSettings {
 	doWarnOptionExplicitMissing: boolean;
@@ -89,17 +90,31 @@ export class ModuleElement extends BaseModuleElement {
 	}
 
 	private _getName(context: ProceduralModuleContext) {
-		const nameAttribute = context.proceduralModuleHeader()?.nameAttr();
-		const name = nameAttribute?.STRINGLITERAL().getText();
+		const attributes = context.proceduralModuleHeader().proceduralModuleAttr();
+		const nameAttributes = attributes.map(x => x.nameAttr()).filter(x => !!x)
 		
-		if (!name) {
+		// If we don't have any name attributes...
+		if (nameAttributes.length === 0) {
 			this.diagnostics.push(new MissingAttributeDiagnostic(
 				Range.create(this.range.start, this.range.start),
 				'VB_NAME'
 			));
+			return 'Unknown Module';
 		}
 
-		return name?.stripQuotes() ?? 'Unknown Module';
+		// Shift the first name attribute to use as the name.
+		const name = nameAttributes.shift()!.STRINGLITERAL().getText();
+
+		// Handle remaining name attributes, pushing each one to
+		// diagnostics because concat doesn't work here for some reason.
+		nameAttributes.map(e =>
+			new DuplicateAttributeDiagnostic(
+				contextToRange(this.document, e)!,
+				e.getText().split(' ')[1]
+			)).forEach(d => this.diagnostics.push(d));
+
+		// Return the name of the module.
+		return name.stripQuotes();
 	}
 }
 
@@ -147,13 +162,16 @@ export class ClassElement extends BaseModuleElement {
 export class IgnoredAttributeElement extends BaseContextSyntaxElement implements HasDiagnosticCapability {
 	diagnostics: Diagnostic[] = [];
 
-	constructor(context: IgnoredAttrContext, document: TextDocument) {
+	constructor(context: IgnoredClassAttrContext | IgnoredProceduralAttrContext, document: TextDocument) {
 		super(context, document);
 	}
 
 	evaluateDiagnostics() {
 		this.diagnostics.push(
-			new IgnoredAttributeDiagnostic(this.range)
+			new IgnoredAttributeDiagnostic(
+				this.range,
+				this.context.getText().split(' ')[1]
+			)
 		);
 		return this.diagnostics
 	}

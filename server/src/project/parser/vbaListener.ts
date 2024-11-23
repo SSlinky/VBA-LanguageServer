@@ -1,6 +1,6 @@
 import { ErrorNode, ParserRuleContext } from 'antlr4ng';
 import { vbaListener } from '../../antlr/out/vbaListener';
-import { AnyOperatorContext, ClassModuleContext, ConstItemContext, EnumDeclarationContext, IgnoredAttrContext, ProceduralModuleContext, ProcedureDeclarationContext, UdtDeclarationContext, WhileStatementContext } from '../../antlr/out/vbaParser';
+import { AnyOperatorContext, ClassModuleContext, ConstItemContext, EnumDeclarationContext, IgnoredAttrContext, IgnoredClassAttrContext, IgnoredProceduralAttrContext, ProceduralModuleContext, ProcedureDeclarationContext, UdtDeclarationContext, WhileStatementContext } from '../../antlr/out/vbaParser';
 
 import { BaseProjectDocument, DocumentSettings, VbaClassDocument, VbaModuleDocument } from '../document';
 
@@ -94,10 +94,11 @@ export class VbaListener extends vbaListener {
             .registerSymbolInformation(element);
     };
 
-    enterIgnoredAttr = (ctx: IgnoredAttrContext) => {
-        const element = new IgnoredAttributeElement(ctx, this.document.textDocument);
-        this.document.registerDiagnosticElement(element);
-    };
+    enterIgnoredClassAttr = (ctx: IgnoredClassAttrContext) => this.registerIgnoredAttribute(ctx);
+    enterIgnoredProceduralAttr = (ctx: IgnoredProceduralAttrContext) => this.registerIgnoredAttribute(ctx);
+    private registerIgnoredAttribute(ctx: IgnoredClassAttrContext | IgnoredProceduralAttrContext) {
+        this.document.registerDiagnosticElement(new IgnoredAttributeElement(ctx, this.document.textDocument))
+    }
 
     enterProceduralModule = (ctx: ProceduralModuleContext) => {
         const element = new ModuleElement(ctx, this.document.textDocument, this._documentSettings ?? { doWarnOptionExplicitMissing: true });

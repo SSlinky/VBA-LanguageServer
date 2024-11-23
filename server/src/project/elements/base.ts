@@ -5,6 +5,7 @@ import { FoldingRangeKind } from '../../capabilities/folding';
 import { IdentifierElement, PropertyDeclarationElement } from './memory';
 import '../../extensions/parserExtensions';
 import { IdentifiableScopeElement } from './special';
+import { contextToRange } from '../../utils/helpers';
 
 export interface ContextOptionalSyntaxElement {
 	range?: Range;
@@ -95,17 +96,8 @@ export abstract class BaseSyntaxElement implements ContextOptionalSyntaxElement 
 			&& isPositionBefore(this.range.end, range.end);
 	};
 
-	private _contextToRange(): Range | undefined {
-		if (!this.context) {
-			return;
-		}
-
-		const startIndex = this.context?.start?.start ?? 0;
-		const stopIndex = this.context.stop?.stop ?? startIndex;
-		return Range.create(
-			this.document.positionAt(startIndex),
-			this.document.positionAt(stopIndex + 1)
-		);
+	protected _contextToRange(): Range | undefined {
+		return contextToRange(this.document, this.context);
 	}
 }
 
