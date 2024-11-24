@@ -53,7 +53,7 @@ suite('Should get diagnostics', () => {
 	});
 
 	test('diagnostics.module.generalDiagnostics', async () => {
-		// Diagnostics are sorted by severity!
+		// Don't seem to be able to sort these. Good luck!
 		await testDiagnostics(getDocUri('Diagnostics.bas'), [
 			{
 				message: 'Module duplicate attribute VB_Name.',
@@ -82,6 +82,60 @@ suite('Should get diagnostics', () => {
 			{
 				message: 'Unexpected duplicate operator.',
 				range: toRange(11, 15, 11, 16),
+				severity: vscode.DiagnosticSeverity.Error,
+				source: 'ex'
+			},
+			{
+				message: 'Enum declarations cannot appear below a Sub, Function, or Property declaration.',
+				range: toRange(28, 7, 32, 8),
+				severity: vscode.DiagnosticSeverity.Error,
+				source: 'ex'
+			}
+		]);
+	});
+
+	test('diagnostics.class.generalDiagnostics', async () => {
+		// Don't seem to be able to sort these. Good luck!
+		await testDiagnostics(getDocUri('Diagnostics.cls'), [
+			{
+				message: 'Module duplicate attribute VB_GlobalNameSpace.',
+				range: toRange(8, 0, 8, 36),
+				severity: vscode.DiagnosticSeverity.Error,
+				source: 'ex'
+			},
+			{
+				message: 'Module duplicate attribute VB_Exxposed.',
+				range: toRange(13, 0, 13, 29),
+				severity: vscode.DiagnosticSeverity.Error,
+				source: 'ex'
+			},
+			{
+				message: 'Unknown attribute \'VB_Exxposed\' will be ignored.',
+				range: toRange(12, 0, 12, 29),
+				severity: vscode.DiagnosticSeverity.Warning,
+				source: 'ex'
+			},
+			{
+				message: 'Unknown attribute \'VB_Exxposed\' will be ignored.',
+				range: toRange(13, 0, 13, 29),
+				severity: vscode.DiagnosticSeverity.Warning,
+				source: 'ex'
+			},
+			{
+				message: 'The Do...Loop statement provides a more structured and flexible way to perform looping.',
+				range: toRange(19, 4, 19, 8),
+				severity: vscode.DiagnosticSeverity.Information,
+				source: 'ex'
+			},
+			{
+				message: 'Unexpected duplicate operator.',
+				range: toRange(20, 15, 20, 16),
+				severity: vscode.DiagnosticSeverity.Error,
+				source: 'ex'
+			},
+			{
+				message: 'Enum declarations cannot appear below a Sub, Function, or Property declaration.',
+				range: toRange(37, 7, 41, 8),
 				severity: vscode.DiagnosticSeverity.Error,
 				source: 'ex'
 			}
