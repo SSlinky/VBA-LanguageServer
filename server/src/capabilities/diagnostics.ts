@@ -47,7 +47,6 @@ export class MissingAttributeDiagnostic extends BaseDiagnostic {
 	}
 }
 
-// test
 export class DuplicateAttributeDiagnostic extends BaseDiagnostic {
 	severity = DiagnosticSeverity.Error;
 	constructor(range: Range, attributeName: string) {
@@ -73,7 +72,6 @@ export class ShadowDeclarationDiagnostic extends BaseDiagnostic {
 	}
 }
 
-// test
 export class IgnoredAttributeDiagnostic extends BaseDiagnostic {
 	severity = DiagnosticSeverity.Warning;
 	constructor(range: Range, attributeName: string) {
@@ -89,7 +87,6 @@ export class MissingOptionExplicitDiagnostic extends BaseDiagnostic {
 	}
 }
 
-// test
 export class ElementOutOfPlaceDiagnostic extends BaseDiagnostic {
 	severity = DiagnosticSeverity.Error;
 	constructor(range: Range, elementName: string) {

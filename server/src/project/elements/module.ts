@@ -1,12 +1,13 @@
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { Diagnostic, Range, SymbolInformation, SymbolKind } from 'vscode-languageserver';
-import { ClassModuleContext, IgnoredClassAttrContext, IgnoredProceduralAttrContext, NameAttrContext, ProceduralModuleAttrContext, ProceduralModuleContext } from '../../antlr/out/vbaParser';
+import { ClassModuleContext, IgnoredClassAttrContext, IgnoredProceduralAttrContext, ProceduralModuleContext } from '../../antlr/out/vbaParser';
 import { BaseContextSyntaxElement, HasDiagnosticCapability, HasSymbolInformation } from './base';
 import { SymbolInformationFactory } from '../../capabilities/symbolInformation';
 import { DuplicateAttributeDiagnostic, IgnoredAttributeDiagnostic, MissingAttributeDiagnostic, MissingOptionExplicitDiagnostic } from '../../capabilities/diagnostics';
 import '../../extensions/stringExtensions';
 import { ScopeElement } from './special';
 import { contextToRange } from '../../utils/helpers';
+import { ParserRuleContext } from 'antlr4ng';
 
 interface DocumentSettings {
 	doWarnOptionExplicitMissing: boolean;
@@ -60,6 +61,20 @@ abstract class BaseModuleElement extends ScopeElement implements HasSymbolInform
 		return false;
 	}
 
+	protected _duplicateAttributes(attrs: ParserRuleContext[]) {
+		const catalogue = new Map<string, null>();
+		const result: ParserRuleContext[] = [];
+		attrs.forEach(attr => {
+			const attrName = getAttributeName(attr);
+			if (catalogue.has(attrName)) {
+				result.push(attr)
+			} else {
+				catalogue.set(attrName, null);
+			}
+		})
+		return result;
+	}
+
 	private _isClassModule(context: ProceduralModuleContext | ClassModuleContext): context is ClassModuleContext {
 		return 'classModuleHeader' in context;
 	} 
@@ -67,15 +82,26 @@ abstract class BaseModuleElement extends ScopeElement implements HasSymbolInform
 
 export class ModuleElement extends BaseModuleElement {
 	context: ProceduralModuleContext;
+	attrubutes: ParserRuleContext[];
 	protected _name: string;
 
 	constructor(context: ProceduralModuleContext, document: TextDocument, documentSettings: DocumentSettings) {
 		super(context, document, SymbolKind.File, documentSettings);
 		this.context = context;
+		this.attrubutes = context.proceduralModuleHeader().proceduralModuleAttr();
 		this._name = this._getName(context);
 	}
 
 	evaluateDiagnostics() {
+		// Diagnose duplicate attributes.
+		this._duplicateAttributes(this.attrubutes).forEach(attr =>
+			this.diagnostics.push(new DuplicateAttributeDiagnostic(
+				contextToRange(this.document, attr)!,
+				getAttributeName(attr)
+			))
+		);
+
+		// Diagnose option explicit is missing.
 		if (this.settings.doWarnOptionExplicitMissing && !this._hasOptionExplicit) {
 			const header = this.context.proceduralModuleHeader();
 			const startLine = header.stop?.line ?? 0 + 1;
@@ -86,6 +112,7 @@ export class ModuleElement extends BaseModuleElement {
 				)
 			));
 		}
+
 		return this.diagnostics;
 	}
 
@@ -102,33 +129,38 @@ export class ModuleElement extends BaseModuleElement {
 			return 'Unknown Module';
 		}
 
-		// Shift the first name attribute to use as the name.
-		const name = nameAttributes.shift()!.STRINGLITERAL().getText();
-
-		// Handle remaining name attributes, pushing each one to
-		// diagnostics because concat doesn't work here for some reason.
-		nameAttributes.map(e =>
-			new DuplicateAttributeDiagnostic(
-				contextToRange(this.document, e)!,
-				e.getText().split(' ')[1]
-			)).forEach(d => this.diagnostics.push(d));
-
-		// Return the name of the module.
+		// Get the name from the name attribute.
+		const name = nameAttributes[0].STRINGLITERAL().getText();
 		return name.stripQuotes();
 	}
 }
 
 export class ClassElement extends BaseModuleElement {
 	context: ClassModuleContext;
+	attrubutes: ParserRuleContext[];
 	protected _name: string;
 
 	constructor(context: ClassModuleContext, document: TextDocument, documentSettings: DocumentSettings) {
 		super(context, document, SymbolKind.Class, documentSettings);
 		this.context = context;
+		this.attrubutes = [
+			context.classModuleHeader().nameAttr(),
+			context.classModuleHeader().classAttr(),
+			context.classModuleHeader().ignoredClassAttr()
+		].flat();
 		this._name = this._getName(context);
 	}
 
 	evaluateDiagnostics() {
+		// Diagnose duplicate attributes.
+		this._duplicateAttributes(this.attrubutes).forEach(attr =>
+			this.diagnostics.push(new DuplicateAttributeDiagnostic(
+				contextToRange(this.document, attr)!,
+				getAttributeName(attr)
+			))
+		);
+
+		// Diagnose option explicit is missing.
 		if (this.settings.doWarnOptionExplicitMissing && !this._hasOptionExplicit) {
 			const header = this.context.classModuleHeader();
 			const startLine = header.stop?.line ?? 0 + 1;
@@ -176,6 +208,10 @@ export class IgnoredAttributeElement extends BaseContextSyntaxElement implements
 		return this.diagnostics
 	}
 
+}
+
+function getAttributeName(e: ParserRuleContext): string {
+	return e.getText().split(' ')[1]
 }
 
 
