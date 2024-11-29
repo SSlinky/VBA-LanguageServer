@@ -1,50 +1,54 @@
-import { DeclarationElement } from './elements/base';
+import { DuplicateDeclarationDiagnostic, ShadowDeclarationDiagnostic } from '../capabilities/diagnostics';
+import { NamedSyntaxElement } from './elements/base';
 
 
-interface IScope {
-	children: IScope[];
-	declaredNames: Map<string, DeclarationElement[]>;
-	pushDeclaredName(element: DeclarationElement): void
-	findDeclaration(identifier: string): DeclarationElement | undefined;
-}
+export class NamespaceManager {
+	private _names: Map<string, NamedSyntaxElement> = new Map();
+	private _scopeStack: {namespace: NamedSyntaxElement, names: Map<string, NamedSyntaxElement> }[] = [];
 
-abstract class BaseScope implements IScope {
-	children: IScope[] = [];
-	parentScope?: IScope;
-	declaredNames: Map<string, DeclarationElement[]> = new Map();
+	/**
+	 * Begins tracking a namespace item against a namespace.
+	 * @returns A diagnostic if the item has already been declared in this space.
+	 */
+	addNameItem = (item: NamedSyntaxElement): void => {
+		// Check current scope for duplicate declaration.
+		if (this._scopeStack.at(-1)?.names.has(item.name)) {
+			item.diagnostics.push(new DuplicateDeclarationDiagnostic(item.range));
+			return;
+		}
+		this._scopeStack.at(-1)?.names.set(item.name, item);
 
-	abstract findDeclaration(identifier: string): DeclarationElement | undefined;
-
-	pushDeclaredName(element: DeclarationElement): void {
-		const name = element.name;
-		const names: DeclarationElement[] = this.declaredNames.get(name) ?? [];
-		names.push(element);
-		this.declaredNames.set(name, names);
-	}
-}
-
-export class Scope extends BaseScope {
-	parentScope: Scope | GlobalScope;
-
-	constructor(parent: Scope | GlobalScope) {
-		super();
-		this.parentScope = parent;
+		// Check higher scopes for shadowed declarations
+		if (this._names.has(item.name)) {
+			item.diagnostics.push(new ShadowDeclarationDiagnostic(item.range));
+			return;
+		}
+		this._names.set(item.name, item);
 	}
 
 	/**
-	 * Recursively searches for the related declaration.
-	 * @param identifier the name of the identifiable element.
-	 * @returns a declaration element if found.
+	 * Adds a namespace to the stack and tracks names.
+	 * @param scope The namespace to add.
 	 */
-	findDeclaration = (identifier: string): DeclarationElement | undefined =>
-		this.declaredNames.get(identifier)?.at(0) ?? this.parentScope?.findDeclaration(identifier);
-}
-
-export class GlobalScope extends BaseScope {
-	constructor() {
-		super();
+	addNamespace = (scope: NamedSyntaxElement) => {
+		this.addNameItem(scope); // a namespace is also a name
+		this._scopeStack.push({namespace: scope, names: new Map()});
 	}
 
-	findDeclaration = (identifier: string) =>
-		this.declaredNames.get(identifier)?.at(0);
+	/**
+	 * Removes the namespace and all names associated with it.
+	 */
+	popNamespace = (): void => {
+		const ns = this._scopeStack.pop();
+
+		// Remove the items in the current scope if they are not public.
+		ns?.names.forEach((_, x) => {
+			if (!(this._names.get(x)?.isPublic ?? true)) { this._names.delete(x); }
+		});
+
+		// Remove the current scope.
+		if (ns && !ns.namespace.isPublic && this._names.has(ns.namespace.name)) {
+			this._names.delete(ns.namespace.name);
+		}
+	}
 }

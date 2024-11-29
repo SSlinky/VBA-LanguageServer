@@ -4,7 +4,6 @@ import { Position, TextDocument } from 'vscode-languageserver-textdocument';
 import { FoldingRangeKind } from '../../capabilities/folding';
 import { IdentifierElement, PropertyDeclarationElement } from './memory';
 import '../../extensions/parserExtensions';
-import { IdentifiableScopeElement } from './special';
 import { contextToRange } from '../../utils/helpers';
 
 export interface ContextOptionalSyntaxElement {
@@ -27,8 +26,9 @@ export interface HasDiagnosticCapability {
 	evaluateDiagnostics(): Diagnostic[];
 }
 
-export interface NamedSyntaxElement extends SyntaxElement {
+export interface NamedSyntaxElement extends SyntaxElement, HasDiagnosticCapability {
 	get name(): string;
+	get isPublic(): boolean;
 }
 
 export interface IdentifiableSyntaxElement extends NamedSyntaxElement {

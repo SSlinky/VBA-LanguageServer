@@ -9,7 +9,6 @@ import { SymbolInformationFactory } from '../../capabilities/symbolInformation';
 import '../../extensions/parserExtensions';
 import { DuplicateDeclarationDiagnostic, ElementOutOfPlaceDiagnostic } from '../../capabilities/diagnostics';
 import { ScopeElement } from './special';
-import { Scope } from '../scope';
 import { ParserRuleContext } from 'antlr4ng';
 
 
@@ -54,15 +53,15 @@ export abstract class ProcedureDeclarationElement extends ScopeElement {
 		// Check if we already have a property with this name.
 		const propertyDeclaration = new PropertyDeclarationElement(context, document.textDocument);
 		const identifierText = propertyDeclaration.identifier.text;
-		const predeclaredElements = document.currentScopeElement?.declaredNames.get(identifierText) ?? [];
+		// const predeclaredElements = document.currentScopeElement?.declaredNames.get(identifierText) ?? [];
 
 		// Add to an existing property rather than creating.
-		for (const element of predeclaredElements) {
-			if (element.isPropertyElement() && element.identifier.text === identifierText) {
-				element.addPropertyDeclaration(context, document.textDocument);
-				return element;
-			}
-		}
+		// for (const element of predeclaredElements) {
+		// 	if (element.isPropertyElement() && element.identifier.text === identifierText) {
+		// 		element.addPropertyDeclaration(context, document.textDocument);
+		// 		return element;
+		// 	}
+		// }
 
 		// Return a new property.
 		return propertyDeclaration;
@@ -230,13 +229,16 @@ export class EnumDeclarationElement extends BaseEnumDeclarationElement implement
 		);
 	}
 
-	constructor(context: EnumDeclarationContext, document: TextDocument, isDeclaredAfterMethod: boolean, scope?: Scope) {
+	constructor(context: EnumDeclarationContext, document: TextDocument, isDeclaredAfterMethod: boolean) {
 		super(context, document);
 		// this.scope = scope;
 		this.tokenType = SemanticTokenTypes.enum;
 		this.isDeclaredAfterMethod = isDeclaredAfterMethod;
 		this.identifier = new IdentifierElement(context.untypedName().ambiguousIdentifier()!, document);
-		this.enumMembers = context.enumMemberList().enumElement().map(e => new EnumMemberDeclarationElement(e.enumMember()!, document))
+		this.enumMembers = context.enumMemberList().enumElement().map(e => {
+			const member = e.enumMember()!;
+			return new EnumMemberDeclarationElement(member, document);
+		} )
 	}
 
 	evaluateDiagnostics() {
@@ -263,7 +265,7 @@ class EnumMemberDeclarationElement extends BaseEnumDeclarationElement {
 	}
 
 	evaluateDiagnostics(): Diagnostic[] {
-		return [];
+		return this.diagnostics
 	}
 }
 

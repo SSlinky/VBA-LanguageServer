@@ -1,14 +1,12 @@
-import { CancellationToken, Diagnostic, DocumentDiagnosticReport, DocumentDiagnosticReportKind, PublishDiagnosticsParams, SymbolInformation, SymbolKind } from 'vscode-languageserver';
+import { CancellationToken, Diagnostic, DocumentDiagnosticReport, DocumentDiagnosticReportKind, SymbolInformation, SymbolKind } from 'vscode-languageserver';
 import { Workspace } from './workspace';
-import { FoldableElement, IdentifiableScopeElement } from './elements/special';
-import { BaseContextSyntaxElement, DeclarationElement, HasDiagnosticCapability, HasNamedSemanticToken, HasSemanticToken, HasSymbolInformation, IdentifiableSyntaxElement } from './elements/base';
+import { FoldableElement } from './elements/special';
+import { BaseContextSyntaxElement, HasDiagnosticCapability, HasNamedSemanticToken, HasSemanticToken, HasSymbolInformation, NamedSyntaxElement } from './elements/base';
 import { Range, TextDocument } from 'vscode-languageserver-textdocument';
 import { SyntaxParser } from './parser/vbaParser';
 import { FoldingRange } from '../capabilities/folding';
 import { SemanticTokensManager } from '../capabilities/semanticTokens';
 import { ParseCancellationException } from 'antlr4ng';
-import { Scope } from './scope';
-import { DuplicateDeclarationDiagnostic, ShadowDeclarationDiagnostic } from '../capabilities/diagnostics';
 
 export interface DocumentSettings {
 	maxDocumentLines: number;
@@ -28,19 +26,15 @@ export abstract class BaseProjectDocument {
 	
 	protected _hasDiagnosticElements: HasDiagnosticCapability[] = [];
 	protected _unhandledNamedElements: [] = [];
-	// protected _publicScopeDeclarations: Map<string, any> = new Map();
 	protected _documentScopeDeclarations: Map<string, Map<string, any>> = new Map();
 	
 	protected _diagnostics: Diagnostic[] = [];
-	protected _elementParents: Scope[] = [];
-	// protected _attributeElements: HasAttribute[] = [];
 	protected _foldableElements: FoldingRange[] = [];
 	protected _symbolInformations: SymbolInformation[] = [];
 	protected _semanticTokens: SemanticTokensManager = new SemanticTokensManager();
 	protected _redactedElements: BaseContextSyntaxElement[] = [];
 	
 	protected _isBusy = true;
-	// protected _hasParseResult = false;
 	abstract symbolKind: SymbolKind
 
 	get isBusy() {
@@ -54,25 +48,8 @@ export abstract class BaseProjectDocument {
 		)();
 	}
 
-	// get hasParseResult() {
-	// 	return this._hasParseResult;
-	// }
-
 	get redactedText() {
 		return this._subtractTextFromRanges(this._redactedElements.map(x => x.range));
-	}
-
-	get currentScopeElement() {
-		return this._elementParents.at(-1) ?? this.workspace.globalScope;
-	}
-
-	get moduleScope() {
-		const scope = this._elementParents.at(0);
-		if (!scope) {
-			throw new Error("Expected module scope!");
-		}
-
-		return scope;
 	}
 
 	async getDocumentConfiguration(): Promise<DocumentSettings> {
@@ -103,10 +80,6 @@ export abstract class BaseProjectDocument {
 	}
 
 	clearDocumentConfiguration = () => this._documentConfiguration = undefined;
-	
-	// get activeAttributeElement() {
-	// 	return this._attributeElements?.at(-1);
-	// }
 
 	constructor(workspace: Workspace, name: string, document: TextDocument) {
 		this.textDocument = document;
@@ -186,23 +159,18 @@ export abstract class BaseProjectDocument {
 		this._isBusy = false;
 	};
 
-	registerNamedElementDeclaration(element: IdentifiableScopeElement) {
-		const scope = element.isPublic ? this.workspace.globalScope : this.currentScopeElement;
+	registerNamedElementDeclaration(element: NamedSyntaxElement) {
+		this.workspace.namespaceManager.addNameItem(element);
+		return this;
+	}
 
-		// Check for duplicate declarations
-		if (!!scope.declaredNames.has(element.name)) {
-			element.diagnostics.push(new DuplicateDeclarationDiagnostic(element.identifier.range))
-		}
+	registerNamespaceElement(element: NamedSyntaxElement) {
+		this.workspace.namespaceManager.addNamespace(element);
+		return this;
+	}
 
-		// Check for variable shadowing.
-		// TODO: This doesn't work for vars declared at a higher level AFTER the lower level.
-		// e.g.: Private Const FOO
-		//		 Public Const FOO
-		if (!!scope.parentScope?.findDeclaration(element.name)) {
-			element.diagnostics.push(new ShadowDeclarationDiagnostic(element.identifier.range))
-		}
-		
-		scope.pushDeclaredName(element);
+	deregisterScopedElement() {
+		this.workspace.namespaceManager.popNamespace();
 		return this;
 	}
 
@@ -235,43 +203,6 @@ export abstract class BaseProjectDocument {
 
 	registerFoldableElement = (element: FoldableElement) => {
 		this._foldableElements.push(new FoldingRange(element));
-		return this;
-	};
-
-	registerPublicNamedElement(element: DeclarationElement) {
-		this.workspace.globalScope.pushDeclaredName(element);
-		return this;
-	}
-
-	registerNamedElement(element: DeclarationElement) {
-		this.currentScopeElement?.pushDeclaredName(element);
-		return this;
-	}
-
-	/**
-	 * Registers scope as a parent to be attached to subsequent elemements.
-	 * Should be called when the parser context is entered and matched with
-	 * deregisterScope when the context exits.
-	 * @param scope the element to register.
-	 * @returns the registered scope.
-	 */
-	registerScope(): Scope {
-		const parent = this.currentScopeElement;
-		const scope = new Scope(parent);
-		
-		parent.children.push(scope)
-		this._elementParents.push(scope);
-		return scope;
-	}
-
-	/**
-	 * Deregisters a scope as a parent so it isn't attached to subsequent elemements.
-	 * Should be called when the parser context is exited and matched with
-	 * registerScope when the context is entered.
-	 * @returns this for chaining.
-	 */
-	deregisterScope = () => {
-		this._elementParents.pop();
 		return this;
 	};
 

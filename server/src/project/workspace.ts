@@ -4,7 +4,7 @@ import { LanguageServerConfiguration } from '../server';
 import { hasConfigurationCapability } from '../capabilities/workspaceFolder';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { sleep } from '../utils/helpers';
-import { GlobalScope } from './scope';
+import { NamespaceManager } from './scope';
 
 
 /**
@@ -13,10 +13,9 @@ import { GlobalScope } from './scope';
  */
 export class Workspace {
 	private _events: WorkspaceEvents;
-	private _globalScope: GlobalScope;
+	private _nsManager: NamespaceManager = new NamespaceManager();
 	private _documents: BaseProjectDocument[] = [];
 	private _activeDocument?: BaseProjectDocument;
-	private _publicScopeDeclarations: Map<string, any> = new Map();
 	private _parseCancellationTokenSource?: CancellationTokenSource;
 	private readonly _hasConfigurationCapability: boolean;
 
@@ -30,12 +29,11 @@ export class Workspace {
 		return this._activeDocument;
 	}
 
-	get globalScope() {
-		return this._globalScope;
+	get namespaceManager() {
+		return this._nsManager;
 	}
 
 	constructor(params: {connection: _Connection, capabilities: LanguageServerConfiguration}) {
-		this._globalScope = new GlobalScope();
 		this.connection = params.connection;
 		this._hasConfigurationCapability = hasConfigurationCapability(params.capabilities);
 		this._events = new WorkspaceEvents({

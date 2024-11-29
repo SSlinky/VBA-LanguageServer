@@ -1,14 +1,14 @@
 import { ErrorNode, ParserRuleContext } from 'antlr4ng';
 import { vbaListener } from '../../antlr/out/vbaListener';
-import { AnyOperatorContext, ClassModuleContext, ConstItemContext, EnumDeclarationContext, IgnoredAttrContext, IgnoredClassAttrContext, IgnoredProceduralAttrContext, ProceduralModuleContext, ProcedureDeclarationContext, UdtDeclarationContext, WhileStatementContext } from '../../antlr/out/vbaParser';
+import { vbapreListener } from '../../antlr/out/vbapreListener';
+import { AnyOperatorContext, ClassModuleContext, ConstItemContext, EnumDeclarationContext, IgnoredClassAttrContext, IgnoredProceduralAttrContext, ProceduralModuleContext, ProcedureDeclarationContext, UdtDeclarationContext, WhileStatementContext } from '../../antlr/out/vbaParser';
+import { CompilerConditionalStatementContext, CompilerElseStatementContext, CompilerEndIfStatementContext, CompilerIfBlockContext} from '../../antlr/out/vbapreParser';
 
 import { BaseProjectDocument, DocumentSettings, VbaClassDocument, VbaModuleDocument } from '../document';
 
 import { DuplicateOperatorElement, WhileLoopElement } from '../elements/flow';
-import { ClassElement, IgnoredAttributeElement, ModuleElement } from '../elements/module';
 import { ConstDeclarationElement, EnumDeclarationElement, TypeDeclarationElement } from '../elements/memory';
-import { vbapreListener } from '../../antlr/out/vbapreListener';
-import { CompilerConditionalStatementContext, CompilerElseStatementContext, CompilerEndIfStatementContext, CompilerIfBlockContext} from '../../antlr/out/vbapreParser';
+import { ClassElement, IgnoredAttributeElement, ModuleElement } from '../elements/module';
 import { CompilerIfBlockElement, InactiveLineElement } from '../elements/special';
 
 
@@ -62,36 +62,38 @@ export class VbaListener extends vbaListener {
     enterEnumDeclaration = (ctx: EnumDeclarationContext) => {
         const element = new EnumDeclarationElement(ctx, this.document.textDocument, this._isAfterMethodDeclaration);
         this.document.registerFoldableElement(element)
-            // .registerScopedElement(element)
             .registerSemanticToken(element)
+            .registerNamespaceElement(element)
             .registerSymbolInformation(element)
             .registerDiagnosticElement(element);
-        element.declaredNames.forEach(names =>
-            names.forEach(name => this.document
-                .registerSemanticToken(name)
-                .registerSymbolInformation(name))
+        element.enumMembers.forEach(member => this.document
+                .registerSemanticToken(member)
+                .registerSymbolInformation(member)
+                .registerDiagnosticElement(member)
+                .registerNamedElementDeclaration(member)
         );
     };
 
-    // exitEnumDeclaration = (_: EnumDeclarationContext) => {
-    //     this.document.deregisterScopedElement();
-    // };
+    exitEnumDeclaration = (_: EnumDeclarationContext) =>
+        this.document.deregisterScopedElement();
 
     enterClassModule = (ctx: ClassModuleContext) => {
         const element = new ClassElement(ctx, this.document.textDocument, this._documentSettings ?? { doWarnOptionExplicitMissing: true });
         this.document.registerSymbolInformation(element)
             .registerDiagnosticElement(element)
-            // .registerScopedElement(element);
+            .registerNamespaceElement(element)
+            .registerFoldableElement(element);
     };
 
-    // exitClassModule = (ctx: ClassModuleContext) => {
-    //     this.document.deregisterScopedElement();
-    // };
+    exitClassModule = (ctx: ClassModuleContext) => {
+        this.document.deregisterScopedElement();
+    };
 
     enterConstItem = (ctx: ConstItemContext) => {
         const element = new ConstDeclarationElement(ctx, this.document.textDocument);
         this.document.registerSemanticToken(element)
-            .registerSymbolInformation(element);
+            .registerSymbolInformation(element)
+            .registerNamedElementDeclaration(element);
     };
 
     enterIgnoredClassAttr = (ctx: IgnoredClassAttrContext) => this.registerIgnoredAttribute(ctx);
@@ -103,25 +105,13 @@ export class VbaListener extends vbaListener {
     enterProceduralModule = (ctx: ProceduralModuleContext) => {
         const element = new ModuleElement(ctx, this.document.textDocument, this._documentSettings ?? { doWarnOptionExplicitMissing: true });
         this.document.registerSymbolInformation(element)
-            .registerDiagnosticElement(element)
-            // .registerScopedElement(element);
+            .registerFoldableElement(element)
+            .registerNamespaceElement(element)
     };
 
-    // exitProceduralModule = (ctx: ProceduralModuleContext) => {
-    //     this.document.deregisterScopedElement();
-    // };
-
-    // enterProcedureDeclaration = (ctx: ProcedureDeclarationContext) => {
-    //     const element = DeclarationElement.create(ctx, this.document);
-    //     this.document.registerSymbolInformation(element)
-    //         .registerFoldableElement(element)
-    //         .registerScopedElement(element);
-
-    //     if (element.isPropertyElement() && element.countDeclarations === 1) {
-    //         this.document.registerDiagnosticElement(element)
-    //             .registerNamedElement(element);
-    //     }
-    // };
+    exitProceduralModule = (ctx: ProceduralModuleContext) => {
+        this.document.deregisterScopedElement();
+    };
 
     exitProcedureDeclaration = (ctx: ProcedureDeclarationContext) => {
         this._isAfterMethodDeclaration = true;

@@ -1,13 +1,17 @@
-import { TextDocument } from 'vscode-languageserver-textdocument';
 import { Diagnostic, Range, SymbolInformation, SymbolKind } from 'vscode-languageserver';
+import { TextDocument } from 'vscode-languageserver-textdocument';
+
+import { ParserRuleContext } from 'antlr4ng';
 import { ClassModuleContext, IgnoredClassAttrContext, IgnoredProceduralAttrContext, ProceduralModuleContext } from '../../antlr/out/vbaParser';
+
 import { BaseContextSyntaxElement, HasDiagnosticCapability, HasSymbolInformation } from './base';
+import { ScopeElement } from './special';
+
 import { SymbolInformationFactory } from '../../capabilities/symbolInformation';
 import { DuplicateAttributeDiagnostic, IgnoredAttributeDiagnostic, MissingAttributeDiagnostic, MissingOptionExplicitDiagnostic } from '../../capabilities/diagnostics';
+
 import '../../extensions/stringExtensions';
-import { ScopeElement } from './special';
 import { contextToRange } from '../../utils/helpers';
-import { ParserRuleContext } from 'antlr4ng';
 
 interface DocumentSettings {
 	doWarnOptionExplicitMissing: boolean;
@@ -19,6 +23,7 @@ abstract class BaseModuleElement extends ScopeElement implements HasSymbolInform
 	diagnostics: Diagnostic[] = [];
 	context: ProceduralModuleContext | ClassModuleContext;
 	settings: DocumentSettings;
+	isPublic = true;
 
 	constructor(context: ProceduralModuleContext | ClassModuleContext, document: TextDocument, symbolKind: SymbolKind, documentSettings: DocumentSettings) {
 		super(context, document);
@@ -155,7 +160,7 @@ export class ClassElement extends BaseModuleElement {
 		// Diagnose duplicate attributes.
 		this._duplicateAttributes(this.attrubutes).forEach(attr =>
 			this.diagnostics.push(new DuplicateAttributeDiagnostic(
-				contextToRange(this.document, attr)!,
+				attr.toRange(this.document),
 				getAttributeName(attr)
 			))
 		);
