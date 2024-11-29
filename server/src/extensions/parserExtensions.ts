@@ -1,24 +1,25 @@
-import { Range, SymbolKind } from 'vscode-languageserver';
+import { ParserRuleContext } from 'antlr4ng';
+import { Range } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
-// import { ParserRuleContext } from 'antlr4ts';
 
-// This extension throws a compiler error TS2693: 'ParserRuleContext' only refers to a type, but is being used as a value here.
-// Can maybe review later down the track, but for now have just made it a private method on BaseSyntaxElement.
-// declare module 'antlr4ts' {
-//    export interface ParserRuleContext {
-//       toRange(document: TextDocument): Range;
-//    }
-// }
+declare module 'antlr4ng' {
+	interface ParserRuleContext {
+		toRange(doc: TextDocument): Range;
+	}
+}
 
-// ParserRuleContext.prototype.toRange = function (document: TextDocument): Range {
-//    const startIndex = this.start.startIndex;
-//    const stopIndex = this.stop?.stopIndex ?? startIndex;
-//    return Range.create(
-//       document.positionAt(startIndex),
-//       document.positionAt(stopIndex)
-//    );
-// };
 
+/**
+ * Convert the context to a range.
+ */
+ParserRuleContext.prototype.toRange = function (doc: TextDocument): Range {
+	const startIndex = this.start?.start ?? 0;
+	const stopIndex = this.stop?.stop ?? startIndex;
+	return Range.create(
+		doc.positionAt(startIndex),
+		doc.positionAt(stopIndex + 1)
+	);
+};
 
 // declare module '../antlr/out/vbaParser' {
 // 	export interface BaseTypeContext {
