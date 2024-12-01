@@ -1,13 +1,13 @@
 import { ErrorNode, ParserRuleContext } from 'antlr4ng';
 import { vbaListener } from '../../antlr/out/vbaListener';
 import { vbapreListener } from '../../antlr/out/vbapreListener';
-import { AnyOperatorContext, ClassModuleContext, ConstItemContext, EnumDeclarationContext, IgnoredClassAttrContext, IgnoredProceduralAttrContext, ProceduralModuleContext, ProcedureDeclarationContext, UdtDeclarationContext, WhileStatementContext } from '../../antlr/out/vbaParser';
+import { AnyOperatorContext, ClassModuleContext, ConstItemContext, EnumDeclarationContext, IgnoredClassAttrContext, IgnoredProceduralAttrContext, ProceduralModuleContext, ProcedureDeclarationContext, PropertyGetDeclarationContext, PropertySetDeclarationContext, UdtDeclarationContext, WhileStatementContext } from '../../antlr/out/vbaParser';
 import { CompilerConditionalStatementContext, CompilerElseStatementContext, CompilerEndIfStatementContext, CompilerIfBlockContext} from '../../antlr/out/vbapreParser';
 
 import { BaseProjectDocument, DocumentSettings, VbaClassDocument, VbaModuleDocument } from '../document';
 
 import { DuplicateOperatorElement, WhileLoopElement } from '../elements/flow';
-import { ConstDeclarationElement, EnumDeclarationElement, TypeDeclarationElement } from '../elements/memory';
+import { ConstDeclarationElement, EnumDeclarationElement, NewPropertyGetDeclarationElement, NewPropertyLetDeclarationElement, NewPropertySetDeclarationElement, TypeDeclarationElement } from '../elements/memory';
 import { ClassElement, IgnoredAttributeElement, ModuleElement } from '../elements/module';
 import { CompilerIfBlockElement, InactiveLineElement } from '../elements/special';
 
@@ -117,6 +117,37 @@ export class VbaListener extends vbaListener {
         this._isAfterMethodDeclaration = true;
         // this.document.deregisterScopedElement();
     };
+
+    enterPropertyGetDeclaration = (ctx: PropertyGetDeclarationContext) => {
+        const element = new NewPropertyGetDeclarationElement(ctx, this.document.textDocument);
+        this.document.registerNamespaceElement(element)
+            .registerPropertyElementDeclaration(element)
+            .registerDiagnosticElement(element);
+    };
+
+    enterPropertySetDeclaration = (ctx: PropertySetDeclarationContext) => {
+        const element = new NewPropertySetDeclarationElement(ctx, this.document.textDocument);
+        this.document.registerNamespaceElement(element)
+            .registerPropertyElementDeclaration(element)
+            .registerDiagnosticElement(element);
+    };
+
+    enterPropertyLetDeclaration = (ctx: PropertySetDeclarationContext) => {
+        const element = new NewPropertyLetDeclarationElement(ctx, this.document.textDocument);
+        this.document.registerNamespaceElement(element)
+            .registerPropertyElementDeclaration(element)
+            .registerDiagnosticElement(element);
+    };
+
+    exitPropertyGetDeclaration = (_: PropertyGetDeclarationContext) =>
+        this.document.deregisterScopedElement();
+
+    exitPropertySetDeclaration = (_: PropertySetDeclarationContext) =>
+        this.document.deregisterScopedElement();
+
+    exitPropertyLetDeclaration = (_: PropertySetDeclarationContext) =>
+        this.document.deregisterScopedElement();
+    
 
     enterUdtDeclaration = (ctx: UdtDeclarationContext) => {
         const element = new TypeDeclarationElement(ctx, this.document.textDocument);

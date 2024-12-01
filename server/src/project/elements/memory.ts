@@ -168,6 +168,87 @@ export class PropertyDeclarationElement extends ProcedureDeclarationElement impl
 	}
 }
 
+export class NewPropertyDeclarationElement implements HasDiagnosticCapability {
+	identifier: IdentifierElement;
+	diagnostics: Diagnostic[] = [];
+
+	getters: PropertyGetDeclarationElement[] = [];
+	setters: PropertySetDeclarationElement[] = [];
+	letters: PropertyLetDeclarationElement[] = [];
+
+	constructor(property: PropertyGetDeclarationElement | PropertyLetDeclarationElement | PropertySetDeclarationElement) {
+		this.identifier = property.identifier;
+		this.addPropertyDeclaration(property);
+	}
+
+	addPropertyDeclaration(property: PropertyGetDeclarationElement | PropertyLetDeclarationElement | PropertySetDeclarationElement) {
+		if (property instanceof PropertyGetDeclarationElement) {
+			this.getters.push(property);
+		} else if (property instanceof PropertySetDeclarationElement) {
+			this.setters.push(property);
+		} else {
+			this.letters.push(property);
+		}
+	}
+
+	evaluateDiagnostics(): Diagnostic[] {
+		[this.getters, this.setters, this.letters].forEach(x => this._evaluateDuplicatesFor(x));
+		return this.diagnostics;
+	}
+
+	private _evaluateDuplicatesFor(props: (PropertyGetDeclarationElement | PropertyLetDeclarationElement | PropertySetDeclarationElement)[]) {
+		if (props.length <= 1) return;
+		const duplicateProperties = props.slice(1);
+		duplicateProperties.forEach(x => this.diagnostics.push(new DuplicateDeclarationDiagnostic(x.range)));
+	}
+}
+
+
+abstract class BaseNewPropertyDeclarationElement extends ScopeElement {
+	abstract identifier: IdentifierElement;
+	diagnostics: Diagnostic[] = [];
+
+	get name(): string {
+		return this.identifier.text;
+	}
+
+	constructor(context: PropertyGetDeclarationContext | PropertySetDeclarationContext, document: TextDocument) {
+		super(context, document);
+	}
+
+	evaluateDiagnostics(): Diagnostic[] {
+		return this.diagnostics;
+	}
+}
+
+
+export class NewPropertyGetDeclarationElement extends BaseNewPropertyDeclarationElement {
+	identifier: IdentifierElement;
+
+	constructor(context: PropertyGetDeclarationContext, document: TextDocument) {
+		super(context, document);
+		this.identifier = new IdentifierElement(context.functionName()!.ambiguousIdentifier()!, document);
+	}
+}
+
+
+export class NewPropertySetDeclarationElement extends BaseNewPropertyDeclarationElement {
+	identifier: IdentifierElement;
+
+	constructor(context: PropertySetDeclarationContext, document: TextDocument) {
+		super(context, document);
+		this.identifier = new IdentifierElement(context.subroutineName()!.ambiguousIdentifier()!, document);
+	}
+}
+
+
+export class NewPropertyLetDeclarationElement extends NewPropertySetDeclarationElement {
+	constructor(context: PropertySetDeclarationContext, document: TextDocument) {
+		super(context, document);
+	}
+}
+
+
 class PropertyGetDeclarationElement extends ProcedureDeclarationElement {
 	identifier: IdentifierElement;
 	diagnostics: Diagnostic[] = [];

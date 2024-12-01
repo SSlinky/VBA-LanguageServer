@@ -7,6 +7,7 @@ import { SyntaxParser } from './parser/vbaParser';
 import { FoldingRange } from '../capabilities/folding';
 import { SemanticTokensManager } from '../capabilities/semanticTokens';
 import { ParseCancellationException } from 'antlr4ng';
+import { NewPropertyDeclarationElement, NewPropertyGetDeclarationElement, NewPropertyLetDeclarationElement, NewPropertySetDeclarationElement } from './elements/memory';
 
 export interface DocumentSettings {
 	maxDocumentLines: number;
@@ -17,6 +18,17 @@ export interface DocumentSettings {
 		version: string;
 	}
 }
+
+
+// TODO ---------------------------------------------
+//	* Create a special register property that registers the name
+//    normally and tracks to avoid readding duplicates (unless we have two gets).
+//    Consider making all variables get/set/let for simplicity in assignment.
+//    Obviously Const will only have a get.
+//  * Fix the rest of the scope and variable bits.
+// 	* Write tests for it all.
+// --------------------------------------------------
+
 
 export abstract class BaseProjectDocument {
 	readonly name: string;
@@ -33,6 +45,7 @@ export abstract class BaseProjectDocument {
 	protected _symbolInformations: SymbolInformation[] = [];
 	protected _semanticTokens: SemanticTokensManager = new SemanticTokensManager();
 	protected _redactedElements: BaseContextSyntaxElement[] = [];
+	protected _properties: Map<string, NewPropertyDeclarationElement> = new Map();
 	
 	protected _isBusy = true;
 	abstract symbolKind: SymbolKind
@@ -158,6 +171,15 @@ export abstract class BaseProjectDocument {
 
 		this._isBusy = false;
 	};
+
+	registerPropertyElementDeclaration(element: NewPropertyGetDeclarationElement | NewPropertySetDeclarationElement | NewPropertyLetDeclarationElement) {
+		if (this._properties.has(element.name)) {
+			this._properties.get(element.name)!.addPropertyDeclaration(element);
+			return this;
+		}
+		this._properties.set(element.name, new NewPropertyDeclarationElement(element));
+		return this;
+	}
 
 	registerNamedElementDeclaration(element: NamedSyntaxElement) {
 		this.workspace.namespaceManager.addNameItem(element);

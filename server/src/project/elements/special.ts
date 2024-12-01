@@ -1,7 +1,7 @@
 import * as ts from "typescript";
 import { ParserRuleContext } from 'antlr4ng';
 import { FoldingRangeKind } from '../../capabilities/folding';
-import { BaseContextSyntaxElement, DeclarationElement, FoldingRangeElement, HasSemanticToken, IdentifiableSyntaxElement } from './base';
+import { BaseContextSyntaxElement, DeclarationElement, FoldingRangeElement, HasSemanticToken, IdentifiableSyntaxElement, NamedSyntaxElement } from './base';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { IdentifierElement, PropertyDeclarationElement } from './memory';
 import { Diagnostic, integer, Range, SemanticTokenModifiers, SemanticTokenTypes } from 'vscode-languageserver';
