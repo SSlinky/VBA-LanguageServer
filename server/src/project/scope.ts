@@ -12,14 +12,16 @@ export class NamespaceManager {
 	 */
 	addNameItem = (item: NamedSyntaxElement): void => {
 		// Check current scope for duplicate declaration.
-		if (this._scopeStack.at(-1)?.names.has(item.name)) {
+		let checkItem = this._scopeStack.at(-1)?.names.get(item.name);
+		if (!!checkItem && !checkItem.equals(item)) {
 			item.diagnostics.push(new DuplicateDeclarationDiagnostic(item.range));
 			return;
 		}
 		this._scopeStack.at(-1)?.names.set(item.name, item);
 
 		// Check higher scopes for shadowed declarations
-		if (this._names.has(item.name)) {
+		checkItem = this._names.get(item.name)
+		if (!!checkItem && !checkItem.equals(item)) {
 			item.diagnostics.push(new ShadowDeclarationDiagnostic(item.range));
 			return;
 		}

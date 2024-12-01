@@ -29,6 +29,7 @@ export interface HasDiagnosticCapability {
 export interface NamedSyntaxElement extends SyntaxElement, HasDiagnosticCapability {
 	get name(): string;
 	get isPublic(): boolean;
+	equals(element: any): boolean;
 }
 
 export interface IdentifiableSyntaxElement extends NamedSyntaxElement {
@@ -95,6 +96,11 @@ export abstract class BaseSyntaxElement implements ContextOptionalSyntaxElement 
 		return isPositionBefore(range.start, this.range.start)
 			&& isPositionBefore(this.range.end, range.end);
 	};
+
+	equals = (element: BaseSyntaxElement): boolean =>
+		this.document.uri === element.document.uri
+			&& this.range === element.range
+			&& this.text === element.text;
 
 	protected _contextToRange(): Range | undefined {
 		return contextToRange(this.document, this.context);
