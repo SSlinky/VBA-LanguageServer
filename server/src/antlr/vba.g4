@@ -234,7 +234,7 @@ commonModuleDeclarationElement
 // 5.2.3.1 Module Variable Declaration Lists
 // Added variableHelpAttribute, not in MS-VBAL
 moduleVariableDeclaration
-    : publicVariableDecalation
+    : publicVariableDeclaration
     | privateVariableDeclaration
     | variableHelpAttribute
     ;
@@ -242,8 +242,15 @@ moduleVariableDeclaration
 variableHelpAttribute
     : ATTRIBUTE WS ambiguousIdentifier '.' VB_VARHELPID WS? '=' WS? '-'? INTEGERLITERAL
     ;
+
+// ----------------------------
+// TODO!! Global, as well as staticVariableDeclaration and localVariableDeclaration should parse
+// with the more flexible moduleVariableDeclarationList but should raise diagnostic if not done right.
+// Similarly, WithEvents shoudn't require a type but should raise diag if one isn't provided.
+// ----------------------------
+
 globalVariableDeclaration: GLOBAL WS variableDeclarationList;
-publicVariableDecalation: PUBLIC (WS SHARED)? WS moduleVariableDeclarationList;
+publicVariableDeclaration: PUBLIC (WS SHARED)? WS moduleVariableDeclarationList;
 privateVariableDeclaration: ((PRIVATE | DIM) wsc) (SHARED wsc)? moduleVariableDeclarationList;
 moduleVariableDeclarationList: (witheventsVariableDcl | variableDcl) (wsc? ',' wsc? (witheventsVariableDcl | variableDcl))*;
 variableDeclarationList: variableDcl (wsc? ',' wsc? variableDcl)*;
@@ -766,6 +773,7 @@ dataManipulationStatement
     ;
 
 // 5.4.3.1 Local Variable Declarations
+// TODO: Shared is not listed as a keyword in VBA and the IDE removes it.
 localVariableDeclaration: DIM wsc? SHARED? wsc? variableDeclarationList;
 staticVariableDeclaration: STATIC wsc variableDeclarationList;
 

@@ -50,7 +50,7 @@ compilerElseStatement
     ;
 
 compilerEndIfStatement
-    : ENDIF endOfStatement
+    : ENDIF endOfStatement?
     ;
 
 // *************************
