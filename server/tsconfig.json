@@ -7,7 +7,13 @@
 		"sourceMap": true,
 		"strict": true,
 		"outDir": "out",
-		"rootDir": "src"
+		"rootDir": "src",
+		"baseUrl": ".",
+		"paths": {
+			"@antlr/*": ["src/antlr/out/*"],
+			"@project/*": ["src/project/*"],
+			"@capabilities/*": ["src/capabilities/*"],
+		}
 	},
 	"include": ["src"],
 	"exclude": ["node_modules", ".vscode-test"]
