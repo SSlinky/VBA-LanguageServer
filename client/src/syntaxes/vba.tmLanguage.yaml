@@ -377,7 +377,7 @@ repository:
     repository:
       argsVariable:
         name: meta.arguments.argsVariable.vba
-        match: (?i),?\s*((?:Optional\s+)?(?:(?:ByVal|ByRef)\s+)?)?([a-z][a-z0-9_]*)(?:\s+(as\s+[a-z][a-z0-9_]*))?(\s*=\s*[^,)]+)?
+        match: (?i),?\s*((?:Optional\s+)?(?:(?:ByVal|ByRef)\s+)?)?([a-z][a-z0-9_]*)(\(\))?(?:\s+(as\s+[a-z][a-z0-9_]*))?(\s*=\s*[^,)]+)?
         # Attempted replacing \s with (?:\s+|\s*_\s*\n) to consume a space or a line ending but it refuses to play the game.
         # match: ~~ doesn't work (?i),?(?:\s+|\s*_\s*\n)*((?:Optional(?:\s+|\s*_\s*\n)+)?(?:(?:ByVal|ByRef)(?:\s+|\s*_\s*\n)+)?)?([a-z][a-z0-9_]*)(?:(?:\s+|\s*_\s*\n)+(as(?:\s+|\s*_\s*\n)+[a-z][a-z0-9_]*))?((?:\s+|\s*_\s*\n)*=(?:\s+|\s*_\s*\n)*[^,\n)]+)?
         # match: ~~ all broken (?i),?(?:\s*_\s*\n)*((?:Optional(?:\s+(?:\s*_\s*\n)*))?(?:(?:ByVal|ByRef)(?:\s+(?:\s*_\s*\n)*))?)?([a-z][a-z0-9_]*)(?:(?:\s+(?:\s*_\s*\n)*)(as\(?:\s+(?:\s*_\s*\n)*)[a-z][a-z0-9_]*))?((?:\s*_\s*\n)*=(?:\s*_\s*\n)*[^,)]+)?
@@ -428,7 +428,7 @@ repository:
         patterns:
           - include: "#lineContinuation"
       apostropheComments:
-        name: comment.line.apostropheXX.vba
+        name: comment.line.apostrophe.vba
         match: (?i)\s*'.*
       remarkComments:
         name: comment.line.remark.vba
@@ -460,6 +460,7 @@ repository:
         patterns:
           - include: "#comments"
           - include: "#literals"
+          - include: "#operators"
 
       moduleOption:
         name: keyword.control.vba
@@ -673,7 +674,7 @@ repository:
     repository:
       variableDeclaration:
         name: storage.var-declaration.vba
-        match: (?i)^\s*(Dim|Public|Private)\s+([a-z][a-z0-9_]*)(\(.*\))?(\s+As(?:\s+New)?\s+[A-Z][A-Z0-9_]*)?
+        match: (?i)^\s*(Dim|Public|Private|Global)\s+([a-z][a-z0-9_]*)([&%#!@$^])?(\(.*\))?(\s+As(?:\s+New)?\s+[A-Z][A-Z0-9_]*)?
         captures:
           1:
             # Dim|Private
@@ -682,28 +683,34 @@ repository:
             # varName
             name: variable.other.readwrite.vba
           3:
+            # Type hint?
+            name: support.type.primitive.vba
+          4:
             # Array bounds?
             patterns:
               - include: "#language"
-          4:
+          5:
             # As Type
             patterns:
               - include: "#types"
       constDeclaration:
         name: storage.const-declaration.vba
-        match: "^\\s*((?i)(?:(?:Public|Private)\\s+)?Const)\\s+([A-Z][A-Z0-9_]*)((?i)\\s+As\\s+[A-Z][A-Z0-9_]*)?(.*)"
+        match: ^\s*((?i)(?:(?:Public|Private)\s+)?Const)\s+([A-Z][A-Z0-9_]*)([&%#!@$^])?((?i)\s+As\s+[A-Z][A-Z0-9_]*)?(.*)
         captures:
           1:
             # Public|Private Const
-            name: constant.language.vba
+            name: storage.type.vba
           2:
             # CONSTNAME
-            name: variable.other.constant.property
+            name: variable.other.constant.vba
           3:
+            # Type hint?
+            name: support.type.primitive.vba
+          4:
             # As Type
             patterns:
               - include: "#types"
-          4:
+          5:
             # = "some value"
             patterns:
               - include: "#language"

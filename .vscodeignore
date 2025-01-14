@@ -23,6 +23,7 @@ contributing.md
 *.interp
 *.tokens
 *.vsix
+*.tsbuildinfo
 
 # Samples and testing
 sample*/**

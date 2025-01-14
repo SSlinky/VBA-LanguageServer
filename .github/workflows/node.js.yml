@@ -29,7 +29,11 @@ jobs:
     - run: npm ci
     # For some reason, antlr4ng writes to a different location on the VM
     # than it does locally, preventing compile. Command added to move the generated files.
+    - run: npm run textMate
     - name: npm run antlr4ng
-      run: npm run antlr4ng && mv ./server/src/antlr/out/server/src/antlr/* ./server/src/antlr/out
+      run: npm run antlr4ng && npm run antlr4ngPre && mv ./server/src/antlr/out/server/src/antlr/* ./server/src/antlr/out
     - run: npm run compile
-    # - run: npm test
+    - run: xvfb-run -a npm test
+      if: runner.os == 'Linux'
+    - run: npm test
+      if: runner.os != 'Linux'

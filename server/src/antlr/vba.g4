@@ -42,7 +42,7 @@ classBeginBlock
     ;
 
 beginBlockConfigElement
-    : endOfLine+ (OBJECT '.')? '_'? ambiguousIdentifier WS? EQ WS? (('-'? literalExpression) | FILEOFFSET)
+    : endOfLine+ (OBJECT '.')? '_'? ambiguousIdentifier WS? eqOperator WS? (('-'? literalExpression) | FILEOFFSET)
     | formBeginBlock
     | beginPropertyBlock
     ;
@@ -56,7 +56,7 @@ formVersionIdentification
     : VERSION WS FLOATLITERAL
     ;
 formObjectAssign
-    : endOfLine+ OBJECT WS? EQ WS? STRINGLITERAL (';' WS? STRINGLITERAL)?
+    : endOfLine+ OBJECT WS? eqOperator WS? STRINGLITERAL (';' WS? STRINGLITERAL)?
     ;
 formBeginBlock
     : endOfLine+ BEGIN WS (GUID | (ambiguousIdentifier '.' ambiguousIdentifier)) WS ambiguousIdentifier beginBlockConfigElement+ endOfLine+ END
@@ -76,26 +76,41 @@ classModule
 
 // Compare STRINGLITERAL to quoted-identifier
 proceduralModuleHeader
-    : endOfLine* nameAttr?
+    : (endOfLine* proceduralModuleAttr)*
     ;
-classModuleHeader: (endOfLine+ (classAttr | nameAttr | ignoredAttr))* WS?;
+
+proceduralModuleAttr
+    : nameAttr
+    | ignoredProceduralAttr
+    ;
+
+ignoredProceduralAttr
+    : classAttr
+    | ignoredAttr
+    ;
+
+classModuleHeader: (endOfLine+ (classAttr | nameAttr | ignoredClassAttr))* WS?;
 
 // VBA Library Projects are allowed to have GoobalNamespace and creatable as true.
 classAttr
-    : ATTRIBUTE WS? VB_DESCRIPTION WS? EQ WS? STRINGLITERAL
-    | ATTRIBUTE WS? VB_GLOBALNAMESPACE WS? EQ WS? booleanLiteralIdentifier
-    | ATTRIBUTE WS? VB_CREATABLE WS? EQ WS? booleanLiteralIdentifier
-    | ATTRIBUTE WS? VB_PREDECLAREDID WS? EQ WS? booleanLiteralIdentifier
-    | ATTRIBUTE WS? VB_EXPOSED WS? EQ WS? booleanLiteralIdentifier
-    | ATTRIBUTE WS? VB_CUSTOMIZABLE WS? EQ WS? booleanLiteralIdentifier
+    : ATTRIBUTE WS? VB_DESCRIPTION WS? eqOperator WS? STRINGLITERAL
+    | ATTRIBUTE WS? VB_GLOBALNAMESPACE WS? eqOperator WS? booleanLiteralIdentifier
+    | ATTRIBUTE WS? VB_CREATABLE WS? eqOperator WS? booleanLiteralIdentifier
+    | ATTRIBUTE WS? VB_PREDECLAREDID WS? eqOperator WS? booleanLiteralIdentifier
+    | ATTRIBUTE WS? VB_EXPOSED WS? eqOperator WS? booleanLiteralIdentifier
+    | ATTRIBUTE WS? VB_CUSTOMIZABLE WS? eqOperator WS? booleanLiteralIdentifier
+    ;
+
+ignoredClassAttr
+    : ignoredAttr
     ;
 
 ignoredAttr
-    : ATTRIBUTE WS? ambiguousIdentifier WS? EQ WS? expression
+    : ATTRIBUTE WS? ambiguousIdentifier WS? eqOperator WS? expression
     ;
 
 nameAttr
-    : ATTRIBUTE WS? VB_NAME WS? EQ WS? STRINGLITERAL
+    : ATTRIBUTE WS? VB_NAME WS? eqOperator WS? STRINGLITERAL
 	;
 
 //---------------------------------------------------------------------------------------
@@ -219,7 +234,7 @@ commonModuleDeclarationElement
 // 5.2.3.1 Module Variable Declaration Lists
 // Added variableHelpAttribute, not in MS-VBAL
 moduleVariableDeclaration
-    : publicVariableDecalation
+    : publicVariableDeclaration
     | privateVariableDeclaration
     | variableHelpAttribute
     ;
@@ -227,8 +242,15 @@ moduleVariableDeclaration
 variableHelpAttribute
     : ATTRIBUTE WS ambiguousIdentifier '.' VB_VARHELPID WS? '=' WS? '-'? INTEGERLITERAL
     ;
+
+// ----------------------------
+// TODO!! Global, as well as staticVariableDeclaration and localVariableDeclaration should parse
+// with the more flexible moduleVariableDeclarationList but should raise diagnostic if not done right.
+// Similarly, WithEvents shoudn't require a type but should raise diag if one isn't provided.
+// ----------------------------
+
 globalVariableDeclaration: GLOBAL WS variableDeclarationList;
-publicVariableDecalation: PUBLIC (WS SHARED)? WS moduleVariableDeclarationList;
+publicVariableDeclaration: PUBLIC (WS SHARED)? WS moduleVariableDeclarationList;
 privateVariableDeclaration: ((PRIVATE | DIM) wsc) (SHARED wsc)? moduleVariableDeclarationList;
 moduleVariableDeclarationList: (witheventsVariableDcl | variableDcl) (wsc? ',' wsc? (witheventsVariableDcl | variableDcl))*;
 variableDeclarationList: variableDcl (wsc? ',' wsc? variableDcl)*;
@@ -281,8 +303,8 @@ constItem
     : typedNameConstItem
     | untypedNameConstItem
     ;
-typedNameConstItem: typedName wsc? EQ wsc? constantExpression;
-untypedNameConstItem: ambiguousIdentifier (wsc constAsClause)? wsc? EQ wsc? constantExpression;
+typedNameConstItem: typedName wsc? eqOperator wsc? constantExpression;
+untypedNameConstItem: ambiguousIdentifier (wsc constAsClause)? wsc? eqOperator wsc? constantExpression;
 constAsClause: AS wsc builtinType;
 
 // 5.2.3.3 User Defined Type Declarations
@@ -323,7 +345,7 @@ enumElement
     : remStatement
     | enumMember
     ;
-enumMember: untypedName (wsc? EQ wsc? constantExpression)?;
+enumMember: untypedName (wsc? eqOperator wsc? constantExpression)?;
 
 // 5.2.3.5 External Procedure Declaration
 publicExternalProcedureDeclaration: (PUBLIC wsc)? externalProcDcl;
@@ -598,7 +620,7 @@ nestedForStatement
     | explicitForEachStatement
     ;
 forClause
-    : FOR wsc boundVariableExpression wsc? EQ wsc? startValue wsc TO wsc endValue (wsc stepClause)?;
+    : FOR wsc boundVariableExpression wsc? eqOperator wsc? startValue wsc TO wsc endValue (wsc stepClause)?;
 startValue: expression;
 endValue: expression;
 stepClause: STEP wsc stepIncrement;
@@ -686,12 +708,12 @@ rangeClause
     | IS? wsc comparisonOperator wsc? expression;
 selectExpression: expression;
 comparisonOperator
-    : EQ
+    : eqOperator
     | NEW
-    | LT
-    | GT
-    | LEQ
-    | GEQ
+    | ltOperator
+    | gtOperator
+    | leqOperator
+    | geqOperator
     ;
 
 // 5.4.2.11 Stop Statement
@@ -751,6 +773,7 @@ dataManipulationStatement
     ;
 
 // 5.4.3.1 Local Variable Declarations
+// TODO: Shared is not listed as a keyword in VBA and the IDE removes it.
 localVariableDeclaration: DIM wsc? SHARED? wsc? variableDeclarationList;
 staticVariableDeclaration: STATIC wsc variableDeclarationList;
 
@@ -785,7 +808,7 @@ eraseList: eraseElement (wsc? ',' wsc? eraseElement)*;
 eraseElement: lExpression;
 
 // 5.4.3.5 Mid/MidB/Mid$/MidB$ Statement
-midStatement: modeSpecifier wsc? '(' wsc? stringArgument wsc? ',' wsc? startMid wsc? (',' wsc? length)? ')' wsc? EQ wsc? expression;
+midStatement: modeSpecifier wsc? '(' wsc? stringArgument wsc? ',' wsc? startMid wsc? (',' wsc? length)? ')' wsc? eqOperator wsc? expression;
 modeSpecifier
     : MID
     | MIDB
@@ -798,16 +821,16 @@ startMid: integerExpression;
 length: integerExpression;
 
 // 5.4.3.6 LSet Statement
-lsetStatement: LSET wsc? boundVariableExpression wsc? EQ wsc? expression;
+lsetStatement: LSET wsc? boundVariableExpression wsc? eqOperator wsc? expression;
 
 // 5.4.3.7 RSet Statement
-rsetStatement: RSET wsc? boundVariableExpression wsc? EQ wsc? expression;
+rsetStatement: RSET wsc? boundVariableExpression wsc? eqOperator wsc? expression;
 
 // 5.4.3.8 Let Statement
-letStatement: (LET wsc)? lExpression wsc? EQ wsc? expression;
+letStatement: (LET wsc)? lExpression wsc? eqOperator wsc? expression;
 
 // 5.4.3.9 Set Statement
-setStatement: SET wsc lExpression wsc? EQ wsc? expression;
+setStatement: SET wsc lExpression wsc? eqOperator wsc? expression;
 
 // 5.4.4 Error Handling Statements
 errorHandlingStatement
@@ -871,7 +894,7 @@ lock
     | LOCK wsc WRITE
     | LOCK wsc READ wsc WRITE
     ;
-lenClause: LEN wsc EQ wsc recLength;
+lenClause: LEN wsc eqOperator wsc recLength;
 recLength: expression;
 
 // 5.4.5.1.1 File Numbers
@@ -948,9 +971,9 @@ variable: variableExpression;
 
 // Attribute Statement
 attributeStatement
-    : ATTRIBUTE WS ambiguousIdentifier '.' attributeDescName WS? EQ WS? STRINGLITERAL
-    | ATTRIBUTE WS ambiguousIdentifier '.' attributeUsrName WS? EQ WS? '-'? INTEGERLITERAL
-    | ATTRIBUTE WS ambiguousIdentifier '.' VB_PROCDATA '.' VB_INVOKE_FUNC WS EQ WS STRINGLITERAL
+    : ATTRIBUTE WS ambiguousIdentifier '.' attributeDescName WS? eqOperator WS? STRINGLITERAL
+    | ATTRIBUTE WS ambiguousIdentifier '.' attributeUsrName WS? eqOperator WS? '-'? INTEGERLITERAL
+    | ATTRIBUTE WS ambiguousIdentifier '.' VB_PROCDATA '.' VB_INVOKE_FUNC WS eqOperator WS STRINGLITERAL
     ;
 
 attributeDescName
@@ -990,15 +1013,30 @@ expression
     | parenthesizedExpression
     | typeofIsExpression
     | newExpress
-    | expression wsc? POW wsc? expression
+    | expression wsc? powOperator wsc? expression
     | unaryMinusExpression
-    | expression wsc? (DIV | MULT) wsc? expression
-    | expression wsc? MOD wsc? expression
-    | expression wsc? (PLUS | MINUS) wsc? expression
-    | expression wsc? AMPERSAND wsc? expression
-    | expression wsc? (IS | LIKE | GEQ | LEQ | GT | LT | NEQ | EQ) wsc? expression
+    | expression wsc? (divOperator | multOperator) wsc? expression
+    | expression wsc? modOperator wsc? expression
+    | expression wsc? (plusOperator | minusOperator) wsc? expression
+    | expression wsc? ampOperator wsc? expression
+    | expression wsc? (
+        IS
+        | LIKE
+        | geqOperator
+        | leqOperator
+        | gtOperator
+        | ltOperator
+        | neqOperator
+        | eqOperator
+        ) wsc? expression
     | notOperatorExpression
-    | expression wsc? (AND | OR | XOR | EQV | IMP) wsc? expression
+    | expression wsc? (
+        andOperator
+        | orOperator
+        | xorOperator
+        | eqvOperator
+        | impOperator
+        ) wsc? expression
     | lExpression
     ;
 
@@ -1508,6 +1546,115 @@ ambiguousKeyword
     | VERSION
     | WIDTH
     ;
+
+//---------------------------------------------------------------------------------------
+// Helpers
+
+// Operators rolled up like this allows parsing of multiple operators
+// so that they can be detected and reported as a diagnostic.
+anyOperator
+    : powOperator
+    | divOperator
+    | multOperator
+    | modOperator
+    | plusOperator
+    | minusOperator
+    | ampOperator
+    | isOperator
+    | likeOperator
+    | leqOperator
+    | gtOperator
+    | ltOperator
+    | neqOperator
+    | eqOperator
+    | andOperator
+    | orOperator
+    | orOperator
+    | xorOperator
+    | eqvOperator
+    | impOperator
+    ;
+
+powOperator
+    : POW (wsc? anyOperator)*
+    ;
+
+divOperator
+    : DIV (wsc? anyOperator)*
+    ;
+
+multOperator
+    : MULT (wsc? anyOperator)*
+    ;
+
+modOperator
+    : MOD (wsc? anyOperator)*
+    ;
+
+plusOperator
+    : PLUS (wsc? anyOperator)*
+    ;
+
+minusOperator
+    : MINUS (wsc? anyOperator)*
+    ;
+
+ampOperator
+    : AMPERSAND (wsc? anyOperator)*
+    ;
+
+isOperator
+    : IS (wsc? anyOperator)*
+    ;
+
+likeOperator
+    : LIKE (wsc? anyOperator)*
+    ;
+
+geqOperator
+    : GEQ (wsc? anyOperator)*
+    ;
+
+leqOperator
+    : LEQ (wsc? anyOperator)*
+    ;
+
+gtOperator
+    : GT (wsc? anyOperator)*
+    ;
+
+ltOperator
+    : LT (wsc? anyOperator)*
+    ;
+
+neqOperator
+    : NEQ (wsc? anyOperator)*
+    ;
+
+eqOperator
+    : EQ (wsc? anyOperator)*
+    ;
+
+andOperator
+    : AND (wsc? anyOperator)*
+    ;
+
+orOperator
+    : OR (wsc? anyOperator)*
+    ;
+
+xorOperator
+    : XOR (wsc? anyOperator)*
+    ;
+
+eqvOperator
+    : EQV (wsc? anyOperator)*
+    ;
+
+impOperator
+    : IMP (wsc? anyOperator)*
+    ;
+
 
 // keywords
 ABS

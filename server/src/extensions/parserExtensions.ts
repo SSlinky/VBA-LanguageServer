@@ -1,63 +1,242 @@
+// Core
 import { Range, SymbolKind } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
-// import { ParserRuleContext } from 'antlr4ts';
 
-// This extension throws a compiler error TS2693: 'ParserRuleContext' only refers to a type, but is being used as a value here.
-// Can maybe review later down the track, but for now have just made it a private method on BaseSyntaxElement.
-// declare module 'antlr4ts' {
-//    export interface ParserRuleContext {
-//       toRange(document: TextDocument): Range;
-//    }
-// }
+// Antlr
+import { ParserRuleContext, TerminalNode } from 'antlr4ng';
 
-// ParserRuleContext.prototype.toRange = function (document: TextDocument): Range {
-//    const startIndex = this.start.startIndex;
-//    const stopIndex = this.stop?.stopIndex ?? startIndex;
-//    return Range.create(
-//       document.positionAt(startIndex),
-//       document.positionAt(stopIndex)
-//    );
-// };
+// Project
+import { CompilerConditionalStatementContext } from '../antlr/out/vbapreParser';
+import {
+   AmbiguousIdentifierContext,
+	BuiltinTypeContext,
+	ClassTypeNameContext,
+	ConstItemContext,
+	GlobalVariableDeclarationContext,
+	PrivateConstDeclarationContext,
+	PrivateVariableDeclarationContext,
+	PublicConstDeclarationContext,
+	PublicVariableDeclarationContext,
+	TypeSpecContext,
+	TypeSuffixContext,
+	VariableDclContext,
+	WitheventsVariableDclContext
+} from '../antlr/out/vbaParser';
 
 
-// declare module '../antlr/out/vbaParser' {
-// 	export interface BaseTypeContext {
-// 		toSymbolKind(): SymbolKind;
-// 	}
+declare module 'antlr4ng' {
+	interface ParserRuleContext {
+      /** Convert the node to a range. */
+		toRange(doc: TextDocument): Range;
+	}
 
-//    export interface ComplexTypeContext {
-// 		toSymbolKind(): SymbolKind;
-// 	}
-// }
+   interface TerminalNode {
+      /** Convert the node to a range. */
+      toRange(doc: TextDocument): Range;
+   }
+}
 
-// BaseTypeContext.prototype.toSymbolKind = function (): SymbolKind {
-//    return toSymbolKind(this);
-// };
 
-// ComplexTypeContext.prototype.toSymbolKind = function (): SymbolKind {
-//    return toSymbolKind(this);
-// };
+declare module '../antlr/out/vbapreParser' {
+   interface CompilerConditionalStatementContext {
+      vbaExpression(): string;
+   }
+}
 
-// function toSymbolKind(context: BaseTypeContext | ComplexTypeContext): SymbolKind {
-// 	switch (context.text.toLocaleLowerCase()) {
-// 		case 'boolean':
-// 			return SymbolKind.Boolean;
-// 		case 'byte':
-// 		case 'string':
-// 			return SymbolKind.String;
-// 		case 'double':
-// 		case 'currency':
-//       case 'integer':
-// 		case 'long':
-// 		case 'longPtr':
-// 		case 'longLong':
-// 			return SymbolKind.Number;
-// 		case 'object':
-// 			return SymbolKind.Object;
-// 		default:
-// 			return SymbolKind.Class;
-// 	}
-// }
+
+declare module '../antlr/out/vbaParser' {
+   interface PublicConstDeclarationContext {
+      /** Shortcut to get the declaration contexts. */
+      declarationContexts(): ConstItemContext[];
+   }
+
+   interface PrivateConstDeclarationContext {
+      /** Shortcut to get the declaration contexts. */
+      declarationContexts(): ConstItemContext[];
+   }
+
+   interface ConstItemContext {
+      /** Shortcut the identifier as we know it will always exist. */
+      ambiguousIdentifier(): AmbiguousIdentifierContext;
+      /** Shortcut to get the type context */
+      typeContext(): BuiltinTypeContext | TypeSuffixContext | undefined;
+      /** Extension method to get the symbol kind. */
+      toSymbolKind(): SymbolKind;
+   }
+
+   interface PublicVariableDeclarationContext {
+      /** Shortcut the variable list */
+      declarationContexts(): (VariableDclContext | WitheventsVariableDclContext)[];
+   }
+
+   interface PrivateVariableDeclarationContext {
+      /** Shortcut the variable list */
+      declarationContexts(): (VariableDclContext | WitheventsVariableDclContext)[];
+   }
+
+   interface GlobalVariableDeclarationContext {
+      /** Shortcut the variable list */
+      declarationContexts(): VariableDclContext[];
+   }
+
+   interface VariableDclContext {
+      /** Shortcut the identifier as we know it will always exist. */
+      ambiguousIdentifier(): AmbiguousIdentifierContext;
+      /** Shortcut to get the type context */
+      typeContext(): TypeSpecContext | TypeSuffixContext | ClassTypeNameContext | undefined;
+      /** Extension method to get the symbol kind. */
+      toSymbolKind(): SymbolKind;
+   }
+
+   interface WitheventsVariableDclContext {
+      /** Shortcut the identifier as we know it will always exist. */
+      ambiguousIdentifier(): AmbiguousIdentifierContext;
+      /** Shortcut to get the type context */
+      typeContext(): TypeSpecContext | TypeSuffixContext | ClassTypeNameContext | undefined;
+      /** Extension method to get the symbol kind. */
+      toSymbolKind(): SymbolKind;
+   }
+}
+
+
+ParserRuleContext.prototype.toRange = function (doc: TextDocument): Range {
+	const startIndex = this.start?.start ?? 0;
+	const stopIndex = this.stop?.stop ?? startIndex;
+	return Range.create(
+		doc.positionAt(startIndex),
+		doc.positionAt(stopIndex + 1)
+	);
+};
+
+
+TerminalNode.prototype.toRange = function (doc: TextDocument): Range {
+   const startIndex = this.getPayload()?.start ?? 0;
+	const stopIndex = this.getPayload()?.stop ?? startIndex;
+   return Range.create(
+		doc.positionAt(startIndex),
+		doc.positionAt(stopIndex + 1)
+	);
+};
+
+
+CompilerConditionalStatementContext.prototype.vbaExpression = function (): string {
+	return (this.compilerIfStatement() ?? this.compilerElseIfStatement())!
+      .booleanExpression()
+      .getText()
+      .toLowerCase();
+};
+
+
+// Constants
+
+PublicConstDeclarationContext.prototype.declarationContexts = function (): ConstItemContext[] {
+   return this.moduleConstDeclaration()
+      .constDeclaration()
+      .constItemList()
+      .constItem();
+};
+
+
+PrivateConstDeclarationContext.prototype.declarationContexts = function (): ConstItemContext[] {
+   return this.moduleConstDeclaration()
+      .constDeclaration()
+      .constItemList()
+      .constItem();
+};
+
+
+ConstItemContext.prototype.ambiguousIdentifier = function (): AmbiguousIdentifierContext {
+   // A variable will always be typed or untyped.
+   return this.typedNameConstItem()?.typedName().ambiguousIdentifier()
+      ?? this.untypedNameConstItem()!.ambiguousIdentifier();
+};
+
+ConstItemContext.prototype.typeContext = function (): BuiltinTypeContext | TypeSuffixContext | undefined {
+   return this.typedNameConstItem()?.typedName().typeSuffix()
+      ?? this.untypedNameConstItem()?.constAsClause()?.builtinType()
+};
+
+
+// Variables
+
+PublicVariableDeclarationContext.prototype.declarationContexts = function (): (VariableDclContext | WitheventsVariableDclContext)[] {
+   const dims = this.moduleVariableDeclarationList();
+   return [dims.witheventsVariableDcl(), dims.variableDcl()].flat();
+};
+
+
+PrivateVariableDeclarationContext.prototype.declarationContexts = function (): (VariableDclContext | WitheventsVariableDclContext)[] {
+   const dims = this.moduleVariableDeclarationList();
+   return [dims.witheventsVariableDcl(), dims.variableDcl()].flat();
+};
+
+
+GlobalVariableDeclarationContext.prototype.declarationContexts = function (): VariableDclContext[] {
+   const varList = this.variableDeclarationList();
+   return varList.variableDcl();
+};
+
+
+VariableDclContext.prototype.ambiguousIdentifier = function (): AmbiguousIdentifierContext {
+   // A variable will always be typed or untyped.
+   return this.typedVariableDcl()?.typedName().ambiguousIdentifier()
+      ?? this.untypedVariableDcl()!.ambiguousIdentifier();
+};
+
+
+VariableDclContext.prototype.typeContext = function (): TypeSpecContext | TypeSuffixContext | ClassTypeNameContext | undefined {
+   return this.typedVariableDcl()?.typedName().typeSuffix()
+      ?? this.untypedVariableDcl()?.asClause()?.asType()?.typeSpec()
+      ?? this.untypedVariableDcl()?.asClause()?.asAutoObject()?.classTypeName();
+};
+
+
+// SymbolKind
+
+ConstItemContext.prototype.toSymbolKind = function (): SymbolKind {
+   return toSymbolKind(this.typeContext());
+};
+
+
+WitheventsVariableDclContext.prototype.toSymbolKind = function (): SymbolKind {
+   return toSymbolKind(this.typeContext());
+};
+
+
+VariableDclContext.prototype.toSymbolKind = function (): SymbolKind {
+   return toSymbolKind(this.typeContext());
+};
+
+
+function toSymbolKind(context: BuiltinTypeContext | TypeSuffixContext | TypeSpecContext | ClassTypeNameContext | undefined): SymbolKind {
+	switch (context?.getText().toLocaleLowerCase()) {
+      case undefined:
+         return SymbolKind.Class
+		case 'boolean':
+			return SymbolKind.Boolean;
+      case '$': // string
+		case 'byte':
+		case 'string':
+			return SymbolKind.String;
+      case '%': // integer
+      case '&': // long
+      case '^': // longlong
+      case '@': // decimal
+      case '!': // single
+      case '#': // double
+		case 'double':
+		case 'currency':
+      case 'integer':
+		case 'long':
+		case 'longPtr':
+		case 'longLong':
+			return SymbolKind.Number;
+		case 'object':
+			return SymbolKind.Object;
+		default:
+			return SymbolKind.Class;
+	}
+}
 
 /**
  *  const File: 1;

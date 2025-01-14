@@ -1,5 +1,4 @@
-import { FoldingRange as LSFoldingRange } from 'vscode-languageserver';
-import { FoldableElement } from '../project/elements/special';
+import { FoldingRange as VscFoldingRange, Range } from 'vscode-languageserver';
 
 /**
  * Enum of known range kinds
@@ -21,7 +20,7 @@ export enum FoldingRangeKind {
 }
 
 
-export class FoldingRange implements LSFoldingRange {
+export class FoldingRange implements VscFoldingRange {
 	/**
 	 * The zero-based line number from where the folded range starts.
 	 */
@@ -49,9 +48,9 @@ export class FoldingRange implements LSFoldingRange {
 	 */
 	kind?: string;
 
-	constructor(element: FoldableElement, foldingRangeKind?: FoldingRangeKind) {
-		this.startLine = element.range.start.line;
-		this.endLine = element.range.end.line;
+	constructor(range: Range, foldingRangeKind?: FoldingRangeKind) {
+		this.startLine = range.start.line;
+		this.endLine = range.end.line;
 		this.kind = foldingRangeKind;
 	}
 }

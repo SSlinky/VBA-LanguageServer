@@ -1,0 +1,10 @@
+>Attribute VB_Name = "ModuleName"
+#^^^^^^^^^^^^^^^^^ source.vba meta.attribute.vba entity.other.attribute-name.vba
+#                 ^ source.vba meta.attribute.vba
+#                  ^ source.vba meta.attribute.vba keyword.operator.comparison.vba
+#                   ^ source.vba meta.attribute.vba
+#                    ^^^^^^^^^^^^ source.vba meta.attribute.vba string.quoted.double.vba
+>
+>Option Explicit
+#^^^^^^^^^^^^^^^ source.vba keyword.control.vba
+>

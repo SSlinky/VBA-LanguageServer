@@ -6,7 +6,7 @@
 	"icon": "images/vba-lsp-icon.png",
 	"author": "SSlinky",
 	"license": "MIT",
-	"version": "1.4.4",
+	"version": "1.4.5",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/SSlinky/VBA-LanguageServer"
@@ -68,6 +68,28 @@
 					"default": true,
 					"description": "The language server should warn when Option Explicit is not present."
 				},
+				"vbaLanguageServer.environment.os": {
+					"scope": "resource",
+					"type": "string",
+					"enum": [
+						"Win16",
+						"Win32",
+						"Win64",
+						"Mac"
+					],
+					"default": "Win64",
+					"description": "Controls which compiler sections to display."
+				},
+				"vbaLanguageServer.environment.version": {
+					"scope": "resource",
+					"type": "string",
+					"enum": [
+						"Vba6",
+						"Vba7"
+					],
+					"default": "Vba7",
+					"description": "Controls which compiler sections to display."
+				},
 				"vbaLanguageServer.trace.server": {
 					"scope": "window",
 					"type": "string",
@@ -96,27 +118,37 @@
 		]
 	},
 	"scripts": {
-		"vscode:prepublish": "npm run antlr4ng && npm run compile",
+		"vscode:prepublish": "npm run antlr4ngPre && npm run antlr4ng && npm run compile",
 		"compile": "tsc -b",
 		"watch": "tsc -b -w",
 		"lint": "eslint ./client/src ./server/src --ext .ts,.tsx",
 		"postinstall": "cd client && npm install && cd ../server && npm install && cd ..",
-		"test": "sh ./scripts/e2e.sh",
 		"textMate": "npx js-yaml client/src/syntaxes/vba.tmLanguage.yaml > client/out/vba.tmLanguage.json",
-		"antlr4ng": "antlr4ng -Dlanguage=TypeScript -visitor ./server/src/antlr/vba.g4 -o ./server/src/antlr/out/"
+		"antlr4ng": "antlr4ng -Dlanguage=TypeScript -visitor ./server/src/antlr/vba.g4 -o ./server/src/antlr/out/",
+		"antlr4ngPre": "antlr4ng -Dlanguage=TypeScript -visitor ./server/src/antlr/vbapre.g4 -o ./server/src/antlr/out/",
+		"test": "npm run tmSnapTest && npm run tmUnitTest && npm run vsctest",
+		"testsh": "sh ./scripts/e2e.sh",
+		"testps": "powershell ./scripts/e2e.ps1",
+		"tmUnitTest": "vscode-tmgrammar-test ./test/textmate/**/*.vba",
+		"tmSnapTest": "vscode-tmgrammar-snap ./test/textmate/snapshot/*.??s",
+		"tmSnapUpdate": "vscode-tmgrammar-snap --updateSnapshot ./test/textmate/snapshot/*.??s",
+		"vsctest": "vscode-test"
 	},
 	"dependencies": {
-		"antlr4ng": "^3.0.7"
+		"antlr4ng": "^3.0.14"
 	},
 	"devDependencies": {
-		"@types/mocha": "^10.0.9",
-		"@types/node": "^22.7.5",
-		"@typescript-eslint/eslint-plugin": "^8.8.1",
-		"@typescript-eslint/parser": "^8.8.1",
+		"@types/mocha": "^10.0.10",
+		"@types/node": "^22.10.6",
+		"@typescript-eslint/eslint-plugin": "^8.20.0",
+		"@typescript-eslint/parser": "^8.20.0",
+		"@vscode/test-cli": "^0.0.10",
+		"@vscode/test-electron": "^2.4.1",
 		"antlr4ng-cli": "^2.0.0",
-		"eslint": "^9.12.0",
+		"eslint": "^9.18.0",
 		"js-yaml": "^4.1.0",
-		"mocha": "^10.7.3",
-		"typescript": "^5.6.3"
+		"mocha": "^10.8.2",
+		"typescript": "^5.7.3",
+		"vscode-tmgrammar-test": "^0.1.3"
 	}
 }

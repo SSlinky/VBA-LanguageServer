@@ -1,20 +1,36 @@
-import { Diagnostic } from 'vscode-languageserver';
+// Core
 import { TextDocument } from 'vscode-languageserver-textdocument';
-import { WhileStatementContext } from '../../antlr/out/vbaParser';
 
+// Antlr
+import { AnyOperatorContext, WhileStatementContext } from '../../antlr/out/vbaParser';
+
+// Project
+import { DiagnosticCapability } from '../../capabilities/capabilities';
 import { BaseContextSyntaxElement, HasDiagnosticCapability } from './base';
-import { WhileWendDeprecatedDiagnostic } from '../../capabilities/diagnostics';
+import { MultipleOperatorsDiagnostic, WhileWendDeprecatedDiagnostic } from '../../capabilities/diagnostics';
 
 
-export class WhileLoopElement extends BaseContextSyntaxElement implements HasDiagnosticCapability {
-	diagnostics: Diagnostic[] = [];
+export class WhileLoopElement extends BaseContextSyntaxElement<WhileStatementContext> implements HasDiagnosticCapability {
+	diagnosticCapability: DiagnosticCapability;
 
 	constructor(context: WhileStatementContext, document: TextDocument) {
 		super(context, document);
-		
+		this.diagnosticCapability = new DiagnosticCapability(this, () => {
+			this.diagnosticCapability.diagnostics.push(new WhileWendDeprecatedDiagnostic(this.context.range));
+			return this.diagnosticCapability.diagnostics;
+		});
 	}
+}
 
-	evaluateDiagnostics(): void {
-		this.diagnostics.push(new WhileWendDeprecatedDiagnostic(this.range))
+
+export class DuplicateOperatorElement extends BaseContextSyntaxElement<AnyOperatorContext> implements HasDiagnosticCapability {
+	diagnosticCapability: DiagnosticCapability;
+
+	constructor(context: AnyOperatorContext, document: TextDocument) {
+		super(context, document);
+		this.diagnosticCapability = new DiagnosticCapability(this, () => {
+			this.diagnosticCapability.diagnostics.push(new MultipleOperatorsDiagnostic(this.context.range));
+			return this.diagnosticCapability.diagnostics;
+		});
 	}
 }

@@ -1,5 +1,13 @@
+// Core
 import { ClientCapabilities, InitializeResult } from 'vscode-languageserver';
+
+// Project
 import { LanguageServerConfiguration } from '../server';
+
+
+function hasWorkspaceFolderCapability(x: ClientCapabilities) {
+	return !!(x.workspace && !!x.workspace.workspaceFolders);
+}
 
 
 export function hasConfigurationCapability(languageServerConfiguration: LanguageServerConfiguration) {
@@ -7,9 +15,6 @@ export function hasConfigurationCapability(languageServerConfiguration: Language
 	return !!(capabilities.workspace && !!capabilities.workspace.configuration);
 }
 
-function hasWorkspaceFolderCapability(x: ClientCapabilities) {
-	return !!(x.workspace && !!x.workspace.workspaceFolders);
-}
 
 export function activateWorkspaceFolderCapability(capabilities: ClientCapabilities, result: InitializeResult) {
 	if (hasWorkspaceFolderCapability(capabilities)) {
