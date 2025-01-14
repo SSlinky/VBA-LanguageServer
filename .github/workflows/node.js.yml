@@ -33,4 +33,7 @@ jobs:
     - name: npm run antlr4ng
       run: npm run antlr4ng && npm run antlr4ngPre && mv ./server/src/antlr/out/server/src/antlr/* ./server/src/antlr/out
     - run: npm run compile
+    - run: xvfb-run -a npm test
+      if: runner.os == 'Linux'
     - run: npm test
+      if: runner.os != 'Linux'
