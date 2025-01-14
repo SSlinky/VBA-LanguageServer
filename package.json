@@ -118,7 +118,7 @@
 		]
 	},
 	"scripts": {
-		"vscode:prepublish": "npm run antlr4ng && npm run compile",
+		"vscode:prepublish": "npm run antlr4ngPre && npm run antlr4ng && npm run compile",
 		"compile": "tsc -b",
 		"watch": "tsc -b -w",
 		"lint": "eslint ./client/src ./server/src --ext .ts,.tsx",
