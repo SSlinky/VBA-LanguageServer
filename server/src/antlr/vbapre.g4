@@ -25,11 +25,11 @@ compilerIfBlock
     ;
 
 compilerConditionalBlock
-    : compilerConditionalStatement (anyOtherLine | endOfLine)*
+    : compilerConditionalStatement compilerBlockContent?
     ;
 
 compilerDefaultBlock
-    : compilerElseStatement (anyOtherLine | endOfLine)*
+    : compilerElseStatement compilerBlockContent?
     ;
     
 compilerConditionalStatement
@@ -51,6 +51,10 @@ compilerElseStatement
 
 compilerEndIfStatement
     : ENDIF endOfStatement?
+    ;
+
+compilerBlockContent
+    : (anyOtherLine | endOfLine)+
     ;
 
 // *************************
