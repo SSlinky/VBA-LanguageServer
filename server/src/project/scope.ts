@@ -1,56 +1,64 @@
+// Core
+import { Diagnostic } from 'vscode-languageserver';
+
+// Project
+import { DeclarableElement } from './elements/base';
 import { DuplicateDeclarationDiagnostic, ShadowDeclarationDiagnostic } from '../capabilities/diagnostics';
-import { NamedSyntaxElement } from './elements/base';
 
 
 export class NamespaceManager {
-	private _names: Map<string, NamedSyntaxElement> = new Map();
-	private _scopeStack: {namespace: NamedSyntaxElement, names: Map<string, NamedSyntaxElement> }[] = [];
+	private names: Map<string, DeclarableElement> = new Map();
+	private scopeStack: {namespace: DeclarableElement, names: Map<string, DeclarableElement> }[] = [];
 
 	/**
 	 * Begins tracking a namespace item against a namespace.
 	 * @returns A diagnostic if the item has already been declared in this space.
 	 */
-	addNameItem = (item: NamedSyntaxElement): void => {
+	addNameItem = (item: DeclarableElement): void => {
+		const pushDiagnostic = (x: Diagnostic) => item.diagnosticCapability.diagnostics.push(x);
+
 		// Check current scope for duplicate declaration.
-		let checkItem = this._scopeStack.at(-1)?.names.get(item.name);
+		let checkItem = this.scopeStack.at(-1)?.names.get(item.identifierCapability.name);
 		if (!!checkItem && !checkItem.equals(item)) {
-			item.diagnostics.push(new DuplicateDeclarationDiagnostic(item.range));
+			pushDiagnostic(new DuplicateDeclarationDiagnostic(item.identifierCapability.range));
 			return;
 		}
-		this._scopeStack.at(-1)?.names.set(item.name, item);
+
+		// Add the name to the current scope.
+		this.scopeStack.at(-1)?.names.set(item.identifierCapability.name, item);
 
 		// Check higher scopes for shadowed declarations
-		checkItem = this._names.get(item.name)
+		checkItem = this.names.get(item.identifierCapability.name)
 		if (!!checkItem && !checkItem.equals(item)) {
-			item.diagnostics.push(new ShadowDeclarationDiagnostic(item.range));
+			pushDiagnostic(new ShadowDeclarationDiagnostic(item.context.range));
 			return;
 		}
-		this._names.set(item.name, item);
+		this.names.set(item.identifierCapability.name, item);
 	}
 
 	/**
 	 * Adds a namespace to the stack and tracks names.
 	 * @param scope The namespace to add.
 	 */
-	addNamespace = (scope: NamedSyntaxElement) => {
+	addNamespace = (scope: DeclarableElement) => {
 		this.addNameItem(scope); // a namespace is also a name
-		this._scopeStack.push({namespace: scope, names: new Map()});
+		this.scopeStack.push({namespace: scope, names: new Map()});
 	}
 
 	/**
 	 * Removes the namespace and all names associated with it.
 	 */
 	popNamespace = (): void => {
-		const ns = this._scopeStack.pop();
+		const ns = this.scopeStack.pop();
 
 		// Remove the items in the current scope if they are not public.
 		ns?.names.forEach((_, x) => {
-			if (!(this._names.get(x)?.isPublic ?? true)) { this._names.delete(x); }
+			if (!(this.names.get(x)?.isPublic ?? true)) { this.names.delete(x); }
 		});
 
 		// Remove the current scope.
-		if (ns && !ns.namespace.isPublic && this._names.has(ns.namespace.name)) {
-			this._names.delete(ns.namespace.name);
+		if (ns && !ns.namespace.isPublic && this.names.has(ns.namespace.identifierCapability.name)) {
+			this.names.delete(ns.namespace.identifierCapability.name);
 		}
 	}
 }

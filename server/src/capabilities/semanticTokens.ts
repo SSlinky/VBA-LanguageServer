@@ -1,8 +1,22 @@
-import {InitializeResult, Range, SemanticTokenModifiers, SemanticTokenTypes, uinteger, _LanguagesImpl, SemanticTokens, SemanticTokensParams, SemanticTokensRangeParams} from 'vscode-languageserver';
-import { BaseContextSyntaxElement, HasNamedSemanticToken, HasSemanticToken } from '../project/elements/base';
+// Core
+import {
+	InitializeResult,
+	Range,
+	SemanticTokenModifiers,
+	SemanticTokenTypes,
+	uinteger,
+	SemanticTokens
+} from 'vscode-languageserver';
+
+// Antlr
+import { ParserRuleContext } from 'antlr4ng/dist/ParserRuleContext';
+
+// Project
+import { BaseContextSyntaxElement, HasSemanticTokenCapability } from '../project/elements/base';
 
 const registeredTokenTypes = new Map<string, number>((Object.keys(SemanticTokenTypes) as (keyof typeof SemanticTokenTypes)[]).map((k, i) => ([k, i])));
 const registeredTokenModifiers = new Map<string, number>((Object.keys(SemanticTokenModifiers) as (keyof typeof SemanticTokenModifiers)[]).map((k, i) => ([k, 2**i])));
+
 
 export function activateSemanticTokenProvider(result: InitializeResult) {
 	result.capabilities.semanticTokensProvider = {
@@ -14,18 +28,9 @@ export function activateSemanticTokenProvider(result: InitializeResult) {
 	};
 }
 
-export function sortSemanticTokens(tokens: SemanticToken[]): SemanticToken[] {
-	return tokens.sort((a, b) => {
-		// Sort a before than b.
-        if ((a.line < b.line) || (a.line === b.line && a.char < b.char))
-            return -1;
-		// Sort b before a.
-        if ((a.line > b.line) || (a.line === b.line && a.char > b.char))
-            return 1;
-		// No difference.
-        return 0;
-    });
-}
+
+type SemanticElementType = HasSemanticTokenCapability
+	& BaseContextSyntaxElement<ParserRuleContext>;
 
 export class SemanticToken {
 	line: uinteger;
@@ -33,65 +38,18 @@ export class SemanticToken {
 	length: uinteger;
 	tokenType: uinteger;
 	tokenModifiers: uinteger = 0;
-	element: HasNamedSemanticToken | HasSemanticToken;
+	element: SemanticElementType;
 
-	constructor(element: HasNamedSemanticToken | HasSemanticToken, line: uinteger, startChar: uinteger, length: uinteger, tokenType: SemanticTokenTypes, tokenModifiers: SemanticTokenModifiers[]) {
+	constructor(element: SemanticElementType, line: uinteger, startChar: uinteger, length: uinteger, tokenType: SemanticTokenTypes, tokenModifiers: SemanticTokenModifiers[]) {
 		this.element = element;
 		this.line = line;
 		this.char = startChar;
 		this.length = length;
 		this.tokenType = registeredTokenTypes.get(tokenType)!;
 		tokenModifiers.forEach((x) => this.tokenModifiers += registeredTokenModifiers.get(x) ?? 0);
-	}	
-
-	static create(st: HasSemanticToken): SemanticToken;
-	static create(nst: HasNamedSemanticToken): SemanticToken;
-	static create(element: HasSemanticToken | HasNamedSemanticToken): SemanticToken {
-		if (((o: any): o is HasNamedSemanticToken => 'identifier' in o)(element)) {
-			return new SemanticToken(
-				element,
-				element.identifier.range.start.line,
-				element.identifier.range.start.character,
-				element.identifier.context.getText().length,
-				element.tokenType,
-				element.tokenModifiers
-			);
-		}
-		if (((o: any): o is HasSemanticToken => 'tokenType' in o)(element)) {
-			return new SemanticToken(
-				element,
-				element.range.start.line,
-				element.range.start.character,
-				element.context.getText().length,
-				element.tokenType,
-				element.tokenModifiers
-			);
-		}
-
-		throw new Error("This will never be thrown but it appeases the linter.");
 	}
 
-	toNewRange(range: Range): SemanticToken {
-		const token = new SemanticToken(
-			this.element,
-			range.start.line,
-			range.start.character,
-			this.length,
-			SemanticTokenTypes.class,
-			[]
-		);
-		token.tokenType = this.tokenType;
-		token.tokenModifiers = this.tokenModifiers;
-		return token;
-	}
-
-	toDeltaToken(line: uinteger = 0, startChar: uinteger = 0): uinteger[] {
-		const deltaLine = this.line - line;
-		const deltaChar = deltaLine === 0 ? this.char - startChar : this.char;
-		return [deltaLine, deltaChar, this.length, this.tokenType, this.tokenModifiers];
-	}
-
-	toSemanticTokensArray(reference?: SemanticToken): uinteger[] {
+	toUintegerArray(reference?: SemanticToken): uinteger[] {
 		const line = this.line - (reference?.line ?? 0);
 		const char = line === 0 ? this.char - reference!.char : this.char;
 		return [
@@ -109,37 +67,35 @@ export class SemanticToken {
  * Tracks, sorts, and provides LSP response for SemanticTokens.
  */
 export class SemanticTokensManager {
-	private _tokens: SemanticToken[] = [];
+	private tokens: SemanticToken[] = [];
 
-	private _tokensInRange = (range: Range) =>
-		this._tokens.filter(token => token.element.isChildOf(range));
+	private tokensInRange = (range: Range) =>
+		this.tokens.filter(token => token.element.isChildOf(range));
 
-	add(element: HasNamedSemanticToken) {
-		this._tokens.push(SemanticToken.create(element));
+	add(element: HasSemanticTokenCapability) {
+		this.tokens.push(element.semanticTokenCapability.semanticToken);
 	}
 
-	addComment(element: HasSemanticToken) {
-		this._tokens.push(SemanticToken.create(element));
-	}
-
-	// getSemanticTokens(params: SemanticTokensParams): SemanticTokens | null;
-	// getSemanticTokens(rangeParams: SemanticTokensRangeParams): SemanticTokens | null;
-	// getSemanticTokens(_?: SemanticTokensParams, rangeParams?: SemanticTokensRangeParams): SemanticTokens | null {
 	getSemanticTokens(range?: Range): SemanticTokens | null {
-		// Get the range if we have one.
-		// const range: Range | undefined = rangeParams?.range;
-
 		// Filter and sort the semantic tokens.
-		const filteredTokens = range ? this._tokensInRange(range) : this._tokens;
-		const sortedTokens = sortSemanticTokens(filteredTokens);
+		const filteredTokens = range ? this.tokensInRange(range) : this.tokens;
+		const sortedTokens = this.sortSemanticTokens(filteredTokens);
 		if (sortedTokens.length === 0)
 			return null;
 		
 		// Get an array of SemanticTokens relative to previous token.
-		const packedData: uinteger[][] = sortedTokens.map((token, i) =>
-			token.toSemanticTokensArray(i === 0 ? undefined : sortedTokens[i - 1]));
+		const relativeResult: uinteger[] = sortedTokens.map((token, i) =>
+			token.toUintegerArray(i === 0 ? undefined : sortedTokens[i - 1])).flat();
 
 		// Return the flattened array.
-		return { data: ([] as uinteger[]).concat(...packedData) };
+		return { data: relativeResult };
+	}
+
+	sortSemanticTokens(tokens: SemanticToken[]): SemanticToken[] {
+		return tokens.sort((a, b) => {
+			if ((a.line < b.line) || (a.line === b.line && a.char < b.char)) return -1;
+			if ((a.line > b.line) || (a.line === b.line && a.char > b.char)) return 1;
+			return 0;
+		});
 	}
 }

@@ -1,21 +1,42 @@
+// Antlr
 import { ErrorNode, ParserRuleContext } from 'antlr4ng';
 import { vbaListener } from '../../antlr/out/vbaListener';
 import { vbapreListener } from '../../antlr/out/vbapreListener';
-import { AnyOperatorContext, ClassModuleContext, ConstItemContext, EnumDeclarationContext, IgnoredClassAttrContext, IgnoredProceduralAttrContext, ProceduralModuleContext, ProcedureDeclarationContext, PropertyGetDeclarationContext, PropertySetDeclarationContext, UdtDeclarationContext, WhileStatementContext } from '../../antlr/out/vbaParser';
-import { CompilerConditionalStatementContext, CompilerElseStatementContext, CompilerEndIfStatementContext, CompilerIfBlockContext} from '../../antlr/out/vbapreParser';
+import { CompilerConditionalStatementContext, CompilerElseStatementContext, CompilerEndIfStatementContext, CompilerIfBlockContext } from '../../antlr/out/vbapreParser';
+import {
+    AnyOperatorContext,
+	ClassModuleContext,
+	EnumDeclarationContext,
+	GlobalVariableDeclarationContext,
+	IgnoredClassAttrContext,
+	IgnoredProceduralAttrContext,
+	PrivateConstDeclarationContext,
+	PrivateTypeDeclarationContext,
+	PrivateVariableDeclarationContext,
+	ProceduralModuleContext,
+	ProcedureDeclarationContext,
+	PropertyGetDeclarationContext,
+	PropertySetDeclarationContext,
+	PublicConstDeclarationContext,
+	PublicTypeDeclarationContext,
+	PublicVariableDeclarationContext,
+	TypeSuffixContext,
+	UdtDeclarationContext,
+	WhileStatementContext
+} from '../../antlr/out/vbaParser';
 
-import { BaseProjectDocument, DocumentSettings, VbaClassDocument, VbaModuleDocument } from '../document';
-
+// Project
 import { DuplicateOperatorElement, WhileLoopElement } from '../elements/flow';
-import { ConstDeclarationElement, EnumDeclarationElement, NewPropertyGetDeclarationElement, NewPropertyLetDeclarationElement, NewPropertySetDeclarationElement, TypeDeclarationElement } from '../elements/memory';
-import { ClassElement, IgnoredAttributeElement, ModuleElement } from '../elements/module';
-import { CompilerIfBlockElement, InactiveLineElement } from '../elements/special';
+import { CompilerLogicalBlock, GenericCommentElement } from '../elements/precompiled';
+import { ClassElement, ModuleElement, ModuleIgnoredAttributeElement } from '../elements/module';
+import { DocumentSettings, VbaClassDocument, VbaModuleDocument } from '../document';
+import { PropertyGetDeclarationElement, PropertyLetDeclarationElement, PropertySetDeclarationElement } from '../elements/procedure';
+import { DeclarationStatementElement, EnumDeclarationElement, TypeDeclarationElement, TypeSuffixElement } from '../elements/typing';
 
 
 class CommonParserCapability {
     document: VbaClassDocument | VbaModuleDocument;
     protected _documentSettings?: DocumentSettings;
-    protected _isAfterMethodDeclaration = false;
 
     get documentSettings(): DocumentSettings {
         if (!this._documentSettings) {
@@ -34,10 +55,11 @@ class CommonParserCapability {
     }
 }
 
+
 export class VbaListener extends vbaListener {
     document: VbaClassDocument | VbaModuleDocument;
-    protected _documentSettings?: DocumentSettings;
-    protected _isAfterMethodDeclaration = false;
+    protected documentSettings?: DocumentSettings;
+    protected isAfterMethodDeclaration = false;
 
     constructor(document: VbaClassDocument | VbaModuleDocument) {
         super();
@@ -51,7 +73,7 @@ export class VbaListener extends vbaListener {
     }
 
     async ensureHasSettingsAsync() {
-        this._documentSettings = await this.document.getDocumentConfiguration();
+        this.documentSettings = await this.document.getDocumentConfiguration();
     }
 
     enterAnyOperator = (ctx: AnyOperatorContext) => {
@@ -60,163 +82,104 @@ export class VbaListener extends vbaListener {
     }
 
     enterEnumDeclaration = (ctx: EnumDeclarationContext) => {
-        const element = new EnumDeclarationElement(ctx, this.document.textDocument, this._isAfterMethodDeclaration);
-        this.document.registerFoldableElement(element)
-            .registerSemanticToken(element)
-            .registerNamespaceElement(element)
-            .registerSymbolInformation(element)
-            .registerDiagnosticElement(element);
-        element.enumMembers.forEach(member => this.document
-                .registerSemanticToken(member)
-                .registerSymbolInformation(member)
-                .registerDiagnosticElement(member)
-                .registerNamedElementDeclaration(member)
-        );
+        const element = new EnumDeclarationElement(ctx, this.document.textDocument, this.isAfterMethodDeclaration);
+        this.document.registerElement(element)
+            .registerNamespaceElement(element);
     };
 
     exitEnumDeclaration = (_: EnumDeclarationContext) =>
-        this.document.deregisterScopedElement();
+        this.document.deregisterNamespaceElement();
 
     enterClassModule = (ctx: ClassModuleContext) => {
-        const element = new ClassElement(ctx, this.document.textDocument, this._documentSettings ?? { doWarnOptionExplicitMissing: true });
-        this.document.registerSymbolInformation(element)
-            .registerDiagnosticElement(element)
+        const element = new ClassElement(ctx, this.document.textDocument, this.documentSettings ?? { doWarnOptionExplicitMissing: true });
+        this.document.registerElement(element)
             .registerNamespaceElement(element)
-            .registerFoldableElement(element);
     };
 
-    exitClassModule = (ctx: ClassModuleContext) => {
-        this.document.deregisterScopedElement();
-    };
-
-    enterConstItem = (ctx: ConstItemContext) => {
-        const element = new ConstDeclarationElement(ctx, this.document.textDocument);
-        this.document.registerSemanticToken(element)
-            .registerSymbolInformation(element)
-            .registerNamedElementDeclaration(element);
-    };
+    exitClassModule = (_: ClassModuleContext) =>
+        this.document.deregisterNamespaceElement();
 
     enterIgnoredClassAttr = (ctx: IgnoredClassAttrContext) => this.registerIgnoredAttribute(ctx);
     enterIgnoredProceduralAttr = (ctx: IgnoredProceduralAttrContext) => this.registerIgnoredAttribute(ctx);
     private registerIgnoredAttribute(ctx: IgnoredClassAttrContext | IgnoredProceduralAttrContext) {
-        this.document.registerDiagnosticElement(new IgnoredAttributeElement(ctx, this.document.textDocument))
+        this.document.registerDiagnosticElement(new ModuleIgnoredAttributeElement(ctx, this.document.textDocument))
     }
 
     enterProceduralModule = (ctx: ProceduralModuleContext) => {
-        const element = new ModuleElement(ctx, this.document.textDocument, this._documentSettings ?? { doWarnOptionExplicitMissing: true });
-        this.document.registerSymbolInformation(element)
-            .registerFoldableElement(element)
+        const element = new ModuleElement(ctx, this.document.textDocument, this.documentSettings ?? { doWarnOptionExplicitMissing: true });
+        this.document.registerElement(element)
             .registerNamespaceElement(element)
     };
 
-    exitProceduralModule = (ctx: ProceduralModuleContext) => {
-        this.document.deregisterScopedElement();
-    };
+    exitProceduralModule = (_: ProceduralModuleContext) =>
+        this.document.deregisterNamespaceElement();
 
+    // Handles exiting of a sub, func, or property.
     exitProcedureDeclaration = (ctx: ProcedureDeclarationContext) => {
-        this._isAfterMethodDeclaration = true;
-        // this.document.deregisterScopedElement();
+        this.isAfterMethodDeclaration = true;
+        this.document.deregisterNamespaceElement();
     };
 
     enterPropertyGetDeclaration = (ctx: PropertyGetDeclarationContext) => {
-        const element = new NewPropertyGetDeclarationElement(ctx, this.document.textDocument);
-        this.document.registerNamespaceElement(element)
-            .registerPropertyElementDeclaration(element)
-            .registerDiagnosticElement(element);
+        const element = new PropertyGetDeclarationElement(ctx, this.document.textDocument);
+        this.document.registerElement(element)
+            .registerNamespaceElement(element);
     };
 
     enterPropertySetDeclaration = (ctx: PropertySetDeclarationContext) => {
-        const element = new NewPropertySetDeclarationElement(ctx, this.document.textDocument);
-        this.document.registerNamespaceElement(element)
-            .registerPropertyElementDeclaration(element)
-            .registerDiagnosticElement(element);
+        const element = !!ctx.LET()
+            ? new PropertyLetDeclarationElement(ctx, this.document.textDocument)
+            : new PropertySetDeclarationElement(ctx, this.document.textDocument);
+        this.document.registerElement(element)
+            .registerNamespaceElement(element);
     };
 
-    enterPropertyLetDeclaration = (ctx: PropertySetDeclarationContext) => {
-        const element = new NewPropertyLetDeclarationElement(ctx, this.document.textDocument);
-        this.document.registerNamespaceElement(element)
-            .registerPropertyElementDeclaration(element)
-            .registerDiagnosticElement(element);
-    };
+    enterPublicTypeDeclaration = (ctx: PublicTypeDeclarationContext) => this.enterTypeDeclaration(ctx, true);
+    enterPrivateTypeDeclaration = (ctx: PrivateTypeDeclarationContext) => this.enterTypeDeclaration(ctx, false);
+    private enterTypeDeclaration = (ctx: PublicTypeDeclarationContext | PrivateTypeDeclarationContext, isPrivate: boolean) => {
+        const element = new TypeDeclarationElement(ctx, this.document.textDocument, isPrivate);
+        this.document.registerElement(element).registerNamespaceElement(element);
+    }
 
-    exitPropertyGetDeclaration = (_: PropertyGetDeclarationContext) =>
-        this.document.deregisterScopedElement();
+    enterTypeSuffix = (ctx: TypeSuffixContext) =>
+        this.document.registerElement(new TypeSuffixElement(ctx, this.document.textDocument));
 
-    exitPropertySetDeclaration = (_: PropertySetDeclarationContext) =>
-        this.document.deregisterScopedElement();
+    // Handles public and private type declarations.
+    exitUdtDeclaration = (_: UdtDeclarationContext) =>
+        this.document.deregisterNamespaceElement();
 
-    exitPropertyLetDeclaration = (_: PropertySetDeclarationContext) =>
-        this.document.deregisterScopedElement();
-    
-
-    enterUdtDeclaration = (ctx: UdtDeclarationContext) => {
-        const element = new TypeDeclarationElement(ctx, this.document.textDocument);
-        this.document.registerFoldableElement(element)
-            .registerSemanticToken(element)
-            .registerSymbolInformation(element);
-        element.declaredNames.forEach(names =>
-            names.forEach(name => this.document
-                .registerSemanticToken(name)
-                .registerSymbolInformation(name))
-        );
-    };
+    // Variables
+    enterPublicConstDeclaration = (ctx: PublicConstDeclarationContext) => this.enterVariableDeclaration(ctx);
+    enterPrivateConstDeclaration = (ctx: PrivateConstDeclarationContext) => this.enterVariableDeclaration(ctx);
+    enterPublicVariableDeclaration = (ctx: PublicVariableDeclarationContext) => this.enterVariableDeclaration(ctx);
+    enterGlobalVariableDeclaration = (ctx: GlobalVariableDeclarationContext) => this.enterVariableDeclaration(ctx);
+    enterPrivateVariableDeclaration = (ctx: PrivateVariableDeclarationContext) => this.enterVariableDeclaration(ctx);
+    private enterVariableDeclaration = (ctx: PublicConstDeclarationContext | PrivateConstDeclarationContext | PublicVariableDeclarationContext | GlobalVariableDeclarationContext | PrivateVariableDeclarationContext) => {
+        const element = DeclarationStatementElement.create(ctx, this.document.textDocument);
+        element.declarations.forEach(x => this.document.registerElement(x));
+    }
 
     enterWhileStatement = (ctx: WhileStatementContext) => {
-        const element = new WhileLoopElement(ctx, this.document.textDocument);
+        const element = new WhileLoopElement(ctx, this.document.textDocument)
         this.document.registerDiagnosticElement(element);
     };
 
     visitErrorNode(node: ErrorNode) {
         console.log(node.getPayload());
     }
-
-    // enterAttributeStmt = (ctx: AttributeStmtContext) => {
-    //     this.document.activeAttributeElement?.processAttribute(ctx);
-    // };
-
-    // enterConstStmt = (ctx: ConstStmtContext) => {
-    //     const element = new ConstDeclarationsElement(ctx, this.document.textDocument);
-    //     element.declarations.forEach((e) => this.document.registerSymbolInformation(e));
-    // };
-
-    // enterOperatorsStmt = (ctx: OperatorsStmtContext) => {
-    //     const element = new OperatorElement(ctx, this.document.textDocument);
-    //     this.document.registerDiagnosticElement(element);
-    // enterModule = (ctx: ModuleContext) => {
-    //     const element = new ModuleElement(ctx, this.document.textDocument, this.document.symbolKind);
-    //     this.document.registerAttributeElement(element)
-    //         .registerScopedElement(element);
-    // };
-
-    // enterTypeStmt = (ctx: TypeStmtContext) => {
-    //     const element = new TypeDeclarationElement(ctx, this.document.textDocument);
-    //     this.document.registerSymbolInformation(element)
-    //         .registerSemanticToken(element);
-    // };
-
-    // enterVariableStmt = (ctx: VariableStmtContext) => {
-    //     const element = new VariableDeclarationsElement(ctx, this.document.textDocument);
-    //     element.declarations.forEach((e) => this.document.registerSymbolInformation(e));
-    // };
-
-    // enterWhileWendStmt = (ctx: WhileWendStmtContext) => {
-    //     const element = new  WhileWendLoopElement(ctx, this.document.textDocument);
-    //     this.document.registerDiagnosticElement(element);
-    // };
 }
+
 
 export class VbaPreListener extends vbapreListener {
     common: CommonParserCapability;
-    private _document: BaseProjectDocument;
 
     get text(): string {
-        return this._document.redactedText;
+        return this.common.document.redactedText;
     }
 
     constructor(document: VbaClassDocument | VbaModuleDocument) {
         super();
         this.common = new CommonParserCapability(document);
-        this._document = document;
     }
 
     static async createAsync(document: VbaClassDocument | VbaModuleDocument): Promise<VbaPreListener> {
@@ -228,22 +191,25 @@ export class VbaPreListener extends vbapreListener {
     enterCompilerIfBlock = (ctx: CompilerIfBlockContext) => {
         const doc = this.common.document;
         const docprops = this.common.documentSettings;
-        const element = new CompilerIfBlockElement(ctx, doc.textDocument, docprops);
+        const element = new CompilerLogicalBlock(ctx, doc.textDocument, docprops);
 
-        element.inactiveChildren.forEach(e => {
-            doc.registerSubtractElement(e);
-            e.lines.forEach(c => doc.registerCommentOutElement(c));
+        // Register block subtraction and comment tokens.
+        element.inactiveBlocks.forEach(b => {
+            doc.registerSubtractElement(b);
+            b.linesToComments.forEach(c =>
+                doc.registerSemanticToken(c)
+                    .registerSemanticToken(c)
+            );
         });
     }
 
-    enterCompilerElseStatement = (ctx: CompilerElseStatementContext) => this._registerInactiveLine(ctx);
-    enterCompilerEndIfStatement = (ctx: CompilerEndIfStatementContext) => this._registerInactiveLine(ctx);
-    enterCompilerConditionalStatement = (ctx: CompilerConditionalStatementContext) => this._registerInactiveLine(ctx);
+    enterCompilerElseStatement = (ctx: CompilerElseStatementContext) => this.registerSemanticComment(ctx);
+    enterCompilerEndIfStatement = (ctx: CompilerEndIfStatementContext) => this.registerSemanticComment(ctx);
+    enterCompilerConditionalStatement = (ctx: CompilerConditionalStatementContext) => this.registerSemanticComment(ctx);
 
-    private _registerInactiveLine(ctx: ParserRuleContext) {
+    private registerSemanticComment(ctx: ParserRuleContext) {
         const doc = this.common.document;
-        doc.registerSubtractElement(
-            new InactiveLineElement(ctx, doc.textDocument)
-        );
+        const element = new GenericCommentElement(ctx, doc.textDocument);
+        doc.registerSubtractElement(element);
     }
 }

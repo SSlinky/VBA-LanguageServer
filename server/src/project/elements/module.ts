@@ -1,72 +1,92 @@
-import { Diagnostic, Range, SymbolInformation, SymbolKind } from 'vscode-languageserver';
+// Core
 import { TextDocument } from 'vscode-languageserver-textdocument';
+import { Diagnostic, Range, SymbolKind } from 'vscode-languageserver';
 
+// Antlr
 import { ParserRuleContext } from 'antlr4ng';
-import { ClassModuleContext, IgnoredClassAttrContext, IgnoredProceduralAttrContext, ProceduralModuleContext } from '../../antlr/out/vbaParser';
+import {
+	ClassModuleCodeElementContext,
+	ClassModuleContext,
+	ClassModuleHeaderContext,
+	IgnoredClassAttrContext,
+	IgnoredProceduralAttrContext,
+	ProceduralModuleCodeElementContext,
+	ProceduralModuleContext,
+	ProceduralModuleHeaderContext
+} from '../../antlr/out/vbaParser';
 
-import { BaseContextSyntaxElement, HasDiagnosticCapability, HasSymbolInformation } from './base';
-import { ScopeElement } from './special';
-
-import { SymbolInformationFactory } from '../../capabilities/symbolInformation';
+// Project
+import { BaseContextSyntaxElement, BaseIdentifyableSyntaxElement, HasDiagnosticCapability } from './base';
+import { DiagnosticCapability, FoldingRangeCapability, IdentifierCapability, SymbolInformationCapability } from '../../capabilities/capabilities';
 import { DuplicateAttributeDiagnostic, IgnoredAttributeDiagnostic, MissingAttributeDiagnostic, MissingOptionExplicitDiagnostic } from '../../capabilities/diagnostics';
 
-import '../../extensions/stringExtensions';
-import { contextToRange } from '../../utils/helpers';
 
 interface DocumentSettings {
 	doWarnOptionExplicitMissing: boolean;
 }
 
-abstract class BaseModuleElement extends ScopeElement implements HasSymbolInformation, HasDiagnosticCapability {
-	protected abstract _name: string;
-	symbolKind: SymbolKind;
-	diagnostics: Diagnostic[] = [];
-	context: ProceduralModuleContext | ClassModuleContext;
+
+abstract class BaseModuleElement<T extends ParserRuleContext> extends BaseIdentifyableSyntaxElement<T> {
+	abstract attrubutes: ParserRuleContext[];
+	abstract diagnosticCapability: DiagnosticCapability;
+	abstract hasOptionExplicit: boolean;
+	
 	settings: DocumentSettings;
-	isPublic = true;
+	foldingRangeCapability: FoldingRangeCapability;
+	symbolInformationCapability: SymbolInformationCapability;
 
-	constructor(context: ProceduralModuleContext | ClassModuleContext, document: TextDocument, symbolKind: SymbolKind, documentSettings: DocumentSettings) {
-		super(context, document);
-		this.context = context;
-		this.symbolKind = symbolKind;
+	constructor(ctx: T, doc: TextDocument, documentSettings: DocumentSettings, symbolKind: SymbolKind) {
+		super(ctx, doc);
 		this.settings = documentSettings;
+		this.foldingRangeCapability = new FoldingRangeCapability(this);
+		this.symbolInformationCapability = new SymbolInformationCapability(this, symbolKind);
 	}
 
-	get name(): string {
-		return this._name;
+	// Helpers
+	protected addMissingAttributesDiagnostics(diagnostics: Diagnostic[]): void {
+		if (!!this.identifierCapability.nameContext) return;
+		diagnostics.push(new MissingAttributeDiagnostic(
+			Range.create(this.context.range.start, this.context.range.start),
+			'VB_NAME'
+		));
 	}
 
-	get symbolInformation(): SymbolInformation {
-		return SymbolInformationFactory.create(
-			this, this.symbolKind
+	protected addDuplicateAttributeDiagnostics(diagnostics: Diagnostic[]): void {
+		this.duplicateAttributes(this.attrubutes).forEach(attr =>
+			diagnostics.push(new DuplicateAttributeDiagnostic(
+				attr.toRange(this.context.document),
+				getAttributeName(attr)
+			))
 		);
 	}
 
-	abstract evaluateDiagnostics(): Diagnostic[];
-
-	protected get _hasOptionExplicit(): boolean {
-		const getCodeElements = () => {
-			if (this._isClassModule(this.context)) {
-				return this.context.classModuleBody().classModuleCode().classModuleCodeElement()
-			}
-			return this.context.proceduralModuleBody().proceduralModuleCode().proceduralModuleCodeElement();
+	protected addOptionExplicitMissingDiagnostic(diagnostics: Diagnostic[], header: ClassModuleHeaderContext | ProceduralModuleHeaderContext): void {
+		if (this.settings.doWarnOptionExplicitMissing && !this.hasOptionExplicit) {
+			const startLine = header.stop?.line ?? 0 + 1;
+			diagnostics.push(new MissingOptionExplicitDiagnostic(
+				Range.create(startLine, 1, startLine, 1)
+			));
 		}
-		const codeElements = getCodeElements()
-		if (!codeElements) {
-			return false;
-		}
+	}
 
-		for (const declaration of codeElements) {
-			const element = declaration.commonModuleCodeElement();
-			if (element && element.commonOptionDirective()?.optionExplicitDirective()) {
-				return true;
-			}
-		}
+	protected resolveConfiguration(diagnostics: Diagnostic[], header: ClassModuleHeaderContext | ProceduralModuleHeaderContext): void {
+		this.addMissingAttributesDiagnostics(diagnostics);
+		this.addDuplicateAttributeDiagnostics(diagnostics);
+		this.addOptionExplicitMissingDiagnostic(diagnostics, header);
+	}
 
+	protected evaluateHasOptionExplicit(codeElements: (ProceduralModuleCodeElementContext | ClassModuleCodeElementContext)[]): boolean {
+		for (const codeElement of codeElements) {
+			const isOptionExplicitDirective = codeElement
+				.commonModuleCodeElement()
+				?.commonOptionDirective()
+				?.optionExplicitDirective();
+			if (!!isOptionExplicitDirective) return true;
+		}
 		return false;
 	}
 
-	protected _duplicateAttributes(attrs: ParserRuleContext[]) {
+	private duplicateAttributes(attrs: ParserRuleContext[]) {
 		const catalogue = new Map<string, null>();
 		const result: ParserRuleContext[] = [];
 		attrs.forEach(attr => {
@@ -79,213 +99,103 @@ abstract class BaseModuleElement extends ScopeElement implements HasSymbolInform
 		})
 		return result;
 	}
-
-	private _isClassModule(context: ProceduralModuleContext | ClassModuleContext): context is ClassModuleContext {
-		return 'classModuleHeader' in context;
-	} 
 }
 
-export class ModuleElement extends BaseModuleElement {
-	context: ProceduralModuleContext;
+
+export class ModuleElement extends BaseModuleElement<ProceduralModuleContext> {
+	diagnosticCapability: DiagnosticCapability;
+	identifierCapability: IdentifierCapability;
+
 	attrubutes: ParserRuleContext[];
-	protected _name: string;
+	hasOptionExplicit: boolean;
 
-	constructor(context: ProceduralModuleContext, document: TextDocument, documentSettings: DocumentSettings) {
-		super(context, document, SymbolKind.File, documentSettings);
-		this.context = context;
-		this.attrubutes = context.proceduralModuleHeader().proceduralModuleAttr();
-		this._name = this._getName(context);
-	}
+	constructor(ctx: ProceduralModuleContext, doc: TextDocument, documentSettings: DocumentSettings) {
+		super(ctx, doc, documentSettings, SymbolKind.File);
+		this.attrubutes = ctx.proceduralModuleHeader().proceduralModuleAttr();
+		this.diagnosticCapability = new DiagnosticCapability(this);
 
-	evaluateDiagnostics() {
-		// Diagnose duplicate attributes.
-		this._duplicateAttributes(this.attrubutes).forEach(attr =>
-			this.diagnostics.push(new DuplicateAttributeDiagnostic(
-				contextToRange(this.document, attr)!,
-				getAttributeName(attr)
-			))
+		this.hasOptionExplicit = this.evaluateHasOptionExplicit(ctx
+			.proceduralModuleBody()
+			.proceduralModuleCode()
+			.proceduralModuleCodeElement());
+
+		this.identifierCapability = new IdentifierCapability({
+			element: this,
+			formatName: (x: string) => x.stripQuotes(),
+			defaultName: 'Unknown Module',
+			defaultRange: () => Range.create(this.context.range.start, this.context.range.start),
+			getNameContext: () => ctx
+				.proceduralModuleHeader()
+				.proceduralModuleAttr()
+				.map(x => x.nameAttr())
+				.filter(x => !!x)[0]
+				?.STRINGLITERAL()
+		});
+
+		this.resolveConfiguration(
+			this.diagnosticCapability.diagnostics,
+			this.context.rule.proceduralModuleHeader()
 		);
-
-		// Diagnose option explicit is missing.
-		if (this.settings.doWarnOptionExplicitMissing && !this._hasOptionExplicit) {
-			const header = this.context.proceduralModuleHeader();
-			const startLine = header.stop?.line ?? 0 + 1;
-			this.diagnostics.push(new MissingOptionExplicitDiagnostic(
-				Range.create(
-					startLine, 1,
-					startLine, 1
-				)
-			));
-		}
-
-		return this.diagnostics;
-	}
-
-	private _getName(context: ProceduralModuleContext) {
-		const attributes = context.proceduralModuleHeader().proceduralModuleAttr();
-		const nameAttributes = attributes.map(x => x.nameAttr()).filter(x => !!x)
-		
-		// If we don't have any name attributes...
-		if (nameAttributes.length === 0) {
-			this.diagnostics.push(new MissingAttributeDiagnostic(
-				Range.create(this.range.start, this.range.start),
-				'VB_NAME'
-			));
-			return 'Unknown Module';
-		}
-
-		// Get the name from the name attribute.
-		const name = nameAttributes[0].STRINGLITERAL().getText();
-		return name.stripQuotes();
 	}
 }
 
-export class ClassElement extends BaseModuleElement {
-	context: ClassModuleContext;
-	attrubutes: ParserRuleContext[];
-	protected _name: string;
 
-	constructor(context: ClassModuleContext, document: TextDocument, documentSettings: DocumentSettings) {
-		super(context, document, SymbolKind.Class, documentSettings);
-		this.context = context;
+export class ClassElement extends BaseModuleElement<ClassModuleContext> {
+	diagnosticCapability: DiagnosticCapability;
+	identifierCapability: IdentifierCapability;
+
+	attrubutes: ParserRuleContext[];
+	hasOptionExplicit: boolean;
+
+	constructor(ctx: ClassModuleContext, doc: TextDocument, documentSettings: DocumentSettings) {
+		super(ctx, doc, documentSettings, SymbolKind.File);
 		this.attrubutes = [
-			context.classModuleHeader().nameAttr(),
-			context.classModuleHeader().classAttr(),
-			context.classModuleHeader().ignoredClassAttr()
+			ctx.classModuleHeader().nameAttr(),
+			ctx.classModuleHeader().classAttr(),
+			ctx.classModuleHeader().ignoredClassAttr()
 		].flat();
-		this._name = this._getName(context);
-	}
+		this.diagnosticCapability = new DiagnosticCapability(this);
 
-	evaluateDiagnostics() {
-		// Diagnose duplicate attributes.
-		this._duplicateAttributes(this.attrubutes).forEach(attr =>
-			this.diagnostics.push(new DuplicateAttributeDiagnostic(
-				attr.toRange(this.document),
-				getAttributeName(attr)
-			))
+		this.hasOptionExplicit = this.evaluateHasOptionExplicit(ctx
+			.classModuleBody()
+			.classModuleCode()
+			.classModuleCodeElement());
+
+		this.identifierCapability = new IdentifierCapability({
+			element: this,
+			formatName: (x: string) => x.stripQuotes(),
+			defaultName: 'Unknown Class',
+			defaultRange: () => Range.create(this.context.range.start, this.context.range.start),
+			getNameContext: () => ctx
+				.classModuleHeader()
+				.nameAttr()[0]
+				.STRINGLITERAL()
+		});
+
+		this.resolveConfiguration(
+			this.diagnosticCapability.diagnostics,
+			this.context.rule.classModuleHeader()
 		);
-
-		// Diagnose option explicit is missing.
-		if (this.settings.doWarnOptionExplicitMissing && !this._hasOptionExplicit) {
-			const header = this.context.classModuleHeader();
-			const startLine = header.stop?.line ?? 0 + 1;
-			this.diagnostics.push(new MissingOptionExplicitDiagnostic(
-				Range.create(
-					startLine, 1,
-					startLine, 1
-				)
-			));
-		}
-		return this.diagnostics
-	}
-
-	private _getName(context: ClassModuleContext) {
-		const nameAttributes = context.classModuleHeader().nameAttr();
-
-		// TODO: Check if other attributes are required and validate them.
-		if (nameAttributes.length === 0) {
-			this.diagnostics.push(new MissingAttributeDiagnostic(
-				Range.create(this.range.start, this.range.start),
-				'VB_NAME'
-			));
-			return 'Unknown Class';
-		}
-
-		const nameAttribute = nameAttributes[0];
-		return nameAttribute.STRINGLITERAL().getText().stripQuotes();
 	}
 }
 
-export class IgnoredAttributeElement extends BaseContextSyntaxElement implements HasDiagnosticCapability {
-	diagnostics: Diagnostic[] = [];
 
-	constructor(context: IgnoredClassAttrContext | IgnoredProceduralAttrContext, document: TextDocument) {
-		super(context, document);
+export class ModuleIgnoredAttributeElement extends BaseContextSyntaxElement<ParserRuleContext> implements HasDiagnosticCapability {
+	diagnosticCapability: DiagnosticCapability;
+
+	constructor(ctx: IgnoredClassAttrContext | IgnoredProceduralAttrContext, doc: TextDocument) {
+		super(ctx, doc);
+		this.diagnosticCapability = new DiagnosticCapability(this, () => {
+			this.diagnosticCapability.diagnostics.push(new IgnoredAttributeDiagnostic(
+				this.context.range, this.context.text.split(' ')[1]
+			));
+			return this.diagnosticCapability.diagnostics;
+		})
 	}
-
-	evaluateDiagnostics() {
-		this.diagnostics.push(
-			new IgnoredAttributeDiagnostic(
-				this.range,
-				this.context.getText().split(' ')[1]
-			)
-		);
-		return this.diagnostics
-	}
-
 }
 
+
+// TODO: Move to helpers.
 function getAttributeName(e: ParserRuleContext): string {
 	return e.getText().split(' ')[1]
 }
-
-
-// export class ModuleElement2 extends BaseContextSyntaxElement implements HasSymbolInformation, HasAttribute, HasDiagnosticCapability {
-// 	private _hasName = false;
-// 	private _name: string;
-// 	symbolKind: SymbolKind;
-// 	diagnostics: Diagnostic[] = [];
-
-// 	constructor(context: ModuleContext, document: TextDocument, symbolKind: SymbolKind) {
-// 		super(context, document);
-// 		this._name = "Unknown Module";
-// 		this.symbolKind = symbolKind;
-// 	}
-
-// 	get name(): string {
-// 		return this._name;
-// 	}
-
-// 	get symbolInformation(): SymbolInformation {
-// 		return SymbolInformationFactory.create(
-// 			this, this.symbolKind
-// 		);
-// 	}
-
-// 	evaluateDiagnostics(): void {
-// 		const optionExplicitDiagnotic = this._getOptionExplicitDiagnostic();
-// 		if (optionExplicitDiagnotic) {
-// 			this.diagnostics.push(optionExplicitDiagnotic);
-// 		}
-// 	}
-
-// 	private _getOptionExplicitDiagnostic(): Diagnostic | undefined {
-// 		let optionExplicitFound = false;
-// 		const context = this.context as ModuleContext;
-// 		const declarations = context.moduleHeader().moduleDeclarations()?.moduleDeclarationsElement();
-
-// 		if (declarations) {
-// 			for (const declaration of declarations) {
-// 				if ((declaration.moduleOption()?.text ?? '') === 'Option Explicit') {
-// 					optionExplicitFound = true;
-// 					break;
-// 				}
-// 			}
-// 		}
-
-// 		return optionExplicitFound ? undefined : new MissingOptionExplicitDiagnostic(
-// 			(new ModuelHeaderElement(context.moduleHeader(), this.document)).range
-// 		);
-// 	}
-
-// 	processAttribute(context: AttributeStmtContext): void {
-// 		if (this._hasName) {
-// 			return;
-// 		}
-
-// 		const text = context.text;
-// 		if (text.startsWith("Attribute VB_Name = ")) {
-// 			const unquote = (x: string): string =>
-// 				x.replace(/^"+|"+$/g, '');
-
-// 			this._name = unquote(text.split("= ")[1]);
-// 			this._hasName = true;
-// 		}
-// 	}
-// }
-
-// class ModuelHeaderElement extends BaseContextSyntaxElement {
-// 	constructor(context: ModuleHeaderContext, document: TextDocument) {
-// 		super(context, document);
-// 	}
-// }

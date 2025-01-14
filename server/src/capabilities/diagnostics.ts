@@ -1,9 +1,6 @@
-import { CodeDescription, Diagnostic, DiagnosticRelatedInformation, DiagnosticSeverity, DiagnosticTag, Position, Range, TextDocumentClientCapabilities } from 'vscode-languageserver';
+// Core
+import { CodeDescription, Diagnostic, DiagnosticRelatedInformation, DiagnosticSeverity, DiagnosticTag, Position, Range } from 'vscode-languageserver';
 
-
-function hasDiagnosticRelatedInformationCapability(x: TextDocumentClientCapabilities) {
-	return !!(x && x.publishDiagnostics && x.publishDiagnostics.relatedInformation);
-}
 
 abstract class BaseDiagnostic implements Diagnostic {
 	range: Range;
@@ -32,6 +29,7 @@ export class MultipleOperatorsDiagnostic extends BaseDiagnostic {
 	}
 }
 
+
 export class WhileWendDeprecatedDiagnostic extends BaseDiagnostic {
 	message = "The Do...Loop statement provides a more structured and flexible way to perform looping.";
 	severity = DiagnosticSeverity.Information;
@@ -40,6 +38,7 @@ export class WhileWendDeprecatedDiagnostic extends BaseDiagnostic {
 	}
 }
 
+
 export class MissingAttributeDiagnostic extends BaseDiagnostic {
 	severity = DiagnosticSeverity.Error;
 	constructor(range: Range, attributeName: string) {
@@ -47,12 +46,14 @@ export class MissingAttributeDiagnostic extends BaseDiagnostic {
 	}
 }
 
+
 export class DuplicateAttributeDiagnostic extends BaseDiagnostic {
 	severity = DiagnosticSeverity.Error;
 	constructor(range: Range, attributeName: string) {
 		super(range, `Module duplicate attribute ${attributeName}.`);
 	}
 }
+
 
 // test
 export class DuplicateDeclarationDiagnostic extends BaseDiagnostic {
@@ -63,6 +64,7 @@ export class DuplicateDeclarationDiagnostic extends BaseDiagnostic {
 	}
 }
 
+
 // test
 export class ShadowDeclarationDiagnostic extends BaseDiagnostic {
 	message = "Declaration is shadowed in the local scope.";
@@ -72,12 +74,14 @@ export class ShadowDeclarationDiagnostic extends BaseDiagnostic {
 	}
 }
 
+
 export class IgnoredAttributeDiagnostic extends BaseDiagnostic {
 	severity = DiagnosticSeverity.Warning;
 	constructor(range: Range, attributeName: string) {
 		super(range, `Unknown attribute '${attributeName}' will be ignored.`);
 	}
 }
+
 
 export class MissingOptionExplicitDiagnostic extends BaseDiagnostic {
 	message = "Option Explicit is missing from module header.";
@@ -87,9 +91,18 @@ export class MissingOptionExplicitDiagnostic extends BaseDiagnostic {
 	}
 }
 
+
 export class ElementOutOfPlaceDiagnostic extends BaseDiagnostic {
 	severity = DiagnosticSeverity.Error;
 	constructor(range: Range, elementName: string) {
 		super(range, `${elementName}s cannot appear below a Sub, Function, or Property declaration.`);
+	}
+}
+
+
+export class LegacyFunctionalityDiagnostic extends BaseDiagnostic {
+	severity = DiagnosticSeverity.Warning;
+	constructor(range: Range, functionalityType: string) {
+		super(range, `${functionalityType} are legacy functionality and should be avoided.`);
 	}
 }

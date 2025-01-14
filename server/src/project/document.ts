@@ -1,13 +1,31 @@
-import { CancellationToken, Diagnostic, DocumentDiagnosticReport, DocumentDiagnosticReportKind, SymbolInformation, SymbolKind } from 'vscode-languageserver';
-import { Workspace } from './workspace';
-import { FoldableElement } from './elements/special';
-import { BaseContextSyntaxElement, HasDiagnosticCapability, HasNamedSemanticToken, HasSemanticToken, HasSymbolInformation, NamedSyntaxElement } from './elements/base';
+// Core
 import { Range, TextDocument } from 'vscode-languageserver-textdocument';
+import { CancellationToken, Diagnostic, DocumentDiagnosticReport, DocumentDiagnosticReportKind, SymbolInformation, SymbolKind } from 'vscode-languageserver';
+
+// Antlr
+import { ParseCancellationException, ParserRuleContext } from 'antlr4ng';
+
+// Project
+import { Workspace } from './workspace';
+import { Dictionary } from '../utils/helpers';
 import { SyntaxParser } from './parser/vbaParser';
 import { FoldingRange } from '../capabilities/folding';
 import { SemanticTokensManager } from '../capabilities/semanticTokens';
-import { ParseCancellationException } from 'antlr4ng';
-import { NewPropertyDeclarationElement, NewPropertyGetDeclarationElement, NewPropertyLetDeclarationElement, NewPropertySetDeclarationElement } from './elements/memory';
+import { BaseContextSyntaxElement,
+	BaseSyntaxElement,
+	DeclarableElement,
+	HasDiagnosticCapability,
+	HasFoldingRangeCapability,
+	HasSemanticTokenCapability,
+	HasSymbolInformationCapability
+} from './elements/base';
+
+import { PropertyDeclarationElement,
+	PropertyGetDeclarationElement,
+	PropertyLetDeclarationElement,
+	PropertySetDeclarationElement
+} from './elements/procedure';
+
 
 export interface DocumentSettings {
 	maxDocumentLines: number;
@@ -34,25 +52,22 @@ export abstract class BaseProjectDocument {
 	readonly name: string;
 	readonly workspace: Workspace;
 	readonly textDocument: TextDocument;
-	protected _documentConfiguration?: DocumentSettings;
+
+	protected diagnostics: Diagnostic[] = [];
+	protected documentConfiguration?: DocumentSettings;
+	protected documentScopeDeclarations: Map<string, Map<string, any>> = new Map();
+	protected foldableElements: FoldingRange[] = [];
+	protected hasDiagnosticElements: HasDiagnosticCapability[] = [];
+	protected properties: Dictionary<string, PropertyDeclarationElement> = new Dictionary(() => new PropertyDeclarationElement());
+	protected redactedElements: BaseContextSyntaxElement<ParserRuleContext>[] = [];
+	protected semanticTokens: SemanticTokensManager = new SemanticTokensManager();
+	protected symbolInformations: SymbolInformation[] = [];
+	protected unhandledNamedElements: [] = [];
 	
-	protected _hasDiagnosticElements: HasDiagnosticCapability[] = [];
-	protected _unhandledNamedElements: [] = [];
-	protected _documentScopeDeclarations: Map<string, Map<string, any>> = new Map();
-	
-	protected _diagnostics: Diagnostic[] = [];
-	protected _foldableElements: FoldingRange[] = [];
-	protected _symbolInformations: SymbolInformation[] = [];
-	protected _semanticTokens: SemanticTokensManager = new SemanticTokensManager();
-	protected _redactedElements: BaseContextSyntaxElement[] = [];
-	protected _properties: Map<string, NewPropertyDeclarationElement> = new Map();
+	abstract symbolKind: SymbolKind
 	
 	protected _isBusy = true;
-	abstract symbolKind: SymbolKind
-
-	get isBusy() {
-		return this._isBusy;
-	}
+	get isBusy() { return this._isBusy; }
 
 	get isOversize() {
 		// Workaround for async getter.
@@ -62,25 +77,25 @@ export abstract class BaseProjectDocument {
 	}
 
 	get redactedText() {
-		return this._subtractTextFromRanges(this._redactedElements.map(x => x.range));
+		return this.subtractTextFromRanges(this.redactedElements.map(x => x.context.range));
 	}
 
 	async getDocumentConfiguration(): Promise<DocumentSettings> {
 		// Get the stored configuration.
-		if (this._documentConfiguration) {
-			return this._documentConfiguration;
+		if (this.documentConfiguration) {
+			return this.documentConfiguration;
 		}
 		
 		// Get the configuration from the client.
 		if (this.workspace.hasConfigurationCapability) {
-			this._documentConfiguration = await this.workspace.requestDocumentSettings(this.textDocument.uri);
-			if (this._documentConfiguration) {
-				return this._documentConfiguration;
+			this.documentConfiguration = await this.workspace.requestDocumentSettings(this.textDocument.uri);
+			if (this.documentConfiguration) {
+				return this.documentConfiguration;
 			}
 		}
 
 		// Use the defaults.
-		this._documentConfiguration = {
+		this.documentConfiguration = {
 			maxDocumentLines: 1500,
 			maxNumberOfProblems: 100,
 			doWarnOptionExplicitMissing: true,
@@ -89,10 +104,10 @@ export abstract class BaseProjectDocument {
 				version: "Vba7"
 			}
 		};
-		return this._documentConfiguration;
+		return this.documentConfiguration;
 	}
 
-	clearDocumentConfiguration = () => this._documentConfiguration = undefined;
+	clearDocumentConfiguration = () => this.documentConfiguration = undefined;
 
 	constructor(workspace: Workspace, name: string, document: TextDocument) {
 		this.textDocument = document;
@@ -123,22 +138,22 @@ export abstract class BaseProjectDocument {
 	}
 
 	languageServerSemanticTokens = (range?: Range) => {
-		return this._semanticTokens.getSemanticTokens(range);
+		return this.semanticTokens.getSemanticTokens(range);
 	};
 
 	languageServerFoldingRanges(): FoldingRange[] {
-		return this._foldableElements;
+		return this.foldableElements;
 	}
 
 	languageServerSymbolInformation(): SymbolInformation[] {
-		return this._symbolInformations;
+		return this.symbolInformations;
 	}
 
 	languageServerDiagnostics(): DocumentDiagnosticReport {
 		return {
 			kind: DocumentDiagnosticReportKind.Full,
-			items: this._hasDiagnosticElements
-				.map((e) => e.diagnostics).flat(1)
+			items: this.hasDiagnosticElements
+				.map((e) => e.diagnosticCapability.diagnostics).flat(1)
 		};
 	}
 
@@ -165,66 +180,54 @@ export abstract class BaseProjectDocument {
 		await (new SyntaxParser()).parseAsync(this)
 
 		// Evaluate the diagnostics.
-		this._diagnostics = this._hasDiagnosticElements
-			.map(e => e.evaluateDiagnostics())
+		this.diagnostics = this.hasDiagnosticElements
+			.map(e => e.diagnosticCapability.evaluate())
 			.flat();
 
 		this._isBusy = false;
 	};
 
-	registerPropertyElementDeclaration(element: NewPropertyGetDeclarationElement | NewPropertySetDeclarationElement | NewPropertyLetDeclarationElement) {
-		if (this._properties.has(element.name)) {
-			this._properties.get(element.name)!.addPropertyDeclaration(element);
-			return this;
-		}
-		this._properties.set(element.name, new NewPropertyDeclarationElement(element));
+	/**
+	 * Auto registers the element based on capabilities.
+	 * @returns This for chaining.
+	 */
+	registerElement<T extends ParserRuleContext>(element: BaseSyntaxElement<T>) {
+		if (!!element.diagnosticCapability) this.registerDiagnosticElement(element as HasDiagnosticCapability);
+		if (!!element.foldingRangeCapability) this.registerFoldableElement(element as HasFoldingRangeCapability);
+		if (!!element.semanticTokenCapability) this.registerSemanticToken(element as HasSemanticTokenCapability);
+		if (!!element.symbolInformationCapability) this.registerSymbolInformation(element as HasSymbolInformationCapability);
 		return this;
 	}
 
-	registerNamedElementDeclaration(element: NamedSyntaxElement) {
+	registerPropertyElementDeclaration(element: PropertyGetDeclarationElement | PropertySetDeclarationElement | PropertyLetDeclarationElement) {
+		const elementName = element.propertyName;
+		this.properties.getOrSet(elementName)
+			.addPropertyDeclaration(element);
+		return this;
+	}
+
+	registerNamedElementDeclaration(element: DeclarableElement) {
 		this.workspace.namespaceManager.addNameItem(element);
 		return this;
 	}
 
-	registerNamespaceElement(element: NamedSyntaxElement) {
+	registerNamespaceElement(element: DeclarableElement) {
 		this.workspace.namespaceManager.addNamespace(element);
 		return this;
 	}
 
-	deregisterScopedElement() {
+	deregisterNamespaceElement() {
 		this.workspace.namespaceManager.popNamespace();
 		return this;
 	}
 
 	registerDiagnosticElement(element: HasDiagnosticCapability) {
-		this._hasDiagnosticElements.push(element);
+		this.hasDiagnosticElements.push(element);
 		return this;
 	}
 
-	/**
-	 * Pushes an element to the attribute elements stack.
-	 * Be careful to pair a register action with an appropriate deregister.
-	 * @param element the element to register.
-	 * @returns nothing of interest.
-	 */
-	// registerAttributeElement = (element: HasAttribute) => {
-	// 	this._attributeElements.push(element);
-	// 	return this;
-	// };
-
-	/**
-	 * Pops an element from the attribute elements stack.
-	 * Popping allows actions to be performed on the same element,
-	 * e.g., registered in the entry event and deregistered in the exit event.
-	 * @param element the element to register.
-	 * @returns the element at the end of the stack.
-	 */
-	// deregisterAttributeElement = () => {
-	// 	return this._attributeElements.pop();
-	// };
-
-	registerFoldableElement = (element: FoldableElement) => {
-		this._foldableElements.push(new FoldingRange(element));
+	registerFoldableElement = (element: HasFoldingRangeCapability) => {
+		this.foldableElements.push(element.foldingRangeCapability.foldingRange);
 		return this;
 	};
 
@@ -233,18 +236,13 @@ export abstract class BaseProjectDocument {
 	 * @param element element The element that has a semantic token.
 	 * @returns this for chaining.
 	 */
-	registerSemanticToken = (element: HasNamedSemanticToken) => {
-		this._semanticTokens.add(element);
-		return this;
-	};
-
-	registerCommentOutElement = (element: HasSemanticToken) => {
-		this._semanticTokens.addComment(element);
+	registerSemanticToken = (element: HasSemanticTokenCapability) => {
+		this.semanticTokens.add(element);
 		return this;
 	}
 
-	registerSubtractElement = (element: BaseContextSyntaxElement) => {
-		this._redactedElements.push(element);
+	registerSubtractElement = (element: BaseContextSyntaxElement<ParserRuleContext>) => {
+		this.redactedElements.push(element);
 		return this;
 	}
 
@@ -253,15 +251,15 @@ export abstract class BaseProjectDocument {
 	 * @param element The element that has symbol information.
 	 * @returns this for chaining.
 	 */
-	registerSymbolInformation = (element: HasSymbolInformation) => {
-		this._symbolInformations.push(element.symbolInformation);
+	registerSymbolInformation = (element: HasSymbolInformationCapability) => {
+		this.symbolInformations.push(element.symbolInformationCapability.SymbolInformation);
 		return this;
-	};
+	}
 
 
-	private _subtractTextFromRanges(ranges: Range[]): string {
+	private subtractTextFromRanges(ranges: Range[]): string {
 		const text = this.textDocument.getText();
-		return ranges.reduce((x, y) => this._subtractTextRange(x, y), text);
+		return ranges.reduce((x, y) => this.subtractTextRange(x, y), text);
 	}
 
 	/**
@@ -270,7 +268,7 @@ export abstract class BaseProjectDocument {
 	 * @param range the range to subtract.
 	 * @returns the original text with the range replaced by spaces.
 	 */
-	private _subtractTextRange(text: string, range: Range): string {
+	private subtractTextRange(text: string, range: Range): string {
 		const docLines = text.split('\r\n');
 
 		if (range.start.line === range.end.line) {

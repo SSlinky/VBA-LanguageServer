@@ -1,118 +1,154 @@
+// Core
+import { Position, Range } from 'vscode-languageserver';
+import { TextDocument } from 'vscode-languageserver-textdocument';
+
+// Antlr
 import { ParserRuleContext } from 'antlr4ng';
-import { Diagnostic, Range, SemanticTokenModifiers, SemanticTokenTypes, SymbolInformation, SymbolKind } from 'vscode-languageserver';
-import { Position, TextDocument } from 'vscode-languageserver-textdocument';
-import { FoldingRangeKind } from '../../capabilities/folding';
-import { IdentifierElement, PropertyDeclarationElement } from './memory';
-import '../../extensions/parserExtensions';
-import { contextToRange } from '../../utils/helpers';
 
-export interface ContextOptionalSyntaxElement {
-	range?: Range;
-	parent?: ContextOptionalSyntaxElement;
-	context?: ParserRuleContext;
-	get text(): string;
-	get uri(): string;
+// Project
+import {
+	DiagnosticCapability,
+	FoldingRangeCapability,
+	IdentifierCapability,
+	SemanticTokenCapability,
+	SymbolInformationCapability
+} from '../../capabilities/capabilities';
 
+
+export abstract class BaseSyntaxElement<T extends ParserRuleContext> {
+	// Base Properties
+	context?: Context<T>
+	identifierCapability?: IdentifierCapability;
+
+	// Capabilities
+	diagnosticCapability?: DiagnosticCapability;
+	foldingRangeCapability?: FoldingRangeCapability;
+	semanticTokenCapability?: SemanticTokenCapability;
+	symbolInformationCapability?: SymbolInformationCapability;
+
+	get isPublic(): boolean { return false; }
+
+	constructor();
+	constructor(ctx: T, doc: TextDocument)
+	constructor(ctx?: T, doc?: TextDocument) {
+		if (!!ctx && !!doc) this.context = new Context(ctx, doc);
+	}
+
+	/**
+	 * Checks if this element is a child of another element.
+	 * @returns True if the element is a child of the passed element.
+	 */
 	isChildOf(range: Range): boolean;
-}
+	isChildOf(element: BaseSyntaxElement<T>): boolean;
+	isChildOf(elementOrRange: BaseSyntaxElement<T> | Range): boolean {
+		const a = this.context?.range;
+		const b = ((o: any): o is BaseSyntaxElement<T> => 'context' in o)(elementOrRange)
+			? elementOrRange.context?.range
+			: elementOrRange;
 
-interface SyntaxElement extends ContextOptionalSyntaxElement {
-	range: Range;
-	context: ParserRuleContext;
-}
+		if (!a || !b) return false;
 
-export interface HasDiagnosticCapability {
-	diagnostics: Diagnostic[];
-	evaluateDiagnostics(): Diagnostic[];
-}
+		const isPositionBefore = (x: Position, y: Position) => x.line < y.line
+			|| (x.line === y.line && x.character <= y.character);
 
-export interface NamedSyntaxElement extends SyntaxElement, HasDiagnosticCapability {
-	get name(): string;
-	get isPublic(): boolean;
-	equals(element: any): boolean;
-}
-
-export interface IdentifiableSyntaxElement extends NamedSyntaxElement {
-	identifier: IdentifierElement;
-	isPropertyElement(): this is PropertyDeclarationElement
-}
-
-export interface HasSymbolInformation extends NamedSyntaxElement {
-	get symbolInformation(): SymbolInformation;
-}
-
-export interface HasNamedSemanticToken extends NamedSyntaxElement, IdentifiableSyntaxElement {
-	tokenType: SemanticTokenTypes;
-	tokenModifiers: SemanticTokenModifiers[];
-}
-
-export interface HasSemanticToken extends SyntaxElement {
-	range: Range;
-	context: ParserRuleContext;
-	tokenType: SemanticTokenTypes;
-	tokenModifiers: SemanticTokenModifiers[];
-}
-
-export interface MemoryElement extends BaseSyntaxElement {
-	name: string;
-	returnType: any;
-	symbol: SymbolKind;
-}
-
-export interface FoldingRangeElement {
-	range: Range;
-	foldingRangeKind?: FoldingRangeKind;
-}
-
-export interface DeclarationElement extends HasDiagnosticCapability, NamedSyntaxElement {
-	isPublic: boolean;
-	isPropertyElement(): this is PropertyDeclarationElement
-}
-
-export abstract class BaseSyntaxElement implements ContextOptionalSyntaxElement {
-	protected document: TextDocument;
-	
-	range?: Range;
-	parent?: ContextOptionalSyntaxElement;
-	context?: ParserRuleContext;
-
-	get text(): string { return this.context?.getText() ?? ''; }
-	get uri(): string { return this.document.uri; }
-
-	constructor(context: ParserRuleContext | undefined, document: TextDocument) {
-		this.context = context;
-		this.document = document;
-		this.range = this._contextToRange();
+		return isPositionBefore(b.start, a.start)
+			&& isPositionBefore(a.end, b.end);
 	}
 
-	isChildOf = (range: Range): boolean => {
-		if (!this.range) {
-			return false;
-		}
+	/**
+	 * Compare two syntax elements for equality.
+	 * @returns True if the document, range, and text match.
+	 */
+	equals(element: BaseSyntaxElement<T>): boolean {
+		const a = this.context;
+		const b = element.context;
 
-		const isPositionBefore = (x: Position, y: Position) =>
-			x.line < y.line || (x.line === y.line && x.character <= y.character);
-
-		return isPositionBefore(range.start, this.range.start)
-			&& isPositionBefore(this.range.end, range.end);
-	};
-
-	equals = (element: BaseSyntaxElement): boolean =>
-		this.document.uri === element.document.uri
-			&& this.range === element.range
-			&& this.text === element.text;
-
-	protected _contextToRange(): Range | undefined {
-		return contextToRange(this.document, this.context);
+		return !!a && !!b
+			&& a.document.uri === b.document.uri
+			&& a.range === b.range
+			&& a.text === b.text;
 	}
 }
 
-export abstract class BaseContextSyntaxElement extends BaseSyntaxElement {
-	range!: Range;
-	context!: ParserRuleContext;
 
-	constructor(ctx: ParserRuleContext, doc: TextDocument) {
+export abstract class BaseContextSyntaxElement<T extends ParserRuleContext> extends BaseSyntaxElement<T> implements HasContext<T> {
+	context!: Context<T>;
+
+	constructor(ctx: T, doc: TextDocument) {
 		super(ctx, doc);
 	}
 }
 
+
+export abstract class BaseIdentifyableSyntaxElement<T extends ParserRuleContext> extends BaseContextSyntaxElement<T> implements IsIdentifiable {
+	abstract identifierCapability: IdentifierCapability;
+
+	constructor(ctx: T, doc: TextDocument) {
+		super(ctx, doc);
+	}
+}
+
+
+// ---------------------------------------------------------
+// Utilities
+// ---------------------------------------------------------
+
+export class Context<T extends ParserRuleContext> {
+	rule: T;
+	document: TextDocument;
+	range: Range;
+	
+	get text(): string {
+		return this.rule.getText();
+	}
+
+	get startIndex() { return this.rule.start?.start ?? 0; }
+	get stopIndex() { return this.rule.stop?.stop ?? 0; }
+
+	constructor(context: T, document: TextDocument) {
+		this.rule = context;
+		this.document = document;
+		this.range = context.toRange(document);
+	}
+}
+
+
+// ---------------------------------------------------------
+// Interfaces
+// ---------------------------------------------------------
+
+export interface HasContext<T extends ParserRuleContext> {
+	context: Context<T>;
+}
+
+
+export interface HasDiagnosticCapability extends HasContext<ParserRuleContext> {
+	diagnosticCapability: DiagnosticCapability;
+}
+
+
+export interface IsIdentifiable {
+	identifierCapability: IdentifierCapability
+}
+
+
+export interface HasSemanticTokenCapability {
+	semanticTokenCapability: SemanticTokenCapability
+}
+
+
+export interface HasSymbolInformationCapability extends IsIdentifiable {
+	symbolInformationCapability: SymbolInformationCapability
+}
+
+
+export interface HasFoldingRangeCapability {
+	foldingRangeCapability: FoldingRangeCapability;
+}
+
+
+// ---------------------------------------------------------
+// Compound Types
+// ---------------------------------------------------------
+
+export type DeclarableElement = BaseContextSyntaxElement<ParserRuleContext> & IsIdentifiable & HasDiagnosticCapability;

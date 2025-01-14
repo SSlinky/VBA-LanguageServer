@@ -12,9 +12,13 @@ import {
 	ServerCapabilities,
 } from 'vscode-languageserver/node';
 
+// Ensures globally available type extensions.
+import './extensions/stringExtensions';
+import './extensions/parserExtensions';
 import { Workspace } from './project/workspace';
 import { activateSemanticTokenProvider } from './capabilities/semanticTokens';
 import { activateWorkspaceFolderCapability } from './capabilities/workspaceFolder';
+
 
 class LanguageServer {
 	workspace?: Workspace;
@@ -50,6 +54,7 @@ class LanguageServer {
 		this.connection.listen();
 	}
 }
+
 
 export class LanguageServerConfiguration {
 	params: InitializeParams;
@@ -97,6 +102,7 @@ export class LanguageServerConfiguration {
 		this.params = params;
 	}
 }
+
 
 class ConnectionInitializeResult implements InitializeResult {
 	[custom: string]: any;

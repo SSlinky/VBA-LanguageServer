@@ -1,9 +1,11 @@
-import { vbaLexer } from '../../antlr/out/vbaLexer';
-import { vbaParser } from '../../antlr/out/vbaParser';
+// Antlr
 import { CharStream, CommonTokenStream, TokenStream } from 'antlr4ng';
 import { DefaultErrorStrategy, Parser, RecognitionException } from 'antlr4ng';
+import { vbaLexer } from '../../antlr/out/vbaLexer';
+import { vbaParser } from '../../antlr/out/vbaParser';
 import { vbapreLexer } from '../../antlr/out/vbapreLexer';
 import { vbapreParser } from '../../antlr/out/vbapreParser';
+
 
 export class VbaLexer extends vbaLexer {
     constructor(input: CharStream) {
@@ -14,6 +16,7 @@ export class VbaLexer extends vbaLexer {
 		return new VbaLexer(CharStream.fromString(doc))
 	}
 }
+
 
 export class VbaParser extends vbaParser {
 	constructor(input: TokenStream) {
@@ -30,6 +33,7 @@ export class VbaParser extends vbaParser {
 	}
 }
 
+
 export class VbaPreLexer extends vbapreLexer {
     constructor(input: CharStream) {
         super(input);
@@ -39,6 +43,7 @@ export class VbaPreLexer extends vbapreLexer {
 		return new VbaPreLexer(CharStream.fromString(doc))
 	}
 }
+
 
 export class VbaPreParser extends vbapreParser {
 	constructor(input: TokenStream) {
@@ -53,6 +58,7 @@ export class VbaPreParser extends vbapreParser {
         return parser;
 	}
 }
+
 
 export class VbaErrorHandler extends DefaultErrorStrategy {
     recover(recognizer: Parser, e: RecognitionException): void {
