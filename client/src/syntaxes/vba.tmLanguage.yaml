@@ -423,7 +423,7 @@ repository:
         # The sub-pattern consumes the \n if preceded by line continuation.
         # Capturing it there prevents the end pattern being matched.
         name: comment.block.vba
-        begin: (?i)(\s*'|(?<=^|:)\s*Rem\b).*\s_\s*
+        begin: (?i)(\s*'|(?<=^\d*?|:)\s*Rem\b).*\s_\s*
         end: \n
         patterns:
           - include: "#lineContinuation"
