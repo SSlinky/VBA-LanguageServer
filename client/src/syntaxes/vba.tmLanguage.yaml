@@ -415,15 +415,15 @@ repository:
 
   comments:
     patterns:
-      - include: "#remarkComments"
       - include: "#blockComments"
       - include: "#apostropheComments"
+      - include: "#remarkComments"
     repository:
       blockComments:
         # The sub-pattern consumes the \n if preceded by line continuation.
         # Capturing it there prevents the end pattern being matched.
         name: comment.block.vba
-        begin: (?i)\s*'.*\s_\s*
+        begin: (?i)(\s*'|(?<=^\d*?|:)\s*Rem\b).*\s_\s*
         end: \n
         patterns:
           - include: "#lineContinuation"
@@ -432,7 +432,7 @@ repository:
         match: (?i)\s*'.*
       remarkComments:
         name: comment.line.remark.vba
-        match: (?i)(?<=^|:)\s*Rem\b.*
+        match: (?i)(?<=^\d*?|:)\s*Rem\b.*
 
   attribute:
     name: meta.attribute.vba
