@@ -1,6 +1,5 @@
 // Core
-import * as ts from "typescript";
-import { Position, Range, SemanticTokenTypes } from 'vscode-languageserver';
+import { Range, SemanticTokenTypes } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 
 // Antlr
@@ -82,7 +81,7 @@ class CompilerConditionBlock extends BaseContextSyntaxElement<CompilerConditiona
 		const tsExpression = this.transpileVbaToTypescript(vbaExpression);
 
 		// Evaluate the expression and return the result.
-		const result = eval(ts.transpile(tsExpression));
+		const result = eval(tsExpression);
 		if (!(typeof result === "boolean")) {
 			// TODO: Return false here instead of throwing
 			// and return an error diagnostic for the expression.
