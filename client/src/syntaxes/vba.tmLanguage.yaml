@@ -456,8 +456,18 @@ repository:
       - include: "#moduleOption"
     repository:
       moduleAttribute:
-        patterns:
-          - include: "#attribute"
+        name: meta.attribute.vba
+        match: (?i)^\s*(Attribute)\s+(VB_\w+)\s+(=)\s+(.*)$
+        captures:
+          1: # Attribute
+            name: keyword.attribute.vba
+          2: # VB_Name
+            name: entity.other.attribute-name.vba
+          3: # =
+            name: keyword.operator.comparison.vba
+          4: # "Sam"
+            patterns:
+              - include: "#literals" 
       moduleAttributeBlock:
         name: entity.other.attribute-name.block.vba
         begin: (?i)^VERSION
