@@ -90,7 +90,7 @@ repository:
         match: "(?i)(true|false)"
       number:
         name: constant.numeric.vba
-        match: "-?\\d+\\.?\\d*"
+        match: -?\d+\.?\d*[%&@!#]?
       hexadecimal:
         name: constant.numeric.hex.vba
         match: "(?i)&H[0-9a-f]+(&)?"
