@@ -614,7 +614,23 @@ repository:
           - include: "#types"
     patterns:
       - include: "#arguments"
-    
+
+  methodAttribute:
+    name: source.method.attribute.vba
+    match: (?i)^\s*(Attribute)\s+([a-z][a-z0-9_]*)(\.VB_(?:Description|UserMemId))\s+(=)\s+(.*)
+    captures:
+      1:
+        name: entity.other.attribute-name.vba
+      2:
+        name: entity.name.function.vba
+      3:
+        name: entity.other.attribute-name.vba
+      4:
+        name: keyword.operator.comparison.vba
+      5:
+        patterns:
+          - include: "#literals"
+
   methodClose:
     name: storage.type.method.close.vba
     match: (?i)^\s*End\s+(Sub|Function|Property)
@@ -644,8 +660,10 @@ repository:
 
   block:
     patterns:
+      - include: "#testing"
       - include: "#variableDeclarations"
       - include: "#variableAssignment"
+      - include: "#methodAttribute"
       - include: "#methodClose"
       - include: "#language"
 
@@ -695,14 +713,14 @@ repository:
               - include: "#types"
       constDeclaration:
         name: storage.const-declaration.vba
-        match: ^\s*((?i)(?:(?:Public|Private)\s+)?Const)\s+([A-Z][A-Z0-9_]*)([&%#!@$^])?((?i)\s+As\s+[A-Z][A-Z0-9_]*)?(.*)
+        match: (?i)^\s*((?:(?:Public|Private)\s+)?Const)\s+([a-z][a-z0-9_]*)([&%#!@$^])?(\s+As\s+[a-z][a-z0-9_]*)?(.*)
         captures:
           1:
             # Public|Private Const
             name: storage.type.vba
           2:
             # CONSTNAME
-            name: variable.other.constant.vba
+            name: variable.other.constant
           3:
             # Type hint?
             name: support.type.primitive.vba
@@ -956,6 +974,8 @@ repository:
         match: ^brackethighlighter.unmatched$
       - name: constant.other.reference.link
         match: ^constant.other.reference.link$
+      - name: constant.other.identifier.vba
+        match: ^constant.other.identifier.vba$
       - name: string.other.link
         match: ^string.other.link$
       - name: entity.name.tag.yaml
