@@ -38,7 +38,7 @@ repository:
           - include: "#lineContinuation"
 
   lineContinuation:
-    name: support.vba
+    name: keyword.control.line-continuation.vba
     match: \s*_\s*\n
 
   syntaxLines:
@@ -68,6 +68,7 @@ repository:
       - include: "#literals"
       - include: "#operators"
       - include: "#keywords"
+      - include: "#variables"
       - include: "#functionCall"
       - include: "#objectModel"
       - include: "#subCall"
@@ -273,6 +274,10 @@ repository:
           directiveIllegal:
             name: invalid.illegal.vba
             match: "^#.*"
+
+  variables:
+    name: variable.language.me.vba
+    match: (?i)\s+(Me)(?=\.|\s)
 
   labels:
     # name: variable.other.constant.label.vba
