@@ -1,4 +1,4 @@
-'  SYNTAX TEST "source.vba" "comments"
+'  SYNTAX TEST "source.vba" "method attributes"
 
 Public Function Identifier() As Variant
 Attribute Identifier.VB_Description = "Docstring."
