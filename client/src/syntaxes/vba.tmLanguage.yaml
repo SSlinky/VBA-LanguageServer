@@ -351,23 +351,59 @@ repository:
                 match: (?i)\b(debug)(\.([a-z][a-z0-9_]*))
 
   types:
-    patterns:
-      - include: "#language"
-      - include: "#primativeType"
-      - include: "#objectType"
-    repository:
-      primativeType:
-        name: support.type.primitive.vba
-        match: (?i)(?<=\bAs)(?:\s+|\s+_\s*\n)+(boolean|byte|currency|date|decimal|double|integer|long(long|ptr)?|single|string|variant)\b
-      objectType:
-        name: support.type.object.vba
-        match: (?i)(?<=\bAs)((?:\s+(?:\s*_\s*\n)*)New)?(?:\s+(?:\s*_\s*\n)*)([A-Z][A-Z0-9_]*)\b
-        captures:
-          1:
-            name: keyword.storage.new.vba
-          2:
+    name: meta.variables.type.vba
+    #          As     New?       Type
+    match: (?i)(As)\s+(New\s)?\s*([A-Z][a-z0-9_.]*)
+    captures:
+      1:
+        name: keyword.control.as.vba
+      2:
+        name: keyword.storage.new.vba
+      3:
+        patterns:
+          - include: "#AsTypePrimative"
+          - include: "#AsTypeObject"
+        repository:
+          AsTypePrimative:
+            name: support.type.primitive.vba
+            match: (?i)(boolean|byte|currency|date|decimal|double|integer|long(long|ptr)?|single|string|variant)\b
+          AsTypeObject:
             name: support.type.object.vba
+            match: (?i)([A-Z][A-Z0-9_]*)
 
+  argumentsSignature:
+    name: meta.arguments.signature.vba
+    match: (?i)(?:(,)|(=)|(\s*_\s*\n)|(as\s+(?:\s*_\s*\n)*[a-z][a-z0-9_.]*)|(".*"|True|False|\d+(?:\.\d+)?[%&@!#$]?)|([a-z][a-z0-9_.]*[%&@!#$]?(?:\(\))?))
+    captures:
+      1: # ,
+        name: punctuation.separator.vba
+      2: # =
+        name: keyword.operator.assignment.vba
+      3: # _
+        name: punctuation.line-continuation.vba
+      4: # As Type?
+        patterns:
+          - include: "#types"
+      5: # "foo"
+        patterns:
+          - include: "#literals"
+      6:
+        patterns:
+          - include: "#keywords"
+          - include: "#argumentsVariableSignature"
+        repository:
+          argumentsVariableSignature:
+            match: (?i)(?:(Optional|ParamArray|ByRef|ByVal)|(.*))
+            captures:
+              1: # Optional? ByVal|ByRef?
+                name: storage.type.modifier.vba
+              2: # Identifier
+                name: variable.parameter.vba
+
+  # TODO: This needs to be repurposed to sub / function CALL rather than signature.
+  #       Will need to separate arguments by comma, take line endings into account, and ignore commas inside parentheses.
+  #       someSub someVar, "someLiteral", someFunc(1, 2, 3), _
+  #          someNextLineFunc()
   arguments:
     # Rules that have no match will never return a name in the hierarchy.
     # This name doesn't do anything but leaving this as usage notes.
@@ -399,8 +435,10 @@ repository:
               - include: "#language"
 
       argsLiteral:
+        # Should ideally only match on something that could be considered a literal.
+        # This kludge will at least not consume unmatched close parentheses.
         name: meta.arguments.argsLiteral.vba
-        match: ((?:[^\n",]|"(?:\\.|[^\n"\\])*")+|"(?:\\.|[^\n"\\])*")
+        match: ((?:[^(",\n()]|"(?:\\.|[^\n"\\])*"|\([^)]*\))+|"(?:\\.|[^\n"\\])*")
         captures:
           1:
             patterns:
@@ -408,13 +446,15 @@ repository:
 
       paramArray:
         name: meta.args.paramarray.vba
-        match: (?i),?\s*(ParamArray)\s+([a-z][a-z0-9_]*)(?:\(\))(\s+As\s+Variant)?
+        match: (?i)(,)?\s*(ParamArray)\s+([a-z][a-z0-9_]*)(?:\(\))(\s+As\s+Variant)?
         captures:
           1:
-            name: storage.type.modifier.array.vba
+            name: punctuation.separator.vba
           2:
-            name: variable.parameter.vba
+            name: storage.type.modifier.array.vba
           3:
+            name: variable.parameter.vba
+          4:
             patterns:
               - include: "#types"
 
@@ -586,7 +626,7 @@ repository:
         patterns:
           - include: "#types"
     patterns:
-      - include: "#arguments"
+      - include: "#argumentsSignature"
 
   inlineMethod:
     name: source.inline-method.please-dont.vba
@@ -598,7 +638,7 @@ repository:
         name: entity.name.function.vba
       3: # Arguments?
         patterns:
-          - include: "#arguments"
+          - include: "#argumentsSignature"
       4: # Return type?
         patterns:
           - include: "#types"
@@ -628,7 +668,7 @@ repository:
         patterns:
           - include: "#types"
     patterns:
-      - include: "#arguments"
+      - include: "#argumentsSignature"
 
   methodAttribute:
     name: source.method.attribute.vba

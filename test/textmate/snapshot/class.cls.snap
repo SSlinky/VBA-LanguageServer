@@ -14,37 +14,49 @@
 >END
 #^^^ source.vba entity.other.attribute-name.block.vba
 >Attribute VB_Name = "ClassName"
-#^^^^^^^^^^^^^^^^^ source.vba meta.attribute.vba entity.other.attribute-name.vba
+#^^^^^^^^^ source.vba meta.attribute.vba keyword.attribute.vba
+#         ^ source.vba meta.attribute.vba
+#          ^^^^^^^ source.vba meta.attribute.vba entity.other.attribute-name.vba
 #                 ^ source.vba meta.attribute.vba
 #                  ^ source.vba meta.attribute.vba keyword.operator.comparison.vba
 #                   ^ source.vba meta.attribute.vba
 #                    ^^^^^^^^^^^ source.vba meta.attribute.vba string.quoted.double.vba
 >Attribute VB_Description = "Class description goes here"
-#^^^^^^^^^^^^^^^^^^^^^^^^ source.vba meta.attribute.vba entity.other.attribute-name.vba
+#^^^^^^^^^ source.vba meta.attribute.vba keyword.attribute.vba
+#         ^ source.vba meta.attribute.vba
+#          ^^^^^^^^^^^^^^ source.vba meta.attribute.vba entity.other.attribute-name.vba
 #                        ^ source.vba meta.attribute.vba
 #                         ^ source.vba meta.attribute.vba keyword.operator.comparison.vba
 #                          ^ source.vba meta.attribute.vba
 #                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.vba meta.attribute.vba string.quoted.double.vba
 >Attribute VB_GlobalNameSpace = False
-#^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.vba meta.attribute.vba entity.other.attribute-name.vba
+#^^^^^^^^^ source.vba meta.attribute.vba keyword.attribute.vba
+#         ^ source.vba meta.attribute.vba
+#          ^^^^^^^^^^^^^^^^^^ source.vba meta.attribute.vba entity.other.attribute-name.vba
 #                            ^ source.vba meta.attribute.vba
 #                             ^ source.vba meta.attribute.vba keyword.operator.comparison.vba
 #                              ^ source.vba meta.attribute.vba
 #                               ^^^^^ source.vba meta.attribute.vba constant.language.boolean.vba
 >Attribute VB_Creatable = False
-#^^^^^^^^^^^^^^^^^^^^^^ source.vba meta.attribute.vba entity.other.attribute-name.vba
+#^^^^^^^^^ source.vba meta.attribute.vba keyword.attribute.vba
+#         ^ source.vba meta.attribute.vba
+#          ^^^^^^^^^^^^ source.vba meta.attribute.vba entity.other.attribute-name.vba
 #                      ^ source.vba meta.attribute.vba
 #                       ^ source.vba meta.attribute.vba keyword.operator.comparison.vba
 #                        ^ source.vba meta.attribute.vba
 #                         ^^^^^ source.vba meta.attribute.vba constant.language.boolean.vba
 >Attribute VB_PredeclaredId = False
-#^^^^^^^^^^^^^^^^^^^^^^^^^^ source.vba meta.attribute.vba entity.other.attribute-name.vba
+#^^^^^^^^^ source.vba meta.attribute.vba keyword.attribute.vba
+#         ^ source.vba meta.attribute.vba
+#          ^^^^^^^^^^^^^^^^ source.vba meta.attribute.vba entity.other.attribute-name.vba
 #                          ^ source.vba meta.attribute.vba
 #                           ^ source.vba meta.attribute.vba keyword.operator.comparison.vba
 #                            ^ source.vba meta.attribute.vba
 #                             ^^^^^ source.vba meta.attribute.vba constant.language.boolean.vba
 >Attribute VB_Exposed = False
-#^^^^^^^^^^^^^^^^^^^^ source.vba meta.attribute.vba entity.other.attribute-name.vba
+#^^^^^^^^^ source.vba meta.attribute.vba keyword.attribute.vba
+#         ^ source.vba meta.attribute.vba
+#          ^^^^^^^^^^ source.vba meta.attribute.vba entity.other.attribute-name.vba
 #                    ^ source.vba meta.attribute.vba
 #                     ^ source.vba meta.attribute.vba keyword.operator.comparison.vba
 #                      ^ source.vba meta.attribute.vba
