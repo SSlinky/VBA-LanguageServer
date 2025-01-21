@@ -219,9 +219,9 @@ NOT
 
 // Any non-whitespace or new line characters.
 ANYCHARS
-    : ANYCHAR
+    : ANYCHAR+
     ;
 
 fragment ANYCHAR
-    : .
+    : ~[\r\n\u2028\u2029 \t\u0019\u3000]
     ;
