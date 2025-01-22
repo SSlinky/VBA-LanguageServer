@@ -38,23 +38,23 @@ compilerConditionalStatement
     ;
 
 compilerIfStatement
-    : IF WS? booleanExpression WS? THEN endOfStatement
+    : WS? IF WS? booleanExpression WS? THEN endOfStatement
     ;
 
 compilerElseIfStatement
-    : ELSEIF WS? booleanExpression WS? THEN endOfStatement
+    : WS? ELSEIF WS? booleanExpression WS? THEN endOfStatement
     ;
 
 compilerElseStatement
-    : ELSE endOfStatement
+    : WS? ELSE endOfStatement
     ;
 
 compilerEndIfStatement
-    : ENDIF endOfStatement?
+    : WS? ENDIF endOfStatement?
     ;
 
 compilerBlockContent
-    : (anyOtherLine | endOfLine)+
+    : (anyOtherLine | endOfLine | compilerIfBlock)+
     ;
 
 // *************************
@@ -81,7 +81,7 @@ anyWord
     ;
 
 anyOtherLine
-    : (WS* anyWord)+ //endOfLine?
+    : (WS* anyWord)+
     ;
 
 endOfLine
@@ -93,7 +93,7 @@ endOfLineNoWs
     ;
 
 endOfStatement
-    : (endOfLine | COLON)+
+    : (endOfLine | WS? COLON WS? )+
     ;
 
 commentBody: COMMENT;
@@ -169,7 +169,7 @@ LINE_CONTINUATION
     ;
 
 WS
-    : NBSP NBSP*
+    : NBSP+
     ;
 
 fragment NBSP
