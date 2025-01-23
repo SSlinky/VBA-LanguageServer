@@ -3,7 +3,7 @@ import { Position, Range } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 
 // Antlr
-import { ParserRuleContext } from 'antlr4ng';
+import { ParserRuleContext, TerminalNode } from 'antlr4ng';
 
 // Project
 import {
@@ -93,7 +93,7 @@ export abstract class BaseIdentifyableSyntaxElement<T extends ParserRuleContext>
 // Utilities
 // ---------------------------------------------------------
 
-export class Context<T extends ParserRuleContext> {
+export class Context<T extends ParserRuleContext | TerminalNode> {
 	rule: T;
 	document: TextDocument;
 	range: Range;
@@ -102,8 +102,8 @@ export class Context<T extends ParserRuleContext> {
 		return this.rule.getText();
 	}
 
-	get startIndex() { return this.rule.start?.start ?? 0; }
-	get stopIndex() { return this.rule.stop?.stop ?? 0; }
+	get startIndex() { return this.rule.startIndex(); }
+	get stopIndex() { return this.rule.stopIndex(); }
 
 	constructor(context: T, document: TextDocument) {
 		this.rule = context;

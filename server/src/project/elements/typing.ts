@@ -70,7 +70,6 @@ export class TypeDeclarationElement extends BaseTypeDeclarationElement<PublicTyp
 			element: this,
 			getNameContext: () => ctx.udtDeclaration().untypedName()
 		});
-		this.symbolInformationCapability = new SymbolInformationCapability(this, SymbolKind.Struct);
 	}
 }
 
