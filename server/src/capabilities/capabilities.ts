@@ -106,14 +106,14 @@ interface IdentifierArgs {
 
 
 export class IdentifierCapability extends BaseCapability {
-	nameContext?: ParserRuleContext | TerminalNode | null;
+	nameContext: ParserRuleContext | TerminalNode;
 	range: Range;
 	name: string;
 
 	constructor(args: IdentifierArgs) {
 		super(args.element);
 
-		this.nameContext = (args.getNameContext ?? (() => args.element.context.rule))();
+		this.nameContext = ((args.getNameContext ?? (() => args.element.context.rule))() ?? args.element.context.rule);
 
 		if (!!this.nameContext) {
 			// Use the context to set the values.
