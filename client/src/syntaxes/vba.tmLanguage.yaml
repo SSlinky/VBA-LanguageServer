@@ -79,6 +79,7 @@ repository:
       - include: "#comments"
       - include: "#string"
       - include: "#boolean"
+      - include: "#nothing"
       - include: "#number"
       - include: "#hexadecimal"
     repository:
@@ -88,6 +89,9 @@ repository:
       boolean:
         name: constant.language.boolean.vba
         match: "(?i)(true|false)"
+      nothing:
+        name: constant.language.null.vba
+        match: (?i)\bnothing\b
       number:
         name: constant.numeric.vba
         match: -?\d+\.?\d*[%&@!#]?
@@ -144,16 +148,32 @@ repository:
         patterns:
           - include: "#inlineIfElse"
           - include: "#inlineIf"
-          - include: "#flowDecision"
+          - include: "#blockIf"
+          - include: "#blockIfEnd"
           - include: "#forEachLoop"
           - include: "#flowLoop"
           - include: "#flowCall"
           - include: "#flowPauseExit"
           - include: "#flowBranch"
         repository:
-          flowDecision:
-            name: keyword.control.flow.decision.vba
-            match: (?i)(^|\s+)(#if|then|#elseif|[#]?else|[#]?end if|select case|case|switch|end select)\b
+          blockIf:
+            name: meta.flow.block-if-else.vba
+            match: (?i)(?:^|\s+)((?:[#]?else\s+)?[#]?if)(.*?)(then)
+            captures:
+              1:
+                name: keyword.control.flow.block-decision.vba
+              2:
+                patterns:
+                  - include: "#expression"
+                  - include: "#functionCall"
+              3:
+                name: keyword.control.flow.block-decision.vba
+          blockIfEnd:
+            name: meta.flow.block-if-else.vba
+            match: (?i)([#]?end\s+if)
+            captures:
+              1:
+                name: keyword.control.flow.block-decision.vba
 
           flowLoop:
             name: keyword.control.flow.loop.vba
@@ -197,7 +217,7 @@ repository:
           
           inlineIf:
             name: meta.flow.inline-if.vba
-            match: (?i)\s*((?:else)?if)\s+(.*?)\s+(then)
+            match: (?i)\s*((?:else\s+)?if)\s+(.*?)\s+(then)\s+([^'\n]*)
             captures:
               1:
                 name: keyword.control.flow.decision.vba
@@ -698,16 +718,17 @@ repository:
     # (?:\b(addressof|typeof)\b)
 
     # This match just made up of the operators matchs. Don't look at it too hard.
-    match: (?i)(.*?)\s+((?:[*&\/\+-]|\bMod\b)|(?:[<>=]|\b(is|like)\b)|(?:[&+])|(?:\b(and|eqv|imp|not|or|xor)\b)|(?:\b(addressof|typeof)\b))\s+(.*)
+    name: meta.expression.vba
+    match: (?i)(?:(.*?)\s+)?((?:[*&\/\+-]|\bMod\b)|(?:[<>=]|\b(?:is|like)\b)|(?:[&+])|(?:\b(?:and|eqv|imp|not|or|xor)\b)|(?:\b(?:addressof|typeof)\b))\s+(.*)
     captures:
-      1:  # Left sided of expression
+      1:  # Left side of expression?
         patterns:
           - include: "#functionCall"
           - include: "#literal"
       2:  # Operator
         patterns:
           - include: "#operators"
-      3:  # Operator
+      3:  # Right side of expression
         patterns:
           - include: "#literals"
           - include: "#functionCall"
@@ -801,7 +822,7 @@ repository:
         name: keyword.operator.assignment.vba
       5:
         patterns:
-          - include: "#functionCall"
+          - include: "#expression"
           - include: "#language"
 
   functionCall:
