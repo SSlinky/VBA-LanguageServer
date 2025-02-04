@@ -76,7 +76,6 @@ repository:
       
   literals:
     patterns:
-      - include: "#comments"
       - include: "#string"
       - include: "#boolean"
       - include: "#nothing"
