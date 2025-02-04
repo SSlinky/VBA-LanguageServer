@@ -216,7 +216,7 @@ repository:
           
           inlineIf:
             name: meta.flow.inline-if.vba
-            match: (?i)\s*((?:else\s+)?if)\s+(.*?)\s+(then)\s+([^'\n]*)
+            match: (?i)\s*((?:else\s+)?if)\s+(.*?)\s+(then)\s+([^'\n]+)
             captures:
               1:
                 name: keyword.control.flow.decision.vba
