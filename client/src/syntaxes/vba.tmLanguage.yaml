@@ -39,7 +39,7 @@ repository:
 
   lineContinuation:
     name: keyword.control.line-continuation.vba
-    match: \s*_\s*\n
+    match: (?<=\s)_\s*\n
 
   syntaxLines:
     name: meta.syntax-lines.vba
