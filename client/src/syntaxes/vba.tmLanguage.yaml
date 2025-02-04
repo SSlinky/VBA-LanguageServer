@@ -809,21 +809,47 @@ repository:
             patterns:
               - include: "#language"
 
-  # TODO: Redo this so it can take into account chaining, e.g.:
-  # MyClass.MyProp = SomeObject.Foo(20)
   variableAssignment:
-    match: (?i)((Get|Let|Set)\s+)?([a-z.][a-z0-9._]*)(\s*=\s*)(.*)
+    match: (?i)(?:(Get|Let|Set)\s+)?(?:([a-z][a-z0-9_]*))?(\.(?:(?:[a-z][a-z0-9_]*)?\.)*)?([a-z][a-z0-9_]*)?(\s*=\s*)(.*)
     captures:
-      2:
+      1: # Get|Let|Set
         name: keyword.control.vba
-      3:
+      2: # Variable name
         name: variable.other.assignment.vba
-      4:
+      3: # Properties
+        patterns:
+          - include: "#propertyChain"
+      4: # Property name
+        name: support.variable.property.vba
+      5: # =
         name: keyword.operator.assignment.vba
-      5:
+      6: # Expression
         patterns:
           - include: "#expression"
+          - include: "#functionCall"
+          - include: "#variable"
           - include: "#language"
+
+  propertyChain:
+    match: (?i)(\.)([a-z][a-z0-9_]*)*
+    captures:
+      1:
+        name: punctuation.accessor.vba
+      2:
+        name: support.variable.property.vba
+
+  variable:
+    name: meta.variable-or-property.vba
+    match: (?i)(?:(?:(Me)|([a-z][a-z0-9_]*)))((?:\.(?:[a-z][a-z0-9_]*))+)?
+    captures:
+      1:
+        patterns:
+          - include: "#kw-storageMe"
+      2:
+        name: variable.other.object.vba
+      3:
+        patterns:
+          - include: "#propertyChain"
 
   functionCall:
     name: meta.function.call.vba
