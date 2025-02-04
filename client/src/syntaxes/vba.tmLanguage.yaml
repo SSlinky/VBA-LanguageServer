@@ -489,12 +489,12 @@ repository:
         # Capturing it there prevents the end pattern being matched.
         name: comment.block.vba
         begin: (?i)(\s*'|(?<=^\d*?|:)\s*Rem\b).*\s_\s*
-        end: \n
+        end: (?=\n)
         patterns:
           - include: "#lineContinuation"
       apostropheComments:
         name: comment.line.apostrophe.vba
-        match: (?i)\s*'.*
+        match: (?i)\s*'[^\n]*
       remarkComments:
         name: comment.line.remark.vba
         match: (?i)(?<=^\d*?|:)\s*Rem\b.*
