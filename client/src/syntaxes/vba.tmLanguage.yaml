@@ -396,7 +396,8 @@ repository:
     match: (?i)(?:(,)|(=)|(\s*_\s*\n)|(as\s+(?:\s*_\s*\n)*[a-z][a-z0-9_.]*)|(".*"|True|False|\d+(?:\.\d+)?[%&@!#$]?)|([a-z][a-z0-9_.]*[%&@!#$]?(?:\(\))?))
     captures:
       1: # ,
-        name: punctuation.separator.vba
+        patterns:
+          - include: "#separator"
       2: # =
         name: keyword.operator.assignment.vba
       3: # _
@@ -757,9 +758,9 @@ repository:
             patterns:
               - include: "#block"
 
-      # blockAttribute:
-      #   patterns:
-      #     - include: "#attribute"
+  separator:
+    name: punctuation.separator.vba
+    match: ','
 
   variableDeclarations:
     patterns:
