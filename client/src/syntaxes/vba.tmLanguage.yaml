@@ -58,10 +58,10 @@ repository:
       - include: "#labels"          # Handle labels first so they aren't handled by lines.
       - include: "#inlineMethod"    # Try not to be too sad people can, and do, do this.
       - include: "#methodSignature"
-      - include: "#continuations"   # Consume continuations so they "continue" other matches.
       - include: "#enum"
       - include: "#struct"
-      - include: "#syntaxLines"     # Split document lines into syntax lines.
+      - include: "#variableDeclarations"
+      - include: "#main"
 
   continuations:
     name: meta.has-continuation.vba
