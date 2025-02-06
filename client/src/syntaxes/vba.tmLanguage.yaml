@@ -56,7 +56,6 @@ repository:
       - include: "#comments"        # Handle comments here so they aren't broken by other stuff.
       - include: "#strings"         # Handle strings here so they aren't broken by other stuff.
       - include: "#labels"          # Handle labels first so they aren't handled by lines.
-      - include: "#inlineMethod"    # Try not to be too sad people can, and do, do this.
       - include: "#methodSignature"
       - include: "#enum"
       - include: "#struct"
@@ -103,6 +102,8 @@ repository:
       - include: "#objectModel"
       - include: "#subCall"
       - include: "#subCallNoArgs"
+      - name: keyword.control.line-separator.vba
+        match: ':'
 
       
   literals:
@@ -183,6 +184,7 @@ repository:
           - include: "#forEachLoop"
           - include: "#flowLoop"
           - include: "#flowCall"
+          - include: "#methodClose"
           - include: "#flowPauseExit"
           - include: "#flowBranch"
         repository:
@@ -264,7 +266,7 @@ repository:
 
           flowPauseExit:
             name: keyword.control.flow.other.vba
-            match: "(?i)\\b(doevents|end(?! property)|exit\\s+sub|exit\\s+function|exit\\s+property|stop)\\b"
+            match: "(?i)\\b(doevents|end(?! (sub|property|function))|exit\\s+sub|exit\\s+function|exit\\s+property|stop)\\b"
             
           flowBranch:
             patterns:
@@ -409,43 +411,94 @@ repository:
         patterns:
           - include: "#AsTypePrimative"
           - include: "#AsTypeObject"
-        repository:
-          AsTypePrimative:
-            name: support.type.primitive.$1.vba
-            match: (?i)(boolean|byte|currency|date|decimal|double|integer|long(long|ptr)?|single|string|variant)\b
-          AsTypeObject:
-            name: support.type.object.$1.vba
-            match: (?i)([A-Z][A-Z0-9_]*)
+  AsTypePrimative:
+    name: support.type.primitive.$1.vba
+    match: (?i)(boolean|byte|currency|date|decimal|double|integer|long(long|ptr)?|single|string|variant)\b
+  AsTypeObject:
+    name: support.type.object.$1.vba
+    match: (?i)([a-z][a-z0-9._]*)
 
   argumentsSignature:
     name: meta.arguments.signature.vba
-    match: (?i)(?:(,)|(=)|(\s*_\s*\n)|(as\s+(?:\s*_\s*\n)*[a-z][a-z0-9_.]*)|(".*"|True|False|\d+(?:\.\d+)?[%&@!#$]?)|([a-z][a-z0-9_.]*[%&@!#$]?(?:\(\))?))
-    captures:
-      1: # ,
-        patterns:
-          - include: "#separator"
-      2: # =
-        name: keyword.operator.assignment.vba
-      3: # _
-        name: punctuation.line-continuation.vba
-      4: # As Type?
-        patterns:
-          - include: "#types"
-      5: # "foo"
-        patterns:
-          - include: "#literals"
-      6:
+    begin: (?=[^ ():_])
+    end: (?=\))
+    patterns:
+      - include: "#separator"
+      - include: "#lineContinuation"
+      - include: "#argumentSignatureFromParamArray"
+      - include: "#argumentSignatureFromOptional"
+      - include: "#argumentSignatureFromBy"
+      - include: "#argumentSignatureFromParam"
+
+  argumentSignatureFromParamArray:
+    name: meta.argument-signature.paramarray.vba
+    begin: (?i)paramarray
+    end: (?=[,):'\n])
+    beginCaptures:
+      0:
+        name: storage.type.modifier.vba
+    patterns:
+      - include: "#argumentSignatureFromParam"
+      - include: "#lineContinuation"
+
+  argumentSignatureFromOptional:
+    name: meta.argument-signature.optional.vba
+    begin: (?i)optional
+    end: (?=[,):'\n])
+    beginCaptures:
+      0:
+        name: storage.type.modifier.vba
+    patterns:
+      - include: "#argumentSignatureFromBy"
+      - include: "#argumentSignatureFromParam"
+      - include: "#lineContinuation"
+
+  argumentSignatureFromBy:
+    name: meta.argument-signature.by.vba
+    begin: (?i)(byref|byval)
+    end: (?=[,):'\n])
+    beginCaptures:
+      0:
+        name: storage.type.modifier.vba
+    patterns:
+      - include: "#argumentSignatureFromParam"
+      - include: "#lineContinuation"
+
+  argumentSignatureFromParam:
+    name: meta.argument-signature.param.vba
+    begin: (?i)[a-z][a-z0-9]*(\(\))?
+    end: (?=[,):'\n])
+    beginCaptures:
+      0:
+        name: variable.parameter.vba
+    patterns:
+      - include: "#argumentSignatureFromTypeAs"
+      - include: "#lineContinuation"
+
+  argumentSignatureFromTypeAs:
+    name: meta.argument-signature.as.vba
+    begin: (?i)\bas\b
+    end: (?=[,):'\n])
+    beginCaptures:
+      0:
         patterns:
           - include: "#keywords"
-          - include: "#argumentsVariableSignature"
-        repository:
-          argumentsVariableSignature:
-            match: (?i)(?:(Optional|ParamArray|ByRef|ByVal)|(.*))
-            captures:
-              1: # Optional? ByVal|ByRef?
-                name: storage.type.modifier.vba
-              2: # Identifier
-                name: variable.parameter.vba
+    patterns:
+      - include: "#argumentSignatureFromTypeName"
+      - include: "#lineContinuation"
+
+  argumentSignatureFromTypeName:
+    name: meta.argument-signature.type.vba
+    begin: (?i)([a-z][a-z0-9._]*)
+    end: (?=[,):'\n])
+    beginCaptures:
+      0:
+        patterns:
+          - include: "#AsTypePrimative"
+          - include: "#AsTypeObject"
+    patterns:
+      - include: "#variableAssignment"
+      - include: "#lineContinuation"
 
   arguments:
     name: meta.arguments.vba
@@ -647,47 +700,22 @@ repository:
     patterns:
       - include: "#argumentsSignature"
 
-  inlineMethod:
-    name: source.inline-method.please-dont.vba
-    match: (?i)^\s*((?:Public|Private)?\b\s*(?:(?:Sub|Function)|Property\s+(?:Let|Get|Set)))\s+([a-z][a-z0-9_]*)\s*\((.+)?\)(\s+as\s+[a-z][a-z0-9_]*)?:(.*)?:\s*(End\s+(?:Sub|Function|Property))
-    captures:
-      1: # Method type
-        name: storage.type.method.vba
-      2: # Identifier
-        name: entity.name.function.vba
-      3: # Arguments?
-        patterns:
-          - include: "#argumentsSignature"
-      4: # Return type?
-        patterns:
-          - include: "#types"
-      5: # Method lines
-        patterns:
-          - include: "#fileStructure"
-      6: # End method
-        name: storage.type.method.close.vba
-
-
-
   methodSignature:
     name: source.method.signature.vba
     begin: (?i)^\s*((?:Public|Private)?\b\s*(?:(?:Sub|Function)|Property\s+(?:Let|Get|Set)))\s+([a-z][a-z0-9_]*)\s*(\()
-    end: (?i)\s*(\))\s+(as\s+[a-z][a-z0-9_]*)?
+    end: (?i)(?<=\))(\s+as\s+[a-z][a-z0-9_]*)?
     beginCaptures:
       1:
         name: storage.type.method.vba
       2: # name
         name: entity.name.function.vba
-      3:
-        name: punctuation.definition.parameters.begin.vba
     endCaptures:
-      1:
-        name: punctuation.definition.parameters.end.vba
-      2: # return type
+      1: # return type
         patterns:
           - include: "#types"
     patterns:
       - include: "#argumentsSignature"
+      - include: "#lineContinuation"
 
   methodAttribute:
     name: source.method.attribute.vba
@@ -707,13 +735,13 @@ repository:
 
   methodClose:
     name: storage.type.method.close.vba
-    match: (?i)^\s*End\s+(Sub|Function|Property)
+    match: (?i)End\s+(Sub|Function|Property)
 
   expression:
     # Begins and ends without consuming anything.
     name: meta.expression.vba
     begin: (?=.)
-    end: (?=\n|\sThen|\)|'|,)
+    end: (?=\n|\sThen|\)|'|,|:)
     patterns:
       - include: "#literals"
       - include: "#operators"
@@ -811,7 +839,7 @@ repository:
   variableAssignment:
     name: meta.variable-assignment.vba
     begin: (?i)(?:(Let|Set)\s+)?((?:[a-z][a-z0-9_]*)?(?:\.(?:(?:[a-z][a-z0-9_]*)?\.)*)?(?:[a-z][a-z0-9_]*)?)(\s*=\s*)
-    end: (?=[':\n])
+    end: (?=[',:)\n])
     beginCaptures:
       1: # Let|Set
         name: keyword.control.vba
@@ -845,7 +873,7 @@ repository:
       2:
         patterns:
           - name: variable.other.constant
-            match: ([A-Z][A-Z0-9_]*)
+            match: ([A-Z][A-Z0-9_]*)\b
           - name: variable.other.readwrite.vba
             match: (?i)([a-z][a-z0-9_]*)
       3:
