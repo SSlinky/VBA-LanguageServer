@@ -816,26 +816,26 @@ repository:
       - include: "#variableDeclaration"
     repository:
       variableDeclaration:
-        name: storage.var-declaration.vba
-        match: (?i)^\s*(Dim|Public|Private|Global)\s+([a-z][a-z0-9_]*)([&%#!@$^])?(\(.*\))?(\s+As(?:\s+New)?\s+[A-Z][A-Z0-9_]*)?
-        captures:
+        name: meta.variable.declaration.vba
+        begin: (?i)(public|private|dim\s+)(?!const)
+        end: (?=[':\n]|Rem)
+        beginCaptures:
           1:
-            # Dim|Private
-            name: storage.type.vba
-          2:
-            # varName
-            name: variable.other.readwrite.vba
-          3:
-            # Type hint?
-            name: support.type.primitive.vba
-          4:
-            # Array bounds?
-            patterns:
-              - include: "#language"
-          5:
-            # As Type
-            patterns:
-              - include: "#types"
+            name: storage.modifier.declare-variable.vba
+        patterns:
+          - include: "#lineContinuation"
+          - include: "#separator"
+          - match: (?i)([a-z][a-z0-9_]*)([&%#!@$^])?(?:\s+(as)\s+([a-z][a-z0-9_.]*))?
+            captures:
+              1:
+                name: variable.other.read-write.vba
+              2:
+                name: storage.type.$2.vba
+              3:
+                name: keyword.control.as.vba
+              4:
+                name: support.type.$4.vba
+
       constDeclaration:
         name: storage.const-declaration.vba
         match: (?i)^\s*((?:(?:Public|Private)\s+)?Const)\s+([a-z][a-z0-9_]*)([&%#!@$^])?(\s+As\s+[a-z][a-z0-9_]*)?(.*)
