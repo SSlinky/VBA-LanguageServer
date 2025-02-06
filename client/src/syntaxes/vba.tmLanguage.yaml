@@ -752,8 +752,8 @@ repository:
     repository:
       variableDeclaration:
         name: meta.variable.declaration.vba
-        begin: (?i)(public|private|dim\s+)(?!const)
-        end: (?=[':\n]|Rem)
+        begin: (?i)(global|public|private|dim\s+)(?!const)
+        end: (?=[':\n])
         beginCaptures:
           1:
             name: storage.modifier.declare-variable.vba
