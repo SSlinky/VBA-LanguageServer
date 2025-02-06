@@ -8,6 +8,47 @@ fileTypes:
 patterns:
   - include: "#fileStructure"
 
+
+# --- Notes ------------------------------------------------------------------------------------
+# * TextMate will only evaluate a single line at a time. For syntax spanning multiple lines,
+#   a begin/end rule is the only option.
+# * TextMate will always fail gracefully. You can misspell a key or name, write an invalid
+#   regex pattern, or summon Beetlejuice. It will still run, it just won't work as expected.
+#
+# --- Match Rules ------------------------------------------------------------------------------
+# * Match rules contain a match key.
+# * Matches are always consumed but can be passed down to captures key.
+# * Patterns, begin, end, beginCaptures, and endCaptures keys will be ignored.
+# * Repository key contains more rules but you can only call down the tree or to a top level.
+
+# --- Begin/End Rules --------------------------------------------------------------------------
+# * Begin/end rules contain a begin key and (usually) an end key.
+# * Rules missing an end key will match to the end of the document (or capture - see tips).
+# * Similar to match/captures, you can pair begin/beginCaptures and end/endCaptures.
+# * Repository key is ignored and rules within are not accessible from anywhere.
+
+# --- Empty Rules ------------------------------------------------------------------------------
+# * Empty rules are used to organise rule flow with a patterns key, and optionally, repository.
+# * They will never consume any content as they have no regex.
+# * These rules cannot assign scope, so the name key wil be ignored. This may help to organise
+# * your grammar, but can make it more difficult to test and debug.
+
+# --- Tips and Tricks --------------------------------------------------------------------------
+# * It can be advantageous to match without consuming anything, e.g., multi-level begin/end
+#   rules. You can cascade ends with (?=.) to match anything without consuming.
+#   Similarly, you may wish to end at [':\n] but consuming will cause comments to fail.
+# * You can strategically consume content to skip it matching elsewhere, e.g., line continuation
+#   on a comment. Begin on ' and end on \n. If you consume the continuation _\s*\n then the
+#   comment will continue until the next line that doesn't have the continuation pattern.
+# * Begin/End rules run until ended or until they reach the end of their scope of operation.
+#   This means passing a capture group from (begin|end)?capture down to a begin/end will _always
+#   end at the end of the what was captured!_. This cannot be more than to the end of the line.
+#
+#   "Put conventional logic aside and enjoy. Well... I say, 'enjoy.'"
+#       - Garth Marenghi
+# ----------------------------------------------------------------------------------------------
+
+
 repository:
   fileStructure:
     patterns:
