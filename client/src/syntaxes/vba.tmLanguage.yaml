@@ -82,17 +82,6 @@ repository:
     name: keyword.control.line-continuation.vba
     match: (?<=\s)_\s*\n
 
-  syntaxLines:
-    name: meta.syntax-lines.vba
-    match: ((?:[^\n"':]|"(?:\\.|[^\n"\\])*")+|"(?:\\.|[^\n"\\])*")(?:('.*)*)?
-    captures:
-      1: # Split line
-        patterns:
-          - include: "#main"
-      2: # Comments
-        patterns:
-          - include: "#comments"
-
   main:
     patterns:
       - include: "#declareFunctionSignature"
@@ -109,10 +98,11 @@ repository:
       - include: "#literals"
       - include: "#operators"
       - include: "#keywords"
-      - include: "#variables"
+      - include: "#kw-storageMe"
       - include: "#functionCall"
       - include: "#objectModel"
       - include: "#subCall"
+      - include: "#subCallNoArgs"
 
       
   literals:
@@ -335,10 +325,6 @@ repository:
             name: invalid.illegal.vba
             match: "^#.*"
 
-  variables:
-    name: variable.language.me.vba
-    match: (?i)\s+(Me)(?=\.|\s)
-
   labels:
     # name: variable.other.constant.label.vba
     match: '(?i)^(\s*[a-z][a-z0-9_]*|\d+):'
@@ -461,63 +447,15 @@ repository:
               2: # Identifier
                 name: variable.parameter.vba
 
-  # TODO: This needs to be repurposed to sub / function CALL rather than signature.
-  #       Will need to separate arguments by comma, take line endings into account, and ignore commas inside parentheses.
-  #       someSub someVar, "someLiteral", someFunc(1, 2, 3), _
-  #          someNextLineFunc()
   arguments:
-    # Rules that have no match will never return a name in the hierarchy.
-    # This name doesn't do anything but leaving this as usage notes.
-    name: source.args.vba
+    name: meta.arguments.vba
+    begin: (\s+|\(\s*)
+    end: (?=[\n')])
     patterns:
       - include: "#lineContinuation"
-      - include: "#paramArray"
       - include: "#functionCall"
-      - include: "#argsVariable"
-      - include: "#language"
-      - include: "#argsLiteral"
-    repository:
-      argsVariable:
-        name: meta.arguments.argsVariable.vba
-        match: (?i),?\s*((?:Optional\s+)?(?:(?:ByVal|ByRef)\s+)?)?([a-z][a-z0-9_]*)(\(\))?(?:\s+(as\s+[a-z][a-z0-9_]*))?(\s*=\s*[^,)]+)?
-        # Attempted replacing \s with (?:\s+|\s*_\s*\n) to consume a space or a line ending but it refuses to play the game.
-        # match: ~~ doesn't work (?i),?(?:\s+|\s*_\s*\n)*((?:Optional(?:\s+|\s*_\s*\n)+)?(?:(?:ByVal|ByRef)(?:\s+|\s*_\s*\n)+)?)?([a-z][a-z0-9_]*)(?:(?:\s+|\s*_\s*\n)+(as(?:\s+|\s*_\s*\n)+[a-z][a-z0-9_]*))?((?:\s+|\s*_\s*\n)*=(?:\s+|\s*_\s*\n)*[^,\n)]+)?
-        # match: ~~ all broken (?i),?(?:\s*_\s*\n)*((?:Optional(?:\s+(?:\s*_\s*\n)*))?(?:(?:ByVal|ByRef)(?:\s+(?:\s*_\s*\n)*))?)?([a-z][a-z0-9_]*)(?:(?:\s+(?:\s*_\s*\n)*)(as\(?:\s+(?:\s*_\s*\n)*)[a-z][a-z0-9_]*))?((?:\s*_\s*\n)*=(?:\s*_\s*\n)*[^,)]+)?
-        captures:
-          1: # Optional? ByVal|ByRef?
-            name: storage.type.modifier.vba
-          2: # Identifier
-            name: variable.parameter.vba
-          3: # As Type?
-            patterns:
-              - include: "#types"
-          4:
-            patterns:
-              - include: "#language"
-
-      argsLiteral:
-        # Should ideally only match on something that could be considered a literal.
-        # This kludge will at least not consume unmatched close parentheses.
-        name: meta.arguments.argsLiteral.vba
-        match: ((?:[^(",\n()]|"(?:\\.|[^\n"\\])*"|\([^)]*\))+|"(?:\\.|[^\n"\\])*")
-        captures:
-          1:
-            patterns:
-              - include: "#literals"
-
-      paramArray:
-        name: meta.args.paramarray.vba
-        match: (?i)(,)?\s*(ParamArray)\s+([a-z][a-z0-9_]*)(?:\(\))(\s+As\s+Variant)?
-        captures:
-          1:
-            name: punctuation.separator.vba
-          2:
-            name: storage.type.modifier.array.vba
-          3:
-            name: variable.parameter.vba
-          4:
-            patterns:
-              - include: "#types"
+      - include: "#separator"
+      - include: "#expression"
 
   comments:
     patterns:
@@ -796,12 +734,9 @@ repository:
       blockLines:
         name: source.methodlines.vba
         match: (?:(^(?:\s*[a-z0-9]*?:\s*)(?:\s+'.*)?$)|(.*):)
-        # match: (?:(^(?:\s*[a-z0-9]*?:\s*)(?:\s+'.*)?$)|(.*):)
         captures:
           1: # label
             name: source.methodlines.label.vba
-            # patterns:
-            #   - include: "#labels"
           2: # colon separated line
             patterns:
               - include: "#block"
@@ -859,25 +794,23 @@ repository:
               - include: "#language"
 
   variableAssignment:
-    match: (?i)(?:(Get|Let|Set)\s+)?(?:([a-z][a-z0-9_]*))?(\.(?:(?:[a-z][a-z0-9_]*)?\.)*)?([a-z][a-z0-9_]*)?(\s*=\s*)(.*)
-    captures:
-      1: # Get|Let|Set
+    name: meta.variable-assignment.vba
+    begin: (?i)(?:(Let|Set)\s+)?((?:[a-z][a-z0-9_]*)?(?:\.(?:(?:[a-z][a-z0-9_]*)?\.)*)?(?:[a-z][a-z0-9_]*)?)(\s*=\s*)
+    end: (?=[':\n])
+    beginCaptures:
+      1: # Let|Set
         name: keyword.control.vba
-      2: # Variable name
-        name: variable.other.assignment.vba
-      3: # Properties
+      2: # Variable property chain name
         patterns:
-          - include: "#propertyChain"
-      4: # Property name
-        name: support.variable.property.vba
-      5: # =
-        name: keyword.operator.assignment.vba
-      6: # Expression
-        patterns:
-          - include: "#expression"
-          - include: "#functionCall"
           - include: "#variable"
-          - include: "#language"
+      3: # =
+        name: keyword.operator.assignment.vba
+    patterns:
+      - include: "#expression"
+      - include: "#functionCall"
+      - include: "#variable"
+      - include: "#language"
+      - include: "#lineContinuation"
 
   propertyChain:
     match: (?i)(\.)([a-z][a-z0-9_]*)*
@@ -902,30 +835,55 @@ repository:
 
   functionCall:
     name: meta.function.call.vba
-    begin: (?i)([a-z][a-z0-9_]*)\(
-    end: \)
+    begin: (?i)(?:([a-z][a-z0-9_]*)(?=\.))?(\.(?:(?:[a-z][a-z0-9_]*)?\.)*)?([a-z][a-z0-9_]*)([&%#!@$^])?(?=\()
+    end: (\)|(?='))
     beginCaptures:
       1:
+        patterns:
+          - include: "#kw-storageMe"
+          - include: "#variable"
+      2:
+        patterns:
+          - include: "#propertyChain"
+      3:
         name: entity.name.function.call.vba
+      4:
+        name: support.type.primitive.vba
     patterns:
       # These calls need to be back to a top level group because
       # textMate does not seem to support a repository in a begin/end
       - include: "#arguments"
-      - include: "#lineContinuation"
 
   subCall:
     name: meta.sub-call.vba
-    begin: (?i)([a-z][a-z0-9._]*)\s+(.*)
+    begin: (?i)(?:([a-z][a-z0-9_]*)(?=\.))?(\.(?:(?:[a-z][a-z0-9_]*)?\.)*)?([a-z][a-z0-9_]*)\s*(?=\s[^,'\n])
+    end: (?=[\n'])
     beginCaptures:
       1:
-        name: entity.name.function.call.vba
+        patterns:
+          - include: "#kw-storageMe"
+          - include: "#variable"
       2:
         patterns:
-          - include: "#arguments"
-    end: \n
+          - include: "#propertyChain"
+      3:
+        name: entity.name.function.call.vba
     patterns:
-      # - include: "#subCallMultiLine"
       - include: "#arguments"
+
+  subCallNoArgs:
+    name: meta.sub-call.vba
+    match: (?i)(?:([a-z][a-z0-9_]*)(?=\.))?(\.(?:(?:[a-z][a-z0-9_]*)?\.)*)?([a-z][a-z0-9_]*)
+    captures:
+      1:
+        patterns:
+          - include: "#kw-storageMe"
+          - include: "#variable"
+      2:
+        patterns:
+          - include: "#propertyChain"
+      3:
+        name: entity.name.function.call.vba
 
   testing:
     patterns:
