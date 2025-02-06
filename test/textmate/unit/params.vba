@@ -7,7 +7,7 @@ Sub SubCallTesting()
 '   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^             meta.sub-call.vba
 '       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^             meta.arguments.vba
 '   ^^^                                                     entity.name.function.call.vba
-'       ^^^                                                 meta.variable-or-property.vba variable.other.object.vba
+'       ^^^                                                 meta.variable-or-property.vba variable.other.readwrite.vba
 '          ^     ^          ^         ^                     punctuation.separator.vba
 '            ^^^^                                           constant.language.boolean.vba
 '                  ^^^^^^^^^                                string.quoted.double.vba
@@ -18,7 +18,7 @@ Sub SubCallTesting()
 
     Foo bar, _
 '   ^^^^^^^^^^              meta.sub-call.vba
-'       ^^^                 meta.arguments.vba meta.variable-or-property.vba variable.other.object.vba
+'       ^^^                 meta.arguments.vba meta.variable-or-property.vba variable.other.readwrite.vba
 '          ^                meta.arguments.vba punctuation.separator.vba
 '            ^              meta.arguments.vba keyword.control.line-continuation.vba
         True, _
@@ -40,7 +40,7 @@ Sub FuncCallTesting()
 '       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^           meta.function.call.vba
 '           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^            meta.arguments.vba
 '              ^     ^          ^          ^                    punctuation.separator.vba
-'           ^^^                                                 meta.variable-or-property.vba variable.other.object.vba
+'           ^^^                                                 meta.variable-or-property.vba variable.other.readwrite.vba
 '                ^^^^                                           constant.language.boolean.vba
 '                      ^^^^^^^^^                                string.quoted.double.vba
 '                                 ^^^^^^^^^^^^^^^^^^            meta.function.call.vba
@@ -52,7 +52,7 @@ Sub FuncCallTesting()
 
     x = Foo(bar, _
 '       ^^^                             meta.function.call.vba entity.name.function.call.vba
-'           ^^^                         meta.function.call.vba meta.arguments.vba variable.other.object.vba
+'           ^^^                         meta.function.call.vba meta.arguments.vba variable.other.readwrite.vba
 '              ^                        meta.function.call.vba meta.arguments.vba punctuation.separator.vba
 '                ^                      meta.function.call.vba meta.arguments.vba keyword.control.line-continuation.vba
         True, _         

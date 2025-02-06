@@ -16,17 +16,17 @@ Public Sub Foo(ByVal x As Long, ByRef y As Long, ParamArray vars() As Variant)
 '              ^^^^^                                                                storage.type.modifier.vba
 '                    ^                                                              variable.parameter.vba
 '                      ^^                                                           keyword.control.as.vba
-'                         ^^^^                                                      support.type.primitive.vba
+'                         ^^^^                                                      support.type.primitive.Long.vba
 '                             ^                                                     punctuation.separator.vba
 '                               ^^^^^                                               storage.type.modifier.vba
 '                                     ^                                             variable.parameter.vba
 '                                       ^^                                          keyword.control.as.vba
-'                                          ^^^^                                     support.type.primitive.vba
+'                                          ^^^^                                     support.type.primitive.Long.vba
 '                                              ^                                    punctuation.separator.vba
 '                                                ^^^^^^^^^^                         storage.type.modifier.vba
 '                                                           ^^^^                    variable.parameter.vba
 '                                                                  ^^               keyword.control.as.vba
-'                                                                     ^^^^^^^       support.type.primitive.vba
+'                                                                     ^^^^^^^       support.type.primitive.Variant.vba
 '                                                                            ^      punctuation.definition.parameters.end.vba
 End Sub
 '<--------                                                                          storage.type.method.close.vba
@@ -38,7 +38,7 @@ Function Foo() As String: Foo = "Hello, World!": End Function
 ' <--------                                                         storage.type.method.vba
 '        ^^^                                                        entity.name.function.vba
 '              ^^                                                   keyword.control.as.vba
-'                 ^^^^^^                                            support.type.primitive.vba
+'                 ^^^^^^                                            support.type.primitive.String.vba
 '                                                ^^^^^^^^^^^^       storage.type.method.close.vba
 
 ' Standard function
@@ -50,20 +50,20 @@ Public Function Foo(ByVal x As Long, ByRef y As Long, ParamArray vars() As Varia
 '                   ^^^^^                                                                           storage.type.modifier.vba
 '                         ^                                                                         variable.parameter.vba
 '                           ^^                                                                      keyword.control.as.vba
-'                              ^^^^                                                                 support.type.primitive.vba
+'                              ^^^^                                                                 support.type.primitive.Long.vba
 '                                  ^                                                                punctuation.separator.vba
 '                                    ^^^^^                                                          storage.type.modifier.vba
 '                                          ^                                                        variable.parameter.vba
 '                                            ^^                                                     keyword.control.as.vba
-'                                               ^^^^                                                support.type.primitive.vba
+'                                               ^^^^                                                support.type.primitive.Long.vba
 '                                                   ^                                               punctuation.separator.vba
 '                                                     ^^^^^^^^^^                                    storage.type.modifier.vba
 '                                                                ^^^^                               variable.parameter.vba
 '                                                                       ^^                          keyword.control.as.vba
-'                                                                          ^^^^^^^                  support.type.primitive.vba
+'                                                                          ^^^^^^^                  support.type.primitive.Variant.vba
 '                                                                                 ^                 punctuation.definition.parameters.end.vba
 '                                                                                   ^^              keyword.control.as.vba
-'                                                                                      ^^^^^^       support.type.object.vba
+'                                                                                      ^^^^^^       support.type.object.Object.vba
 End Function
 '<-------------                                                                                     storage.type.method.close.vba
 
@@ -75,14 +75,14 @@ Public Sub Foo(Optional Bar As String, _
 '              ^^^^^^^^                         storage.type.modifier.vba
 '                       ^^^                     variable.parameter.vba
 '                           ^^                  keyword.control.as.vba
-'                              ^^^^^^           support.type.primitive.vba
+'                              ^^^^^^           support.type.primitive.String.vba
 '                                    ^          punctuation.separator.vba
 '                                      ^        punctuation.line-continuation.vba
         Optional Biz As String = "Biz", _
 '       ^^^^^^^^                                storage.type.modifier.vba
 '                ^^^                            variable.parameter.vba
 '                    ^^                         keyword.control.as.vba
-'                       ^^^^^^                  support.type.primitive.vba
+'                       ^^^^^^                  support.type.primitive.String.vba
 '                              ^                keyword.operator.assignment.vba
 '                                ^^^^^          string.quoted.double.vba
 '                                     ^         punctuation.separator.vba
@@ -91,7 +91,7 @@ Public Sub Foo(Optional Bar As String, _
 '       ^^^^^^^^ ^^^^^                          storage.type.modifier.vba
 '                      ^^^                      variable.parameter.vba
 '                          ^^                   keyword.control.as.vba
-'                             ^^^^^^^           support.type.primitive.vba
+'                             ^^^^^^^           support.type.primitive.Boolean.vba
 '                                     ^         keyword.operator.assignment.vba
 '                                       ^^^^    constant.language.boolean.vba
 '                                           ^   punctuation.definition.parameters.end.vba
@@ -111,7 +111,7 @@ Public Sub Foo( _
 '   ^^^^^^^^                                    storage.type.modifier.vba
 '            ^^^                                variable.parameter.vba
 '                ^^                             keyword.control.as.vba
-'                   ^^^^^^                      support.type.primitive.vba
+'                   ^^^^^^                      support.type.primitive.String.vba
 '                          ^                    keyword.operator.assignment.vba
 '                            ^^^^^^^^^^^        string.quoted.double.vba
 '                                       ^       punctuation.separator.vba
@@ -121,7 +121,7 @@ Public Sub Foo( _
 '       ^                                       punctuation.line-continuation.vba
     As String, _
 '   ^^                                          keyword.control.as.vba
-'      ^^^^^^                                   support.type.primitive.vba
+'      ^^^^^^                                   support.type.primitive.String.vba
 '            ^                                  punctuation.separator.vba
 '              ^                                punctuation.line-continuation.vba
     Optional _

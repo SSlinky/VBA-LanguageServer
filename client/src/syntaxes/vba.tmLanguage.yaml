@@ -828,7 +828,11 @@ repository:
         patterns:
           - include: "#kw-storageMe"
       2:
-        name: variable.other.object.vba
+        patterns:
+          - name: variable.other.constant
+            match: ([A-Z][A-Z0-9_]*)
+          - name: variable.other.readwrite.vba
+            match: (?i)([a-z][a-z0-9_]*)
       3:
         patterns:
           - include: "#propertyChain"

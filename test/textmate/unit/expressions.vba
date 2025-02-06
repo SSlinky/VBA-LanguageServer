@@ -35,8 +35,7 @@ Sub Test()
         foo, x = 3, False) ' Comment
 '       ^^^^^^^^^^^^^^^^^               meta.expression.vba
 '       ^^^  ^^^^^  ^^^^^               meta.expression.vba meta.expression.vba
-'       ^^^                             variable.other.object.vba
-'            ^                          variable.other.object.vba
+'       ^^^  ^                          variable.other.readwrite.vba
 '              ^                        keyword.operator.comparison.vba
 '                ^                      constant.numeric.vba
 '                   ^^^^^               constant.language.boolean.vba
@@ -45,6 +44,6 @@ Sub Test()
     If condA And Not Foo(condB) Then
 '      ^^^^^^^^^^^^^^^^^^^^^^^^         meta.expression.vba
 '            ^^^ ^^^                    keyword.operator.logical.vba
-'                        ^^^^^          meta.expression.vba meta.expression.vba variable.other.object.vba
+'                        ^^^^^          meta.expression.vba meta.expression.vba variable.other.readwrite.vba
     End If
 End Sub
