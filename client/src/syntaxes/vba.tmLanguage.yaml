@@ -756,13 +756,13 @@ repository:
     match: (?i)^\s*(Attribute)\s+([a-z][a-z0-9_]*)(\.VB_(?:Description|UserMemId))\s+(=)\s+(.*)
     captures:
       1:
-        name: entity.other.attribute-name.vba
+        name: keyword.attribute.vba
       2:
         name: entity.name.function.vba
       3:
-        name: entity.other.attribute-name.vba
+        name: support.variable.property.vba
       4:
-        name: keyword.operator.comparison.vba
+        name: keyword.operator.assignment.vba
       5:
         patterns:
           - include: "#literals"
