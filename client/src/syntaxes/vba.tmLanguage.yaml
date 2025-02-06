@@ -411,10 +411,10 @@ repository:
           - include: "#AsTypeObject"
         repository:
           AsTypePrimative:
-            name: support.type.primitive.vba
+            name: support.type.primitive.$1.vba
             match: (?i)(boolean|byte|currency|date|decimal|double|integer|long(long|ptr)?|single|string|variant)\b
           AsTypeObject:
-            name: support.type.object.vba
+            name: support.type.object.$1.vba
             match: (?i)([A-Z][A-Z0-9_]*)
 
   argumentsSignature:
@@ -760,18 +760,33 @@ repository:
         patterns:
           - include: "#lineContinuation"
           - include: "#separator"
-          - match: (?i)([a-z][a-z0-9_]*)([&%#!@$^])?(?:\s+(as)\s+([a-z][a-z0-9_.]*))?
-            captures:
-              1:
-                name: variable.other.read-write.vba
-              2:
-                name: storage.type.$2.vba
-              3:
-                name: keyword.control.as.vba
-              4:
-                name: support.type.$4.vba
+          - include: "#types"
+          - include: "#variable"
 
       constDeclaration:
+        name: meta.const.declaration.vba
+        begin: (?i)(?:(global|public|private)\s+)?(const)
+        end: (?=[':\n])
+        beginCaptures:
+          1:
+            name: storage.modifier.vba
+          2:
+            name: storage.type.vba
+        patterns:
+          - include: "#lineContinuation"
+          - include: "#separator"
+          - include: "#types"
+          - include: "#variable"
+          - match: (=)\s+([^,'_\n]*)
+            captures:
+              1:
+                name: keyword.operator.assignment.vba
+              2:
+                patterns:
+                  - include: "#literals"
+
+
+      constDeclaration2:
         name: storage.const-declaration.vba
         match: (?i)^\s*((?:(?:Public|Private)\s+)?Const)\s+([a-z][a-z0-9_]*)([&%#!@$^])?(\s+As\s+[a-z][a-z0-9_]*)?(.*)
         captures:
@@ -865,7 +880,6 @@ repository:
     beginCaptures:
       1:
         patterns:
-          - include: "#kw-storageMe"
           - include: "#variable"
       2:
         patterns:
