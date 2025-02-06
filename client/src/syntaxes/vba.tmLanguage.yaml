@@ -174,15 +174,15 @@ repository:
     repository:
       kw-controlAs:
         name: keyword.control.as.vba
-        match: "(?i)\\bas\\b"
+        match: (?i)\bas\b
 
       kw-controlTo:
-        name: keyword.control.as.vba
-        match: "(?i)\\bto\\b"
+        name: keyword.control.to.vba
+        match: (?i)\bto\b
 
       kw-storageMe:
-        name: keyword.storage.me.vba
-        match: "(?i)\\bme\\b"
+        name: variable.language.me.vba
+        match: (?i)\bme\b
 
       kw-flow:
         patterns:
