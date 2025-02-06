@@ -711,28 +711,16 @@ repository:
     match: (?i)^\s*End\s+(Sub|Function|Property)
 
   expression:
-    # (?:[*&\/\+-]|\bMod\b)|
-    # (?:[<>=]|\b(is|like)\b)|
-    # (?:[&+])|
-    # (?:\b(and|eqv|imp|not|or|xor)\b)|
-    # (?:\b(addressof|typeof)\b)
-
-    # This match just made up of the operators matchs. Don't look at it too hard.
+    # Begins and ends without consuming anything.
     name: meta.expression.vba
-    match: (?i)(?:(.*?)\s+)?((?:[*&\/\+-]|\bMod\b)|(?:[<>=]|\b(?:is|like)\b)|(?:[&+])|(?:\b(?:and|eqv|imp|not|or|xor)\b)|(?:\b(?:addressof|typeof)\b))\s+(.*)
-    captures:
-      1:  # Left side of expression?
-        patterns:
-          - include: "#functionCall"
-          - include: "#literal"
-      2:  # Operator
-        patterns:
-          - include: "#operators"
-      3:  # Right side of expression
-        patterns:
-          - include: "#literals"
-          - include: "#functionCall"
-          - include: "#expression"
+    begin: (?=.)
+    end: (?=\n|\sThen|\)|'|,)
+    patterns:
+      - include: "#literals"
+      - include: "#operators"
+      - include: "#functionCall"
+      - include: "#variable"
+      - include: "#lineContinuation"
 
   block:
     patterns:
