@@ -511,10 +511,18 @@ repository:
 
   moduleHeader:
     patterns:
+      - include: "#moduleVersion"
       - include: "#moduleAttributeBlock"
       - include: "#moduleAttribute"
       - include: "#moduleOption"
     repository:
+      moduleVersion:
+        name: entity.other.attribute-name.block.vba
+        match: (?i)^VERSION\s+([.\d]+)\s+CLASS
+        captures:
+          1:
+            patterns:
+              - include: "#literals"
       moduleAttribute:
         name: meta.attribute.vba
         match: (?i)^\s*(Attribute)\s+(VB_\w+)\s+(=)\s+(.*)$
@@ -522,24 +530,36 @@ repository:
           1: # Attribute
             name: keyword.attribute.vba
           2: # VB_Name
-            name: entity.other.attribute-name.vba
+            name: support.variable.property.vba
           3: # =
-            name: keyword.operator.comparison.vba
+            name: keyword.operator.assignment.vba
           4: # "Sam"
             patterns:
               - include: "#literals" 
       moduleAttributeBlock:
         name: entity.other.attribute-name.block.vba
-        begin: (?i)^VERSION
+        begin: (?i)^BEGIN
         end: (?i)^END
         patterns:
           - include: "#comments"
-          - include: "#literals"
-          - include: "#operators"
+          - include: "#attributeAssignment"
 
       moduleOption:
         name: keyword.control.vba
         match: (?i)^\s*Option\s+(Explicit|Base|Private\s+Module)\b
+
+  attributeAssignment:
+    name: meta.attribute-assignment.vba
+    match: (?i)([a-z.][a-z0-9._]*)(\s*=\s*)(.*)
+    captures:
+      1:
+        name: support.variable.property.vba
+      2:
+        name: keyword.operator.assignment.vba
+      3:
+        patterns:
+          - include: "#literals"
+          - include: "#comments"
 
   enum:
     name: meta.enum.declaration.vba

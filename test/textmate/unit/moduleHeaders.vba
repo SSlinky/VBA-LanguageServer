@@ -3,8 +3,8 @@
 Attribute VB_Name = "ModuleName"
 ' <-------------------------------	meta.attribute.vba 
 ' <---------                        keyword.attribute.vba
-'         ^^^^^^^					entity.other.attribute-name.vba
-'                 ^ 				keyword.operator.comparison.vba
+'         ^^^^^^^					support.variable.property.vba
+'                 ^ 				keyword.operator.assignment.vba
 '                   ^^^^^^^^^^^^ 	string.quoted.double.vba
 
 Option Explicit
