@@ -905,7 +905,7 @@ repository:
 
   variable:
     name: meta.variable-or-property.vba
-    match: (?i)(?:(?:(Me)|([a-z][a-z0-9_]*)))((?:\.(?:[a-z][a-z0-9_]*))+)?
+    match: (?i)(?:(?:(\bMe\b)|([a-z][a-z0-9_]*)))((?:\.(?:[a-z][a-z0-9_]*))+)?
     captures:
       1:
         patterns:
