@@ -44,7 +44,7 @@ abstract class BaseModuleElement<T extends ParserRuleContext> extends BaseIdenti
 
 	// Helpers
 	protected addMissingAttributesDiagnostics(diagnostics: Diagnostic[]): void {
-		if (!!this.identifierCapability.nameContext) return;
+		if (!this.identifierCapability.isDefaultMode) return;
 		diagnostics.push(new MissingAttributeDiagnostic(
 			Range.create(this.context.range.start, this.context.range.start),
 			'VB_NAME'

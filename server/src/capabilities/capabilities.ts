@@ -120,13 +120,15 @@ export class IdentifierCapability extends BaseCapability {
 	nameContext: ParserRuleContext | TerminalNode;
 	range: Range;
 	name: string;
+	isDefaultMode: boolean;
 
 	constructor(args: IdentifierArgs) {
 		super(args.element);
 
 		this.nameContext = ((args.getNameContext ?? (() => args.element.context.rule))() ?? args.element.context.rule);
+		this.isDefaultMode = !(!!args.getNameContext && !!args.getNameContext());
 
-		if (!!this.nameContext) {
+		if (!this.isDefaultMode) {
 			// Use the context to set the values.
 			this.name = (args.formatName ?? ((name: string) => name))(this.nameContext.getText());
 			this.range = this.nameContext.toRange(args.element.context.document);
