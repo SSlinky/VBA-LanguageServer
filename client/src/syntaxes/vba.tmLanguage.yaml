@@ -135,6 +135,7 @@ repository:
       - include: "#opsArithmetic"
       - include: "#opsComparison"
       - include: "#opsConcatenation"
+      - include: "#opsRange"
       - include: "#opsLogical"
       - include: "#opsOther"
     repository:
@@ -144,6 +145,9 @@ repository:
       opsComparison:
         name: keyword.operator.comparison.vba
         match: (?i)([<>=]|\b(is|like)\b)
+      opsRange:
+        name: keyword.operator.range.vba
+        match: (?i)\bto\b
       opsConcatenation:
         name: keyword.operator.concatenation.vba
         match: (?i)[&+]
@@ -151,7 +155,7 @@ repository:
         name: keyword.operator.logical.vba
         match: (?i)\b(and|eqv|imp|not|or|xor)\b
       opsOther:
-        name: keyword.operator.concatenation.vba
+        name: keyword.operator.other.vba
         match: (?i)\b(addressof|typeof)\b
 
   keywords:
@@ -497,7 +501,7 @@ repository:
           - include: "#AsTypePrimative"
           - include: "#AsTypeObject"
     patterns:
-      - include: "#variableAssignment"
+      - include: "#valueAssignment"
       - include: "#lineContinuation"
 
   arguments:
@@ -753,7 +757,7 @@ repository:
     patterns:
       - include: "#testing"
       - include: "#variableDeclarations"
-      - include: "#variableAssignment"
+      - include: "#valueAssignment"
       - include: "#methodAttribute"
       - include: "#methodClose"
       - include: "#language"
@@ -775,68 +779,104 @@ repository:
 
   variableDeclarations:
     patterns:
-      - include: "#constDeclaration"
-      - include: "#variableDeclaration"
+      - include: "#variableDeclarationVisbility"
+      - include: "#variableDeclarationDim"
+      - include: "#variableDeclarationConst"
     repository:
-      variableDeclaration:
-        name: meta.variable.declaration.vba
-        begin: (?i)(global|public|private|dim\s+)(?!const)
+      variableDeclarationVisbility:
+        name: meta.declare.$1.vba
+        begin: (?i)(global|public|private)
         end: (?=[':\n])
         beginCaptures:
-          1:
+          0:
             name: storage.modifier.declare-variable.vba
         patterns:
-          - include: "#lineContinuation"
           - include: "#separator"
-          - include: "#types"
-          - include: "#variable"
+          - include: "#lineContinuation"
+          - include: "#variableDeclarationConst"
+          - include: "#variableDeclarationVarName"
 
-      constDeclaration:
-        name: meta.const.declaration.vba
-        begin: (?i)(?:(global|public|private)\s+)?(const)
+      variableDeclarationDim:
+        name: meta.declare.variable.vba
+        begin: (?i)dim
         end: (?=[':\n])
         beginCaptures:
-          1:
-            name: storage.modifier.vba
-          2:
-            name: storage.type.vba
+          0:
+            name: storage.modifier.declare-variable.vba
+        patterns:
+          - include: "#separator"
+          - include: "#lineContinuation"
+          - include: "#variableDeclarationVarName"
+
+      variableDeclarationConst:
+        name: meta.declare.constant.vba
+        begin: (?i)const
+        end: (?=[':\n])
+        beginCaptures:
+          0:
+            name: storage.modifier.declare-variable.vba
+        patterns:
+          - include: "#separator"
+          - include: "#lineContinuation"
+          - include: "#variableDeclarationConstName"
+
+
+      variableDeclarationVarName:
+        begin: (?i)[a-z][a-z0-9_]*
+        end: (?=[':\n,])
+        beginCaptures:
+          0:
+            patterns:
+              - include: "#variable"
         patterns:
           - include: "#lineContinuation"
+          - include: "#variableDeclarationTypeAs"
+          - include: "#variableDeclarationArrayBounds"
+
+      variableDeclarationArrayBounds:
+        name: meta.declare.array-bounds.vba
+        begin: \(
+        end: \)
+        patterns:
           - include: "#separator"
-          - include: "#types"
-          - include: "#variable"
-          - match: (=)\s+([^,'_\n]*)
-            captures:
-              1:
-                name: keyword.operator.assignment.vba
-              2:
-                patterns:
-                  - include: "#literals"
+          - include: "#expression"
 
-
-      constDeclaration2:
-        name: storage.const-declaration.vba
-        match: (?i)^\s*((?:(?:Public|Private)\s+)?Const)\s+([a-z][a-z0-9_]*)([&%#!@$^])?(\s+As\s+[a-z][a-z0-9_]*)?(.*)
-        captures:
-          1:
-            # Public|Private Const
-            name: storage.type.vba
-          2:
-            # CONSTNAME
-            name: variable.other.constant
-          3:
-            # Type hint?
-            name: support.type.primitive.vba
-          4:
-            # As Type
+      variableDeclarationConstName:
+        begin: (?i)[a-z][a-z0-9_]*
+        end: (?=[':\n,])
+        beginCaptures:
+          0:
             patterns:
-              - include: "#types"
-          5:
-            # = "some value"
-            patterns:
-              - include: "#language"
+              - include: "#variable"
+        patterns:
+          - include: "#lineContinuation"
+          - include: "#variableDeclarationTypeAs"
+          - include: "#valueAssignment"
 
-  variableAssignment:
+      variableDeclarationTypeAs:
+        begin: (?i)\bas\b
+        end: (?=[,):'\n])
+        beginCaptures:
+          0:
+            patterns:
+              - include: "#keywords"
+        patterns:
+          - include: "#lineContinuation"
+          - include: "#argumentSignatureFromTypeName"
+
+      variableDeclarationTypeName:
+        begin: (?i)([a-z][a-z0-9._]*)
+        end: (?=[,):'\n])
+        beginCaptures:
+          0:
+            patterns:
+              - include: "#AsTypePrimative"
+              - include: "#AsTypeObject"
+        patterns:
+          - include: "#valueAssignment"
+          - include: "#lineContinuation"
+
+  valueAssignment:
     name: meta.variable-assignment.vba
     begin: (?i)(?:(Let|Set)\s+)?((?:[a-z][a-z0-9_]*)?(?:\.(?:(?:[a-z][a-z0-9_]*)?\.)*)?(?:[a-z][a-z0-9_]*)?)(\s*=\s*)
     end: (?=[',:)\n])
