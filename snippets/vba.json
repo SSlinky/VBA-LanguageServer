@@ -5,7 +5,7 @@
 		"body": [
 			"Private m${1:PropertyName} As ${2:PropertyType}",
 			"Public Property Let $1(var As $2)",
-			"Attribute $1.VB_Description = \"${3:Dosctring}.\"",
+			"Attribute $1.VB_Description = \"${3:docstring}.\"",
 			"'   $3.",
 			"    m$1 = var",
 			"End Property",
@@ -23,7 +23,7 @@
 		"body": [
 			"Private m${1:PropertyName} As ${2:PropertyType}",
 			"Public Property Set $1(var As $2)",
-			"Attribute $1.VB_Description = \"${3:Dosctring}.\"",
+			"Attribute $1.VB_Description = \"${3:docstring}.\"",
 			"'   $3.",
 			"    Set m$1 = var",
 			"End Property",
@@ -40,7 +40,7 @@
 		"description": "Property get only",
 		"body": [
 			"Public Property Get ${1:PropertyName}() As ${2:PropertyType}",
-			"Attribute $1.VB_Description = \"${3:Dosctring}.\"",
+			"Attribute $1.VB_Description = \"${3:docstring}.\"",
 			"'   $3.",
 			"    $0",
 			"End Property",
@@ -52,7 +52,7 @@
 		"description": "Subroutine",
 		"body": [
 			"${1:Public }Sub ${2:Identifier}($3)",
-			"Attribute $2.VB_Description = \"${4:Dosctring}.\"",
+			"Attribute $2.VB_Description = \"${4:docstring}.\"",
 			"'   $4.",
 			"'",
 			"'   Args:",
@@ -70,7 +70,7 @@
 		"description": "Function",
 		"body": [
 			"${1:Public }Function ${2:Identifier}($3) As ${4:Variant}",
-			"Attribute $2.VB_Description = \"${5:Dosctring}.\"",
+			"Attribute $2.VB_Description = \"${5:docstring}.\"",
 			"'   $5.",
 			"'",
 			"'   Args:",

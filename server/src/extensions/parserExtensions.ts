@@ -28,11 +28,15 @@ declare module 'antlr4ng' {
 	interface ParserRuleContext {
       /** Convert the node to a range. */
 		toRange(doc: TextDocument): Range;
+      startIndex(): number;
+      stopIndex(): number;
 	}
 
    interface TerminalNode {
       /** Convert the node to a range. */
       toRange(doc: TextDocument): Range;
+      startIndex(): number;
+      stopIndex(): number;
    }
 }
 
@@ -108,15 +112,29 @@ ParserRuleContext.prototype.toRange = function (doc: TextDocument): Range {
 	);
 };
 
+ParserRuleContext.prototype.startIndex = function (): number {
+   return this.start?.start ?? 0;
+}
+
+ParserRuleContext.prototype.stopIndex = function (): number {
+   return this.stop?.stop ?? this.startIndex();
+}
+
 
 TerminalNode.prototype.toRange = function (doc: TextDocument): Range {
-   const startIndex = this.getPayload()?.start ?? 0;
-	const stopIndex = this.getPayload()?.stop ?? startIndex;
    return Range.create(
-		doc.positionAt(startIndex),
-		doc.positionAt(stopIndex + 1)
+		doc.positionAt(this.startIndex()),
+		doc.positionAt(this.stopIndex() + 1)
 	);
 };
+
+TerminalNode.prototype.startIndex = function (): number {
+   return this.getPayload()?.start ?? 0;
+}
+
+TerminalNode.prototype.stopIndex = function (): number {
+   return this.getPayload()?.stop ?? this.startIndex();
+}
 
 
 CompilerConditionalStatementContext.prototype.vbaExpression = function (): string {

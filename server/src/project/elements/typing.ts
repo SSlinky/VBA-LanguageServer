@@ -70,7 +70,6 @@ export class TypeDeclarationElement extends BaseTypeDeclarationElement<PublicTyp
 			element: this,
 			getNameContext: () => ctx.udtDeclaration().untypedName()
 		});
-		this.symbolInformationCapability = new SymbolInformationCapability(this, SymbolKind.Struct);
 	}
 }
 
@@ -107,11 +106,11 @@ export class DeclarationStatementElement<T extends CombinedVariableContext> exte
 }
 
 
-export class VariableDeclarationElement extends BaseContextSyntaxElement<VariableDclContext | WitheventsVariableDclContext | ConstItemContext> implements HasDiagnosticCapability, HasSymbolInformationCapability, HasSemanticTokenCapability {
+export class VariableDeclarationElement extends BaseContextSyntaxElement<VariableDclContext | WitheventsVariableDclContext | ConstItemContext> implements HasDiagnosticCapability, HasSymbolInformationCapability { //, HasSemanticTokenCapability {
 	identifierCapability: IdentifierCapability;
 	diagnosticCapability: DiagnosticCapability;
 	symbolInformationCapability: SymbolInformationCapability;
-	semanticTokenCapability: SemanticTokenCapability;
+	// semanticTokenCapability: SemanticTokenCapability;
 
 	private _isPublic: boolean;
 	get isPublic(): boolean { return this._isPublic; }
@@ -121,7 +120,7 @@ export class VariableDeclarationElement extends BaseContextSyntaxElement<Variabl
 		this._isPublic = isPublic;
 		this.diagnosticCapability = new DiagnosticCapability(this);
 		this.symbolInformationCapability = new SymbolInformationCapability(this, ctx.toSymbolKind());
-		this.semanticTokenCapability = new SemanticTokenCapability(this, SemanticTokenTypes.variable, isConst ? [SemanticTokenModifiers.declaration, SemanticTokenModifiers.readonly] : [SemanticTokenModifiers.declaration]);
+		// this.semanticTokenCapability = new SemanticTokenCapability(this, SemanticTokenTypes.variable, isConst ? [SemanticTokenModifiers.declaration, SemanticTokenModifiers.readonly] : [SemanticTokenModifiers.declaration]);
 		this.identifierCapability = new IdentifierCapability({element: this, getNameContext: () => ctx.ambiguousIdentifier()});
 	}
 }

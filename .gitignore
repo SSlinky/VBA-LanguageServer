@@ -3,6 +3,7 @@
 #folder is available
 **/out/*
 !client/out/*.tmp
+client/src/syntaxes/dev*
 
 .antlr
 node_modules

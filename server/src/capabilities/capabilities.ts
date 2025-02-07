@@ -14,7 +14,7 @@ import { ParserRuleContext, TerminalNode } from 'antlr4ng';
 // Project
 import { SemanticToken } from '../capabilities/semanticTokens';
 import { FoldingRange, FoldingRangeKind } from '../capabilities/folding';
-import { BaseContextSyntaxElement, BaseIdentifyableSyntaxElement, HasSemanticTokenCapability } from '../project/elements/base';
+import { BaseContextSyntaxElement, BaseIdentifyableSyntaxElement, Context, HasSemanticTokenCapability } from '../project/elements/base';
 
 
 abstract class BaseCapability {
@@ -52,27 +52,38 @@ export class DiagnosticCapability extends BaseCapability {
 
 
 export class SemanticTokenCapability extends BaseCapability {
-	semanticToken: SemanticToken;
+	private tokenType: SemanticTokenTypes;
+	private tokenModifiers: SemanticTokenModifiers[];
+	private overrideRange?: Range;
+	private overrideLength?: number;
 
-	constructor(element: BaseContextSyntaxElement<ParserRuleContext> & HasSemanticTokenCapability, tokenType: SemanticTokenTypes, tokenModifiers: SemanticTokenModifiers[], range?: Range, tokLength?: number) {
-		super(element);
-
+	get semanticToken(): SemanticToken {
+		const element = this.element as BaseContextSyntaxElement<ParserRuleContext> & HasSemanticTokenCapability;
 		const context = !!element.identifierCapability
-			? element.identifierCapability.element.context
+			? new Context(element.identifierCapability.nameContext, element.context.document)
 			: element.context;
 
-		const startLine = range?.start.line ?? context.range.start.line;
-		const startChar = range?.start.character ?? context.range.start.character;
-		const textLength = tokLength ?? context.text.length;
+		const range = this.overrideRange ?? context.range;
+		const startLine = range.start.line;
+		const startChar = range.start.character;
+		const textLength = this.overrideLength ?? context.text.length;
 
-		this.semanticToken = new SemanticToken(
+		return new SemanticToken(
 			element,
 			startLine,
 			startChar,
 			textLength,
-			tokenType,
-			tokenModifiers
+			this.tokenType,
+			this.tokenModifiers
 		);
+	}
+
+	constructor(element: BaseContextSyntaxElement<ParserRuleContext> & HasSemanticTokenCapability, tokenType: SemanticTokenTypes, tokenModifiers: SemanticTokenModifiers[], overrideRange?: Range, overrideLength?: number) {
+		super(element);
+		this.tokenType = tokenType; 
+		this.tokenModifiers = tokenModifiers; 
+		this.overrideRange = overrideRange; 
+		this.overrideLength = overrideLength;
 	}
 }
 
@@ -106,16 +117,18 @@ interface IdentifierArgs {
 
 
 export class IdentifierCapability extends BaseCapability {
-	nameContext?: ParserRuleContext | TerminalNode | null;
+	nameContext: ParserRuleContext | TerminalNode;
 	range: Range;
 	name: string;
+	isDefaultMode: boolean;
 
 	constructor(args: IdentifierArgs) {
 		super(args.element);
 
-		this.nameContext = (args.getNameContext ?? (() => args.element.context.rule))();
+		this.nameContext = ((args.getNameContext ?? (() => args.element.context.rule))() ?? args.element.context.rule);
+		this.isDefaultMode = !(!!args.getNameContext && !!args.getNameContext());
 
-		if (!!this.nameContext) {
+		if (!this.isDefaultMode) {
 			// Use the context to set the values.
 			this.name = (args.formatName ?? ((name: string) => name))(this.nameContext.getText());
 			this.range = this.nameContext.toRange(args.element.context.document);
