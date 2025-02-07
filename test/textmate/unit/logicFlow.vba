@@ -122,4 +122,26 @@ Public Sub Foo()
     End If
 '   ^^^^^^                                                  meta.flow.block-if-else.vba
 '   ^^^^^^                                                  keyword.control.flow.block-decision.vba
+
+    Select Case True
+'   ^^^^^^ ^^^^             meta.flow.switch.vba keyword.control.flow.switch.vba
+'               ^^^^        meta.flow.switch.vba meta.expression.vba
+100:
+        Case Is = x = y:
+'       ^^^^                keyword.control.flow.switch.vba
+'            ^^^^^^^^^^     meta.flow.switch.vba meta.expression.vba
+'                      ^    keyword.control.line-separator.vba
+            Foo
+'           ^^^             meta.sub-call.vba
+        Case Else:
+'       ^^^^ ^^^^           keyword.control.flow.switch.vba
+'                ^          keyword.control.line-separator.vba
+            GoTo 100
+'           ^^^^            keyword.control.flow.branch.vba
+'                ^^^        variable.other.constant.label.vba
+    End Select
+'   ^^^ ^^^^^^              meta.flow.switch.vba keyword.control.flow.switch.vba
+
+    NotSwitch
+'   ^^^^^^^^^               - meta.flow.switch.vba
 End Sub

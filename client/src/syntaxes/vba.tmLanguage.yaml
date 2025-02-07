@@ -191,6 +191,7 @@ repository:
           - include: "#methodClose"
           - include: "#flowPauseExit"
           - include: "#flowBranch"
+          - include: "#flowSwitch"
         repository:
           blockIf:
             name: meta.flow.block-if-else.vba
@@ -278,7 +279,7 @@ repository:
               - include: "#flowBranchSimple"
             repository:
               flowBranchOnGos:
-                match: "(?i)\\b(on\\s+error|on)\\s+(.*\\s+)?(goto|gosub)\\s+([a-z][a-z0-9_]*|\\d+)\\b(.*)"
+                match: (?i)\b(on\s+error|on)\s+(.*\s+)?(goto|gosub)\s+([a-z][a-z0-9_]*|\d+)\b(.*)
                 captures:
                   1:
                     name: keyword.control.flow.branch.vba
@@ -294,13 +295,29 @@ repository:
                       - include: "#main"
 
               flowBranchSimple:
-                name: keyword.control.flow.branch.vba
-                match: "(?i)\\b(gosub|return|goto)(?:\\s+([a-z][a-z0-9_]*|\\d+))?\\b"
+                match: (?i)\b(gosub|return|goto)(?:\s+([a-z][a-z0-9_]*|\d+))?\b
                 captures:
                   1:
                     name: keyword.control.flow.branch.vba
                   2:
                     name: variable.other.constant.label.vba
+
+          flowSwitch:
+            name: meta.flow.switch.vba
+            begin: (?i)(select\s+case\b)(.*)
+            end: (?i)end\s+select\b
+            beginCaptures:
+              1:
+                name: keyword.control.flow.switch.vba
+              2:
+                patterns:
+                  - include: "#expression"
+            endCaptures:
+              0:
+                name: keyword.control.flow.switch.vba
+            patterns:
+              - include: "#flowCase"
+              - include: "#language"
 
       kw-array:
         name: keyword.array.vba
@@ -330,6 +347,15 @@ repository:
           directiveIllegal:
             name: invalid.illegal.vba
             match: "^#.*"
+
+  flowCase:
+    begin: (?i)case(\s+else)?
+    end: (?=[\n:'])
+    beginCaptures:
+      0:
+        name: keyword.control.flow.switch.vba
+    patterns:
+      - include: "#expressionList"
 
   labels:
     # name: variable.other.constant.label.vba
@@ -740,6 +766,13 @@ repository:
   methodClose:
     name: storage.type.method.close.vba
     match: (?i)End\s+(Sub|Function|Property)
+
+  expressionList:
+    begin: (?=.)
+    end: (?=\n|\sThen|\)|'|:)
+    patterns:
+      - include: "#separator"
+      - include: "#expression"
 
   expression:
     # Begins and ends without consuming anything.
