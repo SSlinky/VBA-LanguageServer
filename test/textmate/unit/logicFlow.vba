@@ -137,11 +137,67 @@ Public Sub Foo()
 '       ^^^^ ^^^^           keyword.control.flow.switch.vba
 '                ^          keyword.control.line-separator.vba
             GoTo 100
-'           ^^^^            keyword.control.flow.branch.vba
-'                ^^^        variable.other.constant.label.vba
+'           ^^^^            keyword.control.jump.vba
+'                ^^^        constant.numeric.vba
     End Select
 '   ^^^ ^^^^^^              meta.flow.switch.vba keyword.control.flow.switch.vba
 
     NotSwitch
 '   ^^^^^^^^^               - meta.flow.switch.vba
+
+    On Error GoTo Foo
+'   ^^^^^^^^ ^^^^^^^^   meta.onErrorStatement.vba
+'   ^^ ^^^^^ ^^^^       keyword.control.flow.jump.vba
+'   ^^^^^^^^ ^^^^       keyword.control.flow.jump.vba
+'                 ^^^   variable.other.constant.label.vba
+
+    On Error GoTo 0
+'   ^^^^^^^^ ^^^^^^     meta.onErrorStatement.vba
+'   ^^ ^^^^^ ^^^^       keyword.control.flow.jump.vba
+'                 ^     constant.numeric.vba
+
+    On Error Resume Next
+'   ^^^^^^^^ ^^^^^^^^^^^   meta.onErrorStatement.vba keyword.control.flow.jump.vba
+
+    On foo + 1 GoTo foo, bar, 100
+'   ^^^^^^^^^^ ^^^^^^^^^^^^^^^^^^   meta.onExpressionGoStatement.vba
+'   ^^         ^^^^                 keyword.control.flow.jump.vba
+'      ^^^^^^^                      meta.expression.vba
+'                   ^^^^^^^^^^^^^   meta.onExpressionGoStatement.vba
+'                   ^^^  ^^^        variable.other.constant.label.vba
+'                      ^    ^       punctuation.separator.vba
+'                             ^^^   constant.numeric.vba
+
+    On foo() GoSub foo, bar, 100
+'   ^^^^^^^^ ^^^^^^^^^^^^^^^^^^^    meta.onExpressionGoStatement.vba
+'   ^^       ^^^^^                  keyword.control.flow.jump.vba
+'      ^^^^^                        meta.expression.vba
+'                  ^^^^^^^^^^^^^    meta.onExpressionGoStatement.vba
+'                  ^^^  ^^^         variable.other.constant.label.vba
+'                     ^    ^        punctuation.separator.vba
+'                            ^^^    constant.numeric.vba
+
+    GoTo 100
+'   ^^^^^^^^    meta.goToGoSubReturnStatement.vba
+'   ^^^^        keyword.control.jump.vba
+'        ^^^    constant.numeric.vba
+
+    GoTo Foo
+'   ^^^^^^^^    meta.goToGoSubReturnStatement.vba
+'   ^^^^        keyword.control.jump.vba
+'        ^^^    variable.other.constant.label.vba
+
+    GoSub 100
+'   ^^^^^^^^^   meta.goToGoSubReturnStatement.vba
+'   ^^^^^       keyword.control.jump.vba
+'         ^^^   constant.numeric.vba
+
+    GoSub Foo
+'   ^^^^^^^^^   meta.goToGoSubReturnStatement.vba
+'   ^^^^^       keyword.control.jump.vba
+'         ^^^   variable.other.constant.label.vba
+
+    Return
+'   ^^^^^^  meta.goToGoSubReturnStatement.vba keyword.control.jump.vba
+
 End Sub

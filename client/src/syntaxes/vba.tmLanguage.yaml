@@ -275,32 +275,54 @@ repository:
             
           flowBranch:
             patterns:
-              - include: "#flowBranchOnGos"
-              - include: "#flowBranchSimple"
+              - include: "#onErrorStatement"
+              - include: "#onExpressionGoStatement"
+              - include: "#goToGoSubReturnStatement"
             repository:
-              flowBranchOnGos:
-                match: (?i)\b(on\s+error|on)\s+(.*\s+)?(goto|gosub)\s+([a-z][a-z0-9_]*|\d+)\b(.*)
+              onErrorStatement:
+                name: meta.onErrorStatement.vba
+                match: (?i)\b(on\s+error)\s+(?:(resume\s+next)|(goto)\s+([a-z0-9]+))
                 captures:
                   1:
-                    name: keyword.control.flow.branch.vba
+                    name: keyword.control.flow.jump.vba
                   2:
-                    patterns:
-                      - include: "#language"
+                    name: keyword.control.flow.jump.vba
                   3:
-                    name: keyword.control.flow.branch.vba
+                    name: keyword.control.flow.jump.vba
                   4:
-                    name: variable.other.constant.label.vba
-                  5:
                     patterns:
-                      - include: "#main"
+                      - include: "#literals"
+                      - match: .*
+                        name: variable.other.constant.label.vba
 
-              flowBranchSimple:
+              onExpressionGoStatement:
+                name: meta.onExpressionGoStatement.vba
+                begin: (?i)\b(on)\s+(.*?)(go(?:to|sub))
+                end: ([\n':])
+                beginCaptures:
+                  1:
+                    name: keyword.control.flow.jump.vba
+                  2:
+                    patterns: 
+                      - include: "#expression"
+                  3:
+                    name: keyword.control.flow.jump.vba
+                patterns:
+                  - include: "#separator"
+                  - include: "#literals"
+                  - match: (?i)([a-z][a-z0-9]*)
+                    name: variable.other.constant.label.vba
+              goToGoSubReturnStatement:
+                name: meta.goToGoSubReturnStatement.vba
                 match: (?i)\b(gosub|return|goto)(?:\s+([a-z][a-z0-9_]*|\d+))?\b
                 captures:
                   1:
-                    name: keyword.control.flow.branch.vba
+                    name: keyword.control.jump.vba
                   2:
-                    name: variable.other.constant.label.vba
+                    patterns:
+                      - include: "#literals"
+                      - match: .*
+                        name: variable.other.constant.label.vba
 
           flowSwitch:
             name: meta.flow.switch.vba
