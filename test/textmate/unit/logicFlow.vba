@@ -200,4 +200,21 @@ Public Sub Foo()
     Return
 '   ^^^^^^  meta.goToGoSubReturnStatement.vba keyword.control.jump.vba
 
+    If cond Then Foo
+'   ^^^^^^^^^^^^^^^^        meta.flow.inline-if.vba
+'   ^^      ^^^^            keyword.control.flow.decision.vba
+'                ^^^        entity.name.function.call.vba
+    If cond Then foo = BAR
+'   ^^^^^^^^^^^^^^^^^^^^^^  meta.flow.inline-if.vba
+'   ^^      ^^^^            keyword.control.flow.decision.vba
+'                ^^^^^^^^^  meta.variable-assignment.vba
+    If cond Then GoTo 100
+'   ^^^^^^^^^^^^^^^^^^^^^   meta.flow.inline-if.vba
+'   ^^      ^^^^            keyword.control.flow.decision.vba
+'                ^^^^^^^^   meta.goToGoSubReturnStatement.vba
+    If cond Then GoSub Foo
+'   ^^^^^^^^^^^^^^^^^^^^^^  meta.flow.inline-if.vba
+'   ^^      ^^^^            keyword.control.flow.decision.vba
+'                ^^^^^^^^^  meta.goToGoSubReturnStatement.vba
+
 End Sub

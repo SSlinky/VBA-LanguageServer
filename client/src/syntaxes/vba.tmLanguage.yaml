@@ -264,6 +264,11 @@ repository:
                   - include: "#functionCall"
               3:
                 name: keyword.control.flow.decision.vba
+              4:
+                patterns:
+                  - include: "#valueAssignment"
+                  - include: "#language"
+
 
           flowCall:
             name: keyword.control.flow.call.vba
