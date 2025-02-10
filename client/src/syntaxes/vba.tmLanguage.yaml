@@ -243,14 +243,14 @@ repository:
                 name: keyword.control.flow.decision.vba
               4:
                 patterns:
-                  - include: "#expression"
-                  - include: "#functionCall"
+                  - include: "#valueAssignment"
+                  - include: "#language"
               5:
                 name: keyword.control.flow.decision.vba
               6:
                 patterns:
-                  - include: "#expression"
-                  - include: "#functionCall"
+                  - include: "#valueAssignment"
+                  - include: "#language"
           
           inlineIf:
             name: meta.flow.inline-if.vba
