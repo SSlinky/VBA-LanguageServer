@@ -26,6 +26,8 @@ patterns:
 # * Rules missing an end key will match to the end of the document (or capture - see tips).
 # * Similar to match/captures, you can pair begin/beginCaptures and end/endCaptures.
 # * Repository key is ignored and rules within are not accessible from anywhere.
+# * Patterns are tested after end. A begin and end that match the same thing immediately exits.
+# * An empty end key will not run any includes as it will always immediately exit.
 
 # --- Empty Rules ------------------------------------------------------------------------------
 # * Empty rules are used to organise rule flow with a patterns key, and optionally, repository.
@@ -35,7 +37,9 @@ patterns:
 
 # --- Tips and Tricks --------------------------------------------------------------------------
 # * It can be advantageous to match without consuming anything, e.g., multi-level begin/end
-#   rules. You can cascade ends with (?=.) to match anything without consuming.
+#   rules. You can cascade ends with (?=foo) to match anything without consuming. --NOTE--
+#   Recursive rules that "ride the kick" with lookarounds must always capture at the top level
+#   or the first exit condition will exit all levels of recursion.
 #   Similarly, you may wish to end at [':\n] but consuming will cause comments to fail.
 # * You can strategically consume content to skip it matching elsewhere, e.g., line continuation
 #   on a comment. Begin on ' and end on \n. If you consume the continuation _\s*\n then the
@@ -43,6 +47,7 @@ patterns:
 # * Begin/End rules run until ended or until they reach the end of their scope of operation.
 #   This means passing a capture group from (begin|end)?capture down to a begin/end will _always
 #   end at the end of the what was captured!_. This cannot be more than to the end of the line.
+# * An empty match key, i.e., begin/end/match will always "match".
 #
 #   "Put conventional logic aside and enjoy. Well... I say, 'enjoy.'"
 #       - Garth Marenghi
@@ -184,7 +189,6 @@ repository:
           - include: "#inlineIfElse"
           - include: "#inlineIf"
           - include: "#blockIf"
-          - include: "#blockIfEnd"
           - include: "#forEachLoop"
           - include: "#flowLoop"
           - include: "#flowCall"
@@ -194,23 +198,73 @@ repository:
           - include: "#flowSwitch"
         repository:
           blockIf:
-            name: meta.flow.block-if-else.vba
-            match: (?i)(?:^|\s+)((?:[#]?else\s+)?[#]?if)(.*?)(then)
-            captures:
+            name: meta.block-if-else.vba
+            begin: (?i)(if)\s+(?=[^'\n])  # Look ahead to anything other than a comment.
+            end: (?i)if                   # Safe to assume this is not an open.
+            beginCaptures:
               1:
-                name: keyword.control.flow.block-decision.vba
-              2:
-                patterns:
-                  - include: "#expression"
-                  - include: "#functionCall"
-              3:
-                name: keyword.control.flow.block-decision.vba
-          blockIfEnd:
-            name: meta.flow.block-if-else.vba
-            match: (?i)([#]?end\s+if)
-            captures:
+                name: keyword.control.block-if.open.vba
+            endCaptures:
+              0:
+                name: keyword.control.block-if.close.vba
+            patterns:
+              - include: "#blockIfOpen"
+
+          blockIfOpen:
+            name: meta.block-if.condition.vba
+            begin:
+            end: (?i)(?=if)
+            patterns:
+              - include: "#lineContinuation"
+              - include: "#blockIfThen"
+              - include: "#expression"
+
+          blockIfThen:
+            name: meta.block-if.then.vba
+            begin: (?i)then
+            end: (?i)(?=if(?:\s*)['\n])
+            beginCaptures:
+              0:
+                name: keyword.control.block-if.open.vba
+            patterns:
+              - include: "#lineContinuation"
+              - include: "#blockElseIfOpen"
+              - include: "#blockEndIf"
+              - include: "#blockElse"
+              - include: "#main"
+          
+          blockElseIfOpen:
+            name: meta.block-if-else-if.vba
+            begin: (?i)(else)\s+(?=(if|_))
+            end: (?i)(?=if(?:\s*)['\n])
+            beginCaptures:
               1:
-                name: keyword.control.flow.block-decision.vba
+                name: keyword.control.block-if.open.vba
+            patterns:
+              - include: "#lineContinuation"
+              - include: "#blockElseIf"
+
+          blockElseIf:
+            begin: (?i)(if)\s+(?=[^'\n])
+            end: (?i)(?=if(?:\s*)['\n])
+            beginCaptures:
+              1:
+                name: keyword.control.block-if.open.vba
+            patterns:
+              - include: "#blockIfOpen"
+
+          blockElse:
+            name: keyword.control.block-if.else.vba
+            match: (?i)else
+
+          blockEndIf:
+            begin: (?i)(end)\s+(?=(if|_))
+            end: (?i)(?=if(?:\s*)['\n])
+            beginCaptures:
+              1:
+                name: keyword.control.block-if.close.vba
+            patterns:
+              - include: "#lineContinuation"
 
           flowLoop:
             name: keyword.control.flow.loop.vba
@@ -804,7 +858,7 @@ repository:
   expression:
     # Begins and ends without consuming anything.
     name: meta.expression.vba
-    begin: (?=.)
+    begin: (?!=\n|\sThen|\)|'|,|:)
     end: (?=\n|\sThen|\)|'|,|:)
     patterns:
       - include: "#literals"

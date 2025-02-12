@@ -27,101 +27,89 @@ Option Explicit
 Public Sub Foo()
 '   Variable positive
     If condition Then
-'   ^^^^^^^^^^^^^^^^^       meta.flow.block-if-else.vba
-'   ^^                      keyword.control.flow.block-decision.vba
-'                ^^^^       keyword.control.flow.block-decision.vba
+'   ^^^^^^^^^^^^^^^^^       meta.block-if-else.vba
+'   ^^                      keyword.control.block-if.open.vba
+'                ^^^^       keyword.control.block-if.open.vba
     Else If condition Then
-'   ^^^^^^^^^^^^^^^^^       meta.flow.block-if-else.vba
-'   ^^^^^^^                 keyword.control.flow.block-decision.vba
-'                     ^^^^  keyword.control.flow.block-decision.vba
+'   ^^^^^^^^^^^^^^^^^       meta.block-if-else-if.vba
+'   ^^^^ ^^                 keyword.control.block-if.open.vba
+'                     ^^^^  keyword.control.block-if.open.vba
     End If
-'   ^^^^^^                  meta.flow.block-if-else.vba
-'   ^^^^^^                  keyword.control.flow.block-decision.vba
+'   ^^^ ^^                  meta.block-if-else.vba keyword.control.block-if.close.vba
 
 '   Variable negative    
     If Not condition Then
-'   ^^^^^^^^^^^^^^^^^^^^^       meta.flow.block-if-else.vba
-'   ^^                          keyword.control.flow.block-decision.vba
+'   ^^^^^^^^^^^^^^^^^^^^^       meta.block-if-else.vba
+'   ^^                          keyword.control.block-if.open.vba
 '      ^^^                      keyword.operator.logical.vba
-'                    ^^^^       keyword.control.flow.block-decision.vba
+'                    ^^^^       keyword.control.block-if.open.vba
     Else If Not condition Then
-'   ^^^^^^^^^^^^^^^^^^^^^^^^^^  meta.flow.block-if-else.vba
-'   ^^^^^^^                     keyword.control.flow.block-decision.vba
+'   ^^^^^^^^^^^^^^^^^^^^^^^^^^  meta.block-if-else-if.vba
+'   ^^^^ ^^                     keyword.control.block-if.open.vba
 '           ^^^                 keyword.operator.logical.vba
-'                         ^^^^  keyword.control.flow.block-decision.vba
+'                         ^^^^  keyword.control.block-if.open.vba
     End If
-'   ^^^^^^                      meta.flow.block-if-else.vba
-'   ^^^^^^                      keyword.control.flow.block-decision.vba
+'   ^^^ ^^                      meta.block-if-else.vba keyword.control.block-if.close.vba
 
 '   Function positive
     If condition() Then
-'   ^^^^^^^^^^^^^^^^^^^         meta.flow.block-if-else.vba
-'   ^^                          keyword.control.flow.block-decision.vba
+'   ^^^^^^^^^^^^^^^^^^^         meta.block-if-else.vba
+'   ^^                          keyword.control.block-if.open.vba
 '      ^^^^^^^^^^^              meta.function.call.vba
-'                  ^^^^         keyword.control.flow.block-decision.vba
+'                  ^^^^         keyword.control.block-if.open.vba
     Else If condition() Then
-'   ^^^^^^^^^^^^^^^^^^^^^^^^    meta.flow.block-if-else.vba
-'   ^^^^^^^                     keyword.control.flow.block-decision.vba
+'   ^^^^^^^^^^^^^^^^^^^^^^^^    meta.block-if-else-if.vba
+'   ^^^^ ^^             ^^^^    keyword.control.block-if.open.vba
 '           ^^^^^^^^^^^         meta.function.call.vba
-'                       ^^^^    keyword.control.flow.block-decision.vba
+'                       ^^^^    keyword.control.block-if.open.vba
     End If
-'   ^^^^^^                      meta.flow.block-if-else.vba
-'   ^^^^^^                      keyword.control.flow.block-decision.vba
+'   ^^^ ^^                      meta.block-if-else.vba keyword.control.block-if.close.vba
 
 '   Function negative
     If Not condition() Then
-'   ^^^^^^^^^^^^^^^^^^^^^^^         meta.flow.block-if-else.vba
-'   ^^                              keyword.control.flow.block-decision.vba
+'   ^^^^^^^^^^^^^^^^^^^^^^^         meta.block-if-else.vba
+'   ^^                 ^^^^         keyword.control.block-if.open.vba
 '      ^^^                          keyword.operator.logical.vba
 '          ^^^^^^^^^^^              meta.function.call.vba
-'                      ^^^^         keyword.control.flow.block-decision.vba
     Else If Not condition() Then
-'   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^    meta.flow.block-if-else.vba
-'   ^^^^^^^                         keyword.control.flow.block-decision.vba
+'   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^    meta.block-if-else-if.vba
+'   ^^^^ ^^                 ^^^^    keyword.control.block-if.open.vba
 '           ^^^                     keyword.operator.logical.vba
 '               ^^^^^^^^^^^         meta.function.call.vba
-'                           ^^^^    keyword.control.flow.block-decision.vba
     End If
-'   ^^^^^^                          meta.flow.block-if-else.vba
-'   ^^^^^^                          keyword.control.flow.block-decision.vba
+'   ^^^ ^^                          meta.block-if-else.vba keyword.control.block-if.close.vba
 
 '   Literal
     If Not True Then
-'   ^^^^^^^^^^^^^^^^        meta.flow.block-if-else.vba
-'   ^^                      keyword.control.flow.block-decision.vba
+'   ^^^^^^^^^^^^^^^^        meta.block-if-else.vba
+'   ^^          ^^^^        keyword.control.block-if.open.vba
 '      ^^^                  keyword.operator.logical.vba
 '          ^^^^             constant.language.boolean.vba
-'               ^^^^        keyword.control.flow.block-decision.vba
     Else If Not False Then
-'   ^^^^^^^^^^^^^^^^^^^^^^  meta.flow.block-if-else.vba
-'   ^^^^^^^                 keyword.control.flow.block-decision.vba
+'   ^^^^^^^^^^^^^^^^^^^^^^  meta.block-if-else-if.vba
+'   ^^^^ ^^           ^^^^  keyword.control.block-if.open.vba
 '           ^^^             keyword.operator.logical.vba
 '               ^^^^^       constant.language.boolean.vba
-'                     ^^^^  keyword.control.flow.block-decision.vba
 
     End If
-'   ^^^^^^                  meta.flow.block-if-else.vba
-'   ^^^^^^                  keyword.control.flow.block-decision.vba
+'   ^^^ ^^                  meta.block-if-else.vba keyword.control.block-if.close.vba
 
 '   Expression
     If Not condition = 5 Then
-'   ^^^^^^^^^^^^^^^^^^^^^^^^^                               meta.flow.block-if-else.vba
-'   ^^                                                      keyword.control.flow.block-decision.vba
+'   ^^^^^^^^^^^^^^^^^^^^^^^^^                               meta.block-if-else.vba
+'   ^^                   ^^^^                               keyword.control.block-if.open.vba
 '      ^^^                                                  keyword.operator.logical.vba
 '                    ^                                      keyword.operator.comparison.vba
 '                      ^                                    constant.numeric.vba
-'                        ^^^^                               keyword.control.flow.block-decision.vba
     Else If Not GetValue(x) = GetOtherValue("foo") Then
-'   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^     meta.flow.block-if-else.vba
-'   ^^^^^^^                                                 keyword.control.flow.block-decision.vba
+'   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^     meta.block-if-else-if.vba
+'   ^^^^ ^^                                        ^^^^     keyword.control.block-if.open.vba
 '           ^^^                                             keyword.operator.logical.vba
 '               ^^^^^^^^^^^                                 meta.function.call.vba
 '                           ^                               keyword.operator.comparison.vba
 '                             ^^^^^^^^^^^^^^^^^^^^          meta.function.call.vba
-'                                                  ^^^^     keyword.control.flow.block-decision.vba
     End If
-'   ^^^^^^                                                  meta.flow.block-if-else.vba
-'   ^^^^^^                                                  keyword.control.flow.block-decision.vba
+'   ^^^ ^^                                                  meta.block-if-else.vba keyword.control.block-if.close.vba
 
     Select Case True
 '   ^^^^^^ ^^^^             meta.flow.switch.vba keyword.control.flow.switch.vba
@@ -233,5 +221,69 @@ Public Sub Foo()
 '   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^   meta.flow.inline-if-else.vba
 '   ^^      ^^^^           ^^^^             keyword.control.flow.decision.vba
 '                ^^^^^^^^^      ^^^^^^^^^   meta.goToGoSubReturnStatement.vba
+
+    If foo Then
+'   ^^     ^^^^                     meta.block-if-else.vba keyword.control.block-if.open.vba
+'      ^^^                          meta.block-if-else.vba meta.expression.vba
+        bar = 5
+'       ^^^^^^^                     meta.block-if-else.vba meta.variable-assignment.vba
+    Else If Not foo = ACONST Then
+'   ^^^^ ^^                  ^^^^   meta.block-if-else.vba keyword.control.block-if.open.vba
+'           ^^^^^^^^^^^^^^^^        meta.block-if-else.vba meta.expression.vba
+        bar = 3
+'       ^^^^^^^                     meta.block-if-else.vba meta.variable-assignment.vba
+    Else
+'   ^^^^                            keyword.control.block-if.else.vba
+        bar = 0
+'       ^^^^^^^                     meta.block-if-else.vba meta.variable-assignment.vba
+    End If
+'   ^^^ ^^                          meta.block-if-else.vba keyword.control.block-if.close.vba
+
+'   Nesting tests
+    If foo Then
+'   ^^     ^^^^             meta.block-if-else.vba keyword.control.block-if.open.vba
+'      ^^^^^^^^             meta.block-if-else.vba meta.block-if.condition.vba
+        If foo Then
+'       ^^     ^^^^         meta.block-if-else.vba meta.block-if-else.vba keyword.control.block-if.open.vba
+'          ^^^^^^^^         meta.block-if-else.vba meta.block-if-else.vba meta.block-if.condition.vba
+            If foo Then
+'           ^^     ^^^^     meta.block-if-else.vba meta.block-if-else.vba meta.block-if-else.vba keyword.control.block-if.open.vba
+'              ^^^^^^^^     meta.block-if-else.vba meta.block-if-else.vba meta.block-if-else.vba meta.block-if.condition.vba
+            End If
+'           ^^^ ^^          meta.block-if-else.vba meta.block-if-else.vba meta.block-if-else.vba keyword.control.block-if.close.vba
+        Else If foo Then
+'       ^^^^ ^^     ^^^^    meta.block-if-else.vba meta.block-if-else.vba meta.block-if-else-if.vba keyword.control.block-if.open.vba
+'               ^^^^^^^^    meta.block-if-else.vba meta.block-if-else.vba meta.block-if-else-if.vba meta.block-if.condition.vba
+            If foo Then
+'           ^^     ^^^^     meta.block-if-else.vba meta.block-if-else.vba meta.block-if-else.vba keyword.control.block-if.open.vba
+'              ^^^^^^^^     meta.block-if-else.vba meta.block-if-else.vba meta.block-if-else.vba meta.block-if.condition.vba
+            End If
+'           ^^^ ^^          meta.block-if-else.vba meta.block-if-else.vba meta.block-if-else.vba keyword.control.block-if.close.vba
+        Else
+'       ^^^^                keyword.control.block-if.else.vba        
+            If foo Then
+'           ^^     ^^^^     meta.block-if-else.vba meta.block-if-else.vba meta.block-if-else.vba keyword.control.block-if.open.vba
+'              ^^^^^^^^     meta.block-if-else.vba meta.block-if-else.vba meta.block-if-else.vba meta.block-if.condition.vba
+            End If
+'           ^^^ ^^          meta.block-if-else.vba meta.block-if-else.vba meta.block-if-else.vba keyword.control.block-if.close.vba
+        End If
+'       ^^^ ^^              meta.block-if-else.vba meta.block-if-else.vba keyword.control.block-if.close.vba
+    End If
+'   ^^^ ^^                  meta.block-if-else.vba keyword.control.block-if.close.vba
+
+'< source.vba - meta.block-if-else.vba keyword.control.block-if.close.vba
+
+'   Line continuation stress test.
+    If _
+    True _
+    Then
+    If _
+    True _
+    Then
+    Else
+    End If
+    Debug.Print 5
+    End _
+    If
 
 End Sub
