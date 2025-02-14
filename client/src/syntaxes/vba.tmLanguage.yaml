@@ -615,7 +615,7 @@ repository:
   arguments:
     name: meta.arguments.vba
     begin: (\s+|\(\s*)
-    end: (?=[\n')])
+    end: (?=[):'\n])
     patterns:
       - include: "#lineContinuation"
       - include: "#functionCall"
@@ -1059,7 +1059,7 @@ repository:
   subCall:
     name: meta.sub-call.vba
     begin: (?i)(?:([a-z][a-z0-9_]*)(?=\.))?(\.(?:(?:[a-z][a-z0-9_]*)?\.)*)?([a-z][a-z0-9_]*)\s*(?=\s[^,'\n])
-    end: (?=[\n'])
+    end: (?=[:'\n])
     beginCaptures:
       1:
         patterns:
