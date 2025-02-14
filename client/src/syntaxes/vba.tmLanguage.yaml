@@ -523,6 +523,8 @@ repository:
         patterns:
           - include: "#AsTypePrimative"
           - include: "#AsTypeObject"
+          - name: punctuation.accessor.vba
+            match: '\.'
   AsTypePrimative:
     name: support.type.primitive.$1.vba
     match: (?i)(boolean|byte|currency|date|decimal|double|integer|long(long|ptr)?|single|string|variant)\b
@@ -608,6 +610,8 @@ repository:
         patterns:
           - include: "#AsTypePrimative"
           - include: "#AsTypeObject"
+          - name: punctuation.accessor.vba
+            match: '\.'
     patterns:
       - include: "#valueAssignment"
       - include: "#lineContinuation"
@@ -987,6 +991,8 @@ repository:
             patterns:
               - include: "#AsTypePrimative"
               - include: "#AsTypeObject"
+              - name: punctuation.accessor.vba
+                match: '\.'
         patterns:
           - include: "#valueAssignment"
           - include: "#lineContinuation"
