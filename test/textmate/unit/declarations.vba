@@ -34,6 +34,15 @@ Global  x As Long, y As Long, z ' Comment
 '            ^^^^       ^^^^                support.type.primitive.Long.vba
 '                ^          ^               punctuation.separator.vba
 '                               ^^^^^^^^^   comment.line.apostrophe.vba - meta.declare.variable.vba
+Dim     x As New Object, y as New Object ' Comment
+'<----------------------------------------          meta.declare.variable.vba
+'<---                                               storage.modifier.declare-variable.vba
+'       ^                ^                          variable.other.readwrite.vba
+'         ^^               ^^                       keyword.control.as.vba
+'            ^^^              ^^^                   keyword.storage.new.vba
+'                ^^^^^^           ^^^^^^            support.type.object.Object.vba
+'                      ^                            punctuation.separator.vba
+'                                        ^^^^^^^^^  comment.line.apostrophe.vba - meta.declare.variable.vba
 
         Const X As Long = 0, Y As Long = 0, Z = 0 ' Comment
 '       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^           meta.declare.constant.vba
@@ -152,8 +161,10 @@ Dim foo(1 To 5) As Long, bar(2 To 7)
 '   ^^^             variable.other.constant
     As _
 '   ^^              keyword.control.as.vba
-    Long _
-'   ^^^^            meta.declare.constant.vba support.type.primitive.Long.vba
+    New _
+'   ^^^             keyword.storage.new.vba
+    Dictionary _
+'   ^^^^^^^^^^      meta.declare.constant.vba support.type.object.Dictionary.vba
     = _
 '   ^               keyword.operator.assignment.vba
     100

@@ -981,21 +981,18 @@ repository:
               - include: "#keywords"
         patterns:
           - include: "#lineContinuation"
+          - include: "#variableDeclarationTypeNew"
           - include: "#argumentSignatureFromTypeName"
 
-      variableDeclarationTypeName:
-        begin: (?i)([a-z][a-z0-9._]*)
+      variableDeclarationTypeNew:
+        begin: (?i)\bnew\b
         end: (?=[,):'\n])
         beginCaptures:
           0:
-            patterns:
-              - include: "#AsTypePrimative"
-              - include: "#AsTypeObject"
-              - name: punctuation.accessor.vba
-                match: '\.'
+            name: keyword.storage.new.vba
         patterns:
-          - include: "#valueAssignment"
           - include: "#lineContinuation"
+          - include: "#argumentSignatureFromTypeName"
 
   valueAssignment:
     name: meta.variable-assignment.vba
