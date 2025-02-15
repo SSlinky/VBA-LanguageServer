@@ -619,7 +619,7 @@ repository:
   arguments:
     name: meta.arguments.vba
     begin: (\s+|\(\s*)
-    end: (?=[):'\n])
+    end: (?=[:)'\n])
     patterns:
       - include: "#lineContinuation"
       - include: "#functionCall"
