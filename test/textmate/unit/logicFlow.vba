@@ -188,6 +188,7 @@ Public Sub Foo()
     Return
 '   ^^^^^^  meta.goToGoSubReturnStatement.vba keyword.control.jump.vba
 
+'   Inline If
     If cond Then Foo
 '   ^^^^^^^^^^^^^^^^        meta.flow.inline-if.vba
 '   ^^      ^^^^            keyword.control.flow.decision.vba
@@ -221,6 +222,24 @@ Public Sub Foo()
 '   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^   meta.flow.inline-if-else.vba
 '   ^^      ^^^^           ^^^^             keyword.control.flow.decision.vba
 '                ^^^^^^^^^      ^^^^^^^^^   meta.goToGoSubReturnStatement.vba
+
+'   If blocks
+    If foo Then
+'   ^^     ^^^^                     meta.block-if-else.vba keyword.control.block-if.open.vba
+'      ^^^                          meta.block-if-else.vba meta.expression.vba
+        bar = 5
+'       ^^^^^^^                     meta.block-if-else.vba meta.variable-assignment.vba
+    Else If Not foo = ACONST Then
+'   ^^^^ ^^                  ^^^^   meta.block-if-else.vba keyword.control.block-if.open.vba
+'           ^^^^^^^^^^^^^^^^        meta.block-if-else.vba meta.expression.vba
+        bar = 3
+'       ^^^^^^^                     meta.block-if-else.vba meta.variable-assignment.vba
+    Else
+'   ^^^^                            keyword.control.block-if.else.vba
+        bar = 0
+'       ^^^^^^^                     meta.block-if-else.vba meta.variable-assignment.vba
+    End If
+'   ^^^ ^^                          meta.block-if-else.vba keyword.control.block-if.close.vba
 
     If foo Then
 '   ^^     ^^^^                     meta.block-if-else.vba keyword.control.block-if.open.vba
@@ -307,15 +326,29 @@ Public Sub Foo()
 
 '   Line continuation stress test.
     If _
+'   ^^              meta.block-if-else.vba keyword.control.block-if.open.vba
+'      ^            meta.block-if-else.vba keyword.control.line-continuation.vba
     True _
+'   ^^^^^^          meta.block-if-else.vba meta.expression.vba
     Then
+'   ^^^^            meta.block-if-else.vba keyword.control.block-if.open.vba
     If _
+'   ^^              meta.block-if-else.vba meta.block-if-else.vba keyword.control.block-if.open.vba
+'      ^            meta.block-if-else.vba meta.block-if-else.vba keyword.control.line-continuation.vba
     True _
+'   ^^^^^^          meta.block-if-else.vba meta.block-if-else.vba meta.expression.vba
     Then
+'   ^^^^            meta.block-if-else.vba meta.block-if-else.vba keyword.control.block-if.open.vba
     Else
+'   ^^^^            meta.block-if-else.vba meta.block-if-else.vba keyword.control.block-if.else.vba
     End If
+'   ^^^ ^^          meta.block-if-else.vba meta.block-if-else.vba keyword.control.block-if.close.vba
     Debug.Print 5
+'<                  meta.block-if-else.vba - meta.block-if-else.vba
     End _
+'   ^^^             meta.block-if-else.vba keyword.control.block-if.close.vba 
+'       ^           meta.block-if-else.vba keyword.control.line-continuation.vba
     If
+'   ^^              meta.block-if-else.vba keyword.control.block-if.close.vba 
 
 End Sub
