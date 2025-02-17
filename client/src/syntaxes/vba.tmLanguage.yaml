@@ -65,7 +65,6 @@ repository:
       - include: "#methodSignature"
       - include: "#enum"
       - include: "#struct"
-      - include: "#variableDeclarations"
       - include: "#main"
 
   continuations:
@@ -89,9 +88,8 @@ repository:
 
   main:
     patterns:
-      - include: "#declareFunctionSignature"
       - include: "#methodSignature"
-      - include: "#variableDeclarations"
+      - include: "#declaration"
       - include: "#block"
 
 
@@ -794,36 +792,6 @@ repository:
         patterns:
           - include: "#comments"
 
-  declareFunctionSignature:
-    name: source.declare.signature.vba
-    begin: (?i)^\s*((?:Public|Private|Friend)?\b\s*Declare)\s+(PtrSafe\s+)?(Sub|Function)\s+([a-z][a-z0-9_]*)\s+(Lib)\s+("[a-z][a-z0-9._]*")(?:\s+(Alias)\s+("[a-z][a-z0-9_]*"))?\s+\(
-    end: '(?i)(?:\))\s+(as\s+[a-z][a-z0-9_]*)'
-    beginCaptures:
-      1: # Public|Private|Friend Declare
-        name: storage.type.method.vba
-      2: # PtrSafe
-        name: storage.type.method.vba
-      3: # Sub|Function
-        name: storage.type.method.vba
-      4: # Name
-        name: entity.name.function.vba
-      5: # Lib
-        name: storage.type.method.vba
-      6: # Lib name
-        patterns:
-          - include: "#literals"
-      7: # Alias
-        name: storage.type.method.vba
-      8: # Alias name
-        patterns:
-          - include: "#literals"
-    endCaptures:
-      1: # return type
-        patterns:
-          - include: "#types"
-    patterns:
-      - include: "#argumentsSignature"
-
   methodSignature:
     name: source.method.signature.vba
     begin: (?i)^\s*((?:Public|Private)?\b\s*(?:(?:Sub|Function)|Property\s+(?:Let|Get|Set)))\s+([a-z][a-z0-9_]*)\s*(\()
@@ -884,7 +852,7 @@ repository:
   block:
     patterns:
       - include: "#testing"
-      - include: "#variableDeclarations"
+      - include: "#declaration"
       - include: "#valueAssignment"
       - include: "#methodAttribute"
       - include: "#methodClose"
@@ -905,11 +873,12 @@ repository:
     name: punctuation.separator.vba
     match: ','
 
-  variableDeclarations:
+  declaration:
     patterns:
       - include: "#variableDeclarationVisbility"
       - include: "#variableDeclarationDim"
       - include: "#variableDeclarationConst"
+      - include: "#methodDeclarationDeclare"
     repository:
       variableDeclarationVisbility:
         name: meta.declare.$1.vba
@@ -917,11 +886,12 @@ repository:
         end: (?=[':\n])
         beginCaptures:
           0:
-            name: storage.modifier.declare-variable.vba
+            name: storage.modifier.visibility.vba
         patterns:
           - include: "#separator"
           - include: "#lineContinuation"
           - include: "#variableDeclarationConst"
+          - include: "#methodDeclarationDeclare"
           - include: "#variableDeclarationVarName"
 
       variableDeclarationDim:
@@ -930,7 +900,7 @@ repository:
         end: (?=[':\n])
         beginCaptures:
           0:
-            name: storage.modifier.declare-variable.vba
+            name: storage.modifier.declare.vba
         patterns:
           - include: "#separator"
           - include: "#lineContinuation"
@@ -942,12 +912,11 @@ repository:
         end: (?=[':\n])
         beginCaptures:
           0:
-            name: storage.modifier.declare-variable.vba
+            name: storage.modifier.declare.vba
         patterns:
           - include: "#separator"
           - include: "#lineContinuation"
           - include: "#variableDeclarationConstName"
-
 
       variableDeclarationVarName:
         begin: (?i)[a-z][a-z0-9_]*
@@ -1002,6 +971,94 @@ repository:
         patterns:
           - include: "#lineContinuation"
           - include: "#argumentSignatureFromTypeName"
+
+      methodDeclarationDeclare:
+        name: meta.declare.function.vba
+        begin: (?i)declare
+        end: (?=[':\n])
+        beginCaptures:
+          0:
+            name: storage.modifier.declare.vba
+        patterns:
+          - include: "#lineContinuation"
+          - include: "#methodDeclarationPtrsafe"
+          - include: "#methodDeclarationMethod"
+          - include: "#argumentSignatureFromTypeAs"
+
+      methodDeclarationPtrsafe:
+        begin: (?i)ptrsafe
+        end: (?=[)':\n])
+        beginCaptures:
+          0:
+            name: storage.modifier.declare.vba
+        patterns:
+          - include: "#lineContinuation"
+          - include: "#methodDeclarationMethod"
+
+      methodDeclarationMethod:
+        begin: (?i)sub|function
+        end: (?=[)':\n])
+        beginCaptures:
+          0:
+            name: storage.type.$0.vba
+        patterns:
+          - include: "#lineContinuation"
+          - include: "#methodDeclarationIdentifier"
+
+      methodDeclarationIdentifier:
+        begin: (?i)[a-z][a-z0-9_]*
+        end: (?=[)':\n])
+        beginCaptures:
+          0:
+            name: entity.name.function.vba
+        patterns:
+          - include: "#lineContinuation"
+          - include: "#methodDeclarationLib"
+
+      methodDeclarationLib:
+        begin: (?i)lib
+        end: (?=[)':\n])
+        beginCaptures:
+          0:
+            name: storage.type.dll.vba
+        patterns:
+          - include: "#lineContinuation"
+          - include: "#methodDeclarationLibIdentifier"
+
+      methodDeclarationLibIdentifier:
+        begin: (?i)"[a-z][a-z0-9._]*"(\s+\()?
+        end: (?=[)':\n])
+        beginCaptures:
+          0:
+            patterns:
+              - include: "#literals"
+        patterns:
+          - include: "#separator"
+          - include: "#lineContinuation"
+          - include: "#methodDeclarationAlias"
+          - include: "#argumentsSignature"
+
+      methodDeclarationAlias:
+        begin: (?i)alias
+        end: (?=[)':\n])
+        beginCaptures:
+          0:
+            name: storage.type.dll.vba
+        patterns:
+          - include: "#lineContinuation"
+          - include: "#methodDeclarationAliasIdentifier"
+
+      methodDeclarationAliasIdentifier:
+        begin: (?i)"[a-z][a-z0-9._]*"
+        end: (?=[)':\n])
+        beginCaptures:
+          0:
+            patterns:
+              - include: "#literals"
+        patterns:
+          - include: "#separator"
+          - include: "#lineContinuation"
+          - include: "#argumentsSignature"
 
   valueAssignment:
     name: meta.variable-assignment.vba

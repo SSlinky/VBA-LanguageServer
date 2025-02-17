@@ -4,7 +4,7 @@
 
 Dim     x As Long, y As Long, z ' Comment
 '<-------------------------------           meta.declare.variable.vba
-'<---                                       storage.modifier.declare-variable.vba
+'<---                                       storage.modifier.declare.vba
 '       ^          ^          ^             variable.other.readwrite.vba
 '         ^^         ^^                     keyword.control.as.vba
 '            ^^^^       ^^^^                support.type.primitive.Long.vba
@@ -12,7 +12,7 @@ Dim     x As Long, y As Long, z ' Comment
 '                               ^^^^^^^^^   comment.line.apostrophe.vba - meta.declare.variable.vba
 Private x As Long, y As Long, z ' Comment
 '<-------------------------------           meta.declare.Private.vba
-'<-------                                   storage.modifier.declare-variable.vba
+'<-------                                   storage.modifier.visibility.vba
 '       ^          ^          ^             variable.other.readwrite.vba
 '         ^^         ^^                     keyword.control.as.vba
 '            ^^^^       ^^^^                support.type.primitive.Long.vba
@@ -20,7 +20,7 @@ Private x As Long, y As Long, z ' Comment
 '                               ^^^^^^^^^   comment.line.apostrophe.vba - meta.declare.variable.vba
 Public  x As Long, y As Long, z ' Comment
 '<-------------------------------           meta.declare.Public.vba
-'<------                                    storage.modifier.declare-variable.vba
+'<------                                    storage.modifier.visibility.vba
 '       ^          ^          ^             variable.other.readwrite.vba
 '         ^^         ^^                     keyword.control.as.vba
 '            ^^^^       ^^^^                support.type.primitive.Long.vba
@@ -28,7 +28,7 @@ Public  x As Long, y As Long, z ' Comment
 '                               ^^^^^^^^^   comment.line.apostrophe.vba - meta.declare.variable.vba
 Global  x As Long, y As Long, z ' Comment
 '<-------------------------------           meta.declare.Global.vba
-'<------                                    storage.modifier.declare-variable.vba
+'<------                                    storage.modifier.visibility.vba
 '       ^          ^          ^             variable.other.readwrite.vba
 '         ^^         ^^                     keyword.control.as.vba
 '            ^^^^       ^^^^                support.type.primitive.Long.vba
@@ -36,7 +36,7 @@ Global  x As Long, y As Long, z ' Comment
 '                               ^^^^^^^^^   comment.line.apostrophe.vba - meta.declare.variable.vba
 Dim     x As New Object, y as New Object ' Comment
 '<----------------------------------------          meta.declare.variable.vba
-'<---                                               storage.modifier.declare-variable.vba
+'<---                                               storage.modifier.declare.vba
 '       ^                ^                          variable.other.readwrite.vba
 '         ^^               ^^                       keyword.control.as.vba
 '            ^^^              ^^^                   keyword.storage.new.vba
@@ -46,7 +46,7 @@ Dim     x As New Object, y as New Object ' Comment
 
         Const X As Long = 0, Y As Long = 0, Z = 0 ' Comment
 '       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^           meta.declare.constant.vba
-'       ^^^^^                                               storage.modifier.declare-variable.vba
+'       ^^^^^                                               storage.modifier.declare.vba
 '             ^              ^              ^               variable.other.constant
 '               ^^             ^^                           keyword.control.as.vba
 '                  ^^^^           ^^^^                      support.type.primitive.Long.vba
@@ -56,7 +56,7 @@ Dim     x As New Object, y as New Object ' Comment
 '                                                 ^^^^^^^^^ comment.line.apostrophe.vba - meta.declare.variable.vba
 Private Const X As Long = 0, Y As Long = 0, Z = 0 ' Comment
 '       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^           meta.declare.constant.vba
-'       ^^^^^                                               storage.modifier.declare-variable.vba
+'       ^^^^^                                               storage.modifier.declare.vba
 '             ^              ^              ^               variable.other.constant
 '               ^^             ^^                           keyword.control.as.vba
 '                  ^^^^           ^^^^                      support.type.primitive.Long.vba
@@ -64,7 +64,7 @@ Private Const X As Long = 0, Y As Long = 0, Z = 0 ' Comment
 '                                                 ^^^^^^^^^ comment.line.apostrophe.vba - meta.declare.variable.vba
 Public  Const X As Long = 0, Y As Long = 0, Z = 0 ' Comment
 '       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^           meta.declare.constant.vba
-'       ^^^^^                                               storage.modifier.declare-variable.vba
+'       ^^^^^                                               storage.modifier.declare.vba
 '             ^              ^              ^               variable.other.constant
 '               ^^             ^^                           keyword.control.as.vba
 '                  ^^^^           ^^^^                      support.type.primitive.Long.vba
@@ -72,7 +72,7 @@ Public  Const X As Long = 0, Y As Long = 0, Z = 0 ' Comment
 '                                                 ^^^^^^^^^ comment.line.apostrophe.vba - meta.declare.variable.vba
 Global  Const X As Long = 0, Y As Long = 0, Z = 0 ' Comment
 '       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^           meta.declare.constant.vba
-'       ^^^^^                                               storage.modifier.declare-variable.vba
+'       ^^^^^                                               storage.modifier.declare.vba
 '             ^              ^              ^               variable.other.constant
 '               ^^             ^^                           keyword.control.as.vba
 '                  ^^^^           ^^^^                      support.type.primitive.Long.vba
@@ -82,7 +82,7 @@ Global  Const X As Long = 0, Y As Long = 0, Z = 0 ' Comment
 
 
 Dim x As Long, _
-'<---               meta.declare.variable.vba storage.modifier.declare-variable.vba
+'<---               meta.declare.variable.vba storage.modifier.declare.vba
 '   ^               meta.declare.variable.vba variable.other.readwrite.vba
 '     ^^            meta.declare.variable.vba keyword.control.as.vba
 '        ^^^^       meta.declare.variable.vba support.type.primitive.Long.vba
@@ -100,7 +100,7 @@ Dim x As Long, _
 
 
 Const X As Long = 0, _
-'<-----                 meta.declare.constant.vba storage.modifier.declare-variable.vba
+'<-----                 meta.declare.constant.vba storage.modifier.declare.vba
 '     ^                 meta.declare.constant.vba variable.other.constant
 '       ^^              meta.declare.constant.vba keyword.control.as.vba
 '          ^^^^         meta.declare.constant.vba support.type.primitive.Long.vba
@@ -125,7 +125,7 @@ Dim foo(1 To 5) As Long, bar(2 To 7)
 '      ^^^^^^^^             ^^^^^^^^    meta.declare.array-bounds.vba
 
     Dim _
-'   ^^^     storage.modifier.declare-variable.vba
+'   ^^^     storage.modifier.declare.vba
     x _
 '   ^       variable.other.readwrite.vba
     ( _
@@ -154,9 +154,9 @@ Dim foo(1 To 5) As Long, bar(2 To 7)
     Long: Private _
 '   ^^^^            meta.declare.variable.vba support.type.primitive.Long.vba
 '       ^           keyword.control.line-separator.vba - meta.declare.variable.vba
-'         ^^^^^^^   meta.declare.Private.vba storage.modifier.declare-variable.vba
+'         ^^^^^^^   meta.declare.Private.vba storage.modifier.visibility.vba
     Const _
-'   ^^^^^           meta.declare.constant.vba storage.modifier.declare-variable.vba
+'   ^^^^^           meta.declare.constant.vba storage.modifier.declare.vba
     BAZ _
 '   ^^^             variable.other.constant
     As _
@@ -169,3 +169,64 @@ Dim foo(1 To 5) As Long, bar(2 To 7)
 '   ^               keyword.operator.assignment.vba
     100
 '   ^^^             constant.numeric.vba
+
+'   Function declarations.
+    Private Declare PtrSafe Function AccessibleObjectFromWindow Lib "oleacc" Alias "foo" (ByVal hwnd As LongPtr, ByVal dwId As Long, riid As tGUID, ppvObject As Object) As Long
+'   ^^^^^^^        																																									storage.modifier.visibility.vba
+'           ^^^^^^^ ^^^^^^^                                                                                                                                                         meta.declare.function.vba storage.modifier.declare.vba
+'                           ^^^^^^^^                                                                                                                                                meta.declare.function.vba storage.type.Function.vba
+'                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^                                                                                                                     meta.declare.function.vba entity.name.function.vba
+'                                                               ^^^          ^^^^^                                                                                                  meta.declare.function.vba storage.type.dll.vba
+'                                                                   ^^^^^^^^       ^^^^^                                                                                            meta.declare.function.vba string.quoted.double.vba
+'                                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^             meta.declare.function.vba meta.arguments.signature.vba
+'                                                                                                                                                                         ^^^^^^^   meta.declare.function.vba meta.argument-signature.as.vba
+    Private Declare Function AccessibleObjectFromWindow Lib "oleacc" Alias "foo" (ByVal hwnd As LongPtr, ByVal dwId As Long, riid As tGUID, ppvObject As Object) As Long
+'   ^^^^^^^                                                                                                                                                                 storage.modifier.visibility.vba
+'           ^^^^^^^                                                                                                                                                         meta.declare.function.vba storage.modifier.declare.vba
+'                   ^^^^^^^^                                                                                                                                                meta.declare.function.vba storage.type.Function.vba
+'                            ^^^^^^^^^^^^^^^^^^^^^^^^^^                                                                                                                     meta.declare.function.vba entity.name.function.vba
+'                                                       ^^^          ^^^^^                                                                                                  meta.declare.function.vba storage.type.dll.vba
+'                                                           ^^^^^^^^       ^^^^^                                                                                            meta.declare.function.vba string.quoted.double.vba
+'                                                                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^             meta.declare.function.vba meta.arguments.signature.vba
+'                                                                                                                                                                 ^^^^^^^   meta.declare.function.vba meta.argument-signature.as.vba
+    Private Declare PtrSafe Function AccessibleObjectFromWindow Lib "oleacc" (ByVal hwnd As LongPtr, ByVal dwId As Long, riid As tGUID, ppvObject As Object) As Long
+'   ^^^^^^^                                                                                                                                                             storage.modifier.visibility.vba
+'           ^^^^^^^ ^^^^^^^                                                                                                                                             meta.declare.function.vba storage.modifier.declare.vba
+'                           ^^^^^^^^                                                                                                                                    meta.declare.function.vba storage.type.Function.vba
+'                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^                                                                                                         meta.declare.function.vba entity.name.function.vba
+'                                                               ^^^                                                                                                     meta.declare.function.vba storage.type.dll.vba
+'                                                                   ^^^^^^^^                                                                                            meta.declare.function.vba string.quoted.double.vba
+'                                                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^             meta.declare.function.vba meta.arguments.signature.vba
+'                                                                                                                                                            ^^^^^^^    meta.declare.function.vba meta.argument-signature.as.vba
+    Private Declare Function AccessibleObjectFromWindow Lib "oleacc" (ByVal hwnd As LongPtr, ByVal dwId As Long, riid As tGUID, ppvObject As Object)
+'   ^^^^^^^                                                                                                                                             storage.modifier.visibility.vba
+'           ^^^^^^^                                                                                                                                     meta.declare.function.vba storage.modifier.declare.vba
+'                   ^^^^^^^^                                                                                                                            meta.declare.function.vba storage.type.Function.vba
+'                            ^^^^^^^^^^^^^^^^^^^^^^^^^^                                                                                                 meta.declare.function.vba entity.name.function.vba
+'                                                       ^^^                                                                                             meta.declare.function.vba storage.type.dll.vba
+'                                                           ^^^^^^^^                                                                                    meta.declare.function.vba string.quoted.double.vba
+'                                                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^     meta.declare.function.vba meta.arguments.signature.vba
+
+'   Function declaration multi-line stress test.
+    Public _
+'   ^^^^^^                          storage.modifier.visibility.vba
+    Declare _
+'   ^^^^^^^                         meta.declare.function.vba storage.modifier.declare.vba
+    PtrSafe _
+'   ^^^^^^^                         meta.declare.function.vba storage.modifier.declare.vba
+    Sub _
+'   ^^^                             meta.declare.function.vba storage.type.Sub.vba
+    AccessibleObjectFromWindow _
+'   ^^^^^^^^^^^^^^^^^^^^^^^^^^      meta.declare.function.vba entity.name.function.vba
+    Lib _
+'   ^^^                             meta.declare.function.vba storage.type.dll.vba
+    "oleacc" _
+'   ^^^^^^^^                        meta.declare.function.vba string.quoted.double.vba
+    Alias _
+'   ^^^^^                           meta.declare.function.vba storage.type.dll.vba
+    "ccaelo" _
+'   ^^^^^^^^                        meta.declare.function.vba string.quoted.double.vba
+    (ByVal hwnd As LongPtr) _
+'    ^^^^^^^^^^^^^^^^^^^^^          meta.declare.function.vba meta.arguments.signature.vba
+    As Long
+'   ^^^^^^^                         meta.declare.function.vba meta.argument-signature.as.vba
