@@ -7,6 +7,7 @@ import {
     AnyOperatorContext,
 	ClassModuleContext,
 	EnumDeclarationContext,
+	FunctionDeclarationContext,
 	GlobalVariableDeclarationContext,
 	IgnoredClassAttrContext,
 	IgnoredProceduralAttrContext,
@@ -20,6 +21,7 @@ import {
 	PublicConstDeclarationContext,
 	PublicTypeDeclarationContext,
 	PublicVariableDeclarationContext,
+	SubroutineDeclarationContext,
 	TypeSuffixContext,
 	UdtDeclarationContext,
 	WhileStatementContext
@@ -30,7 +32,7 @@ import { DuplicateOperatorElement, WhileLoopElement } from '../elements/flow';
 import { CompilerLogicalBlock, GenericCommentElement } from '../elements/precompiled';
 import { ClassElement, ModuleElement, ModuleIgnoredAttributeElement } from '../elements/module';
 import { DocumentSettings, VbaClassDocument, VbaModuleDocument } from '../document';
-import { PropertyGetDeclarationElement, PropertyLetDeclarationElement, PropertySetDeclarationElement } from '../elements/procedure';
+import { FunctionDeclarationElement, PropertyGetDeclarationElement, PropertyLetDeclarationElement, PropertySetDeclarationElement, SubDeclarationElement } from '../elements/procedure';
 import { DeclarationStatementElement, EnumDeclarationElement, TypeDeclarationElement, TypeSuffixElement } from '../elements/typing';
 
 
@@ -133,6 +135,16 @@ export class VbaListener extends vbaListener {
         this.document.registerElement(element)
             .registerNamespaceElement(element);
     };
+
+    enterSubroutineDeclaration = (ctx: SubroutineDeclarationContext) => {
+        const element = new SubDeclarationElement(ctx, this.document.textDocument);
+        this.document.registerElement(element);
+    }
+
+    enterFunctionDeclaration = (ctx: FunctionDeclarationContext) => {
+        const element = new FunctionDeclarationElement(ctx, this.document.textDocument);
+        this.document.registerElement(element);
+    }
 
     enterPublicTypeDeclaration = (ctx: PublicTypeDeclarationContext) => this.enterTypeDeclaration(ctx, true);
     enterPrivateTypeDeclaration = (ctx: PrivateTypeDeclarationContext) => this.enterTypeDeclaration(ctx, false);
