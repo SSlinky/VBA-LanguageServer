@@ -622,9 +622,17 @@ repository:
     end: (?=[:)'\n])
     patterns:
       - include: "#lineContinuation"
-      - include: "#functionCall"
       - include: "#separator"
       - include: "#expression"
+
+  argumentName:
+    name: meta.arg-name.vba
+    match: (?i)([a-z][a-z0-9_]*)?(:=)
+    captures:
+      1:
+        name: variable.parameter.name.vba
+      2:
+        name: punctuation.assignment.parameter.vba
 
   comments:
     patterns:
@@ -854,7 +862,7 @@ repository:
     match: (?i)End\s+(Sub|Function|Property)
 
   expressionList:
-    begin: (?=.)
+    begin:
     end: (?=\n|\sThen|\)|'|:)
     patterns:
       - include: "#separator"
@@ -863,10 +871,11 @@ repository:
   expression:
     # Begins and ends without consuming anything.
     name: meta.expression.vba
-    begin: (?!=\n|\sThen|\)|'|,|:)
+    begin: (?!=\n|\sThen|\)|'|,|:|\s)
     end: (?=\n|\sThen|\)|'|,|:)
     patterns:
       - include: "#literals"
+      - include: "#argumentName"
       - include: "#operators"
       - include: "#functionCall"
       - include: "#variable"
