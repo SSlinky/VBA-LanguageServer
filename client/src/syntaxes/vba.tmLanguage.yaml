@@ -200,8 +200,8 @@ repository:
         repository:
           blockIf:
             name: meta.block-if-else.vba
-            begin: (?i)(if)\s+(?=[^'\n])  # Look ahead to anything other than a comment.
-            end: (?i)if                   # Safe to assume this is not an open.
+            begin: (?i)(#?if)\s+(?=[^'\n])  # Look ahead to anything other than a comment.
+            end: (?i)#?if                   # Safe to assume this is not an open.
             beginCaptures:
               1:
                 name: keyword.control.block-if.open.vba
@@ -236,7 +236,7 @@ repository:
           
           blockElseIfOpen:
             name: meta.block-if-else-if.vba
-            begin: (?i)(else)\s+(?=(if|_))
+            begin: (?i)(#?else)\s+(?=(if|_))
             end: (?i)(?=if(?:\s*)['\n])
             beginCaptures:
               1:
@@ -256,10 +256,10 @@ repository:
 
           blockElse:
             name: keyword.control.block-if.else.vba
-            match: (?i)else
+            match: (?i)#?else
 
           blockEndIf:
-            begin: (?i)(end)\s+(?=(if|_))
+            begin: (?i)(#?end)\s+(?=(if|_))
             end: (?i)(?=if(?:\s*)['\n])
             beginCaptures:
               1:

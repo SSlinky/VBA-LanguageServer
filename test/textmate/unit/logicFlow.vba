@@ -273,6 +273,38 @@ Public Sub Foo()
 
 '< source.vba - meta.block-if-else.vba keyword.control.block-if.close.vba
 
+'   Compiler if blocks
+    #If foo Then
+'   ^^^     ^^^^            meta.block-if-else.vba keyword.control.block-if.open.vba
+'       ^^^^^^^^            meta.block-if-else.vba meta.block-if.condition.vba
+        #If foo Then
+'       ^^^     ^^^^        meta.block-if-else.vba meta.block-if-else.vba keyword.control.block-if.open.vba
+'           ^^^^^^^^        meta.block-if-else.vba meta.block-if-else.vba meta.block-if.condition.vba
+            #If foo Then
+'           ^^^     ^^^^    meta.block-if-else.vba meta.block-if-else.vba meta.block-if-else.vba keyword.control.block-if.open.vba
+'               ^^^^^^^^    meta.block-if-else.vba meta.block-if-else.vba meta.block-if-else.vba meta.block-if.condition.vba
+            #End If
+'           ^^^^ ^^         meta.block-if-else.vba meta.block-if-else.vba meta.block-if-else.vba keyword.control.block-if.close.vba
+        #Else If foo Then
+'       ^^^^^ ^^     ^^^^   meta.block-if-else.vba meta.block-if-else.vba meta.block-if-else-if.vba keyword.control.block-if.open.vba
+'                ^^^^^^^^   meta.block-if-else.vba meta.block-if-else.vba meta.block-if-else-if.vba meta.block-if.condition.vba
+            #If foo Then
+'           ^^^     ^^^^    meta.block-if-else.vba meta.block-if-else.vba meta.block-if-else.vba keyword.control.block-if.open.vba
+'               ^^^^^^^^    meta.block-if-else.vba meta.block-if-else.vba meta.block-if-else.vba meta.block-if.condition.vba
+            #End If
+'           ^^^^ ^^         meta.block-if-else.vba meta.block-if-else.vba meta.block-if-else.vba keyword.control.block-if.close.vba
+        #Else
+'       ^^^^^               keyword.control.block-if.else.vba        
+            #If foo Then
+'           ^^^     ^^^^    meta.block-if-else.vba meta.block-if-else.vba meta.block-if-else.vba keyword.control.block-if.open.vba
+'               ^^^^^^^^    meta.block-if-else.vba meta.block-if-else.vba meta.block-if-else.vba meta.block-if.condition.vba
+            #End If
+'           ^^^^ ^^         meta.block-if-else.vba meta.block-if-else.vba meta.block-if-else.vba keyword.control.block-if.close.vba
+        #End If
+'       ^^^^ ^^             meta.block-if-else.vba meta.block-if-else.vba keyword.control.block-if.close.vba
+    #End If
+'   ^^^^ ^^                 meta.block-if-else.vba keyword.control.block-if.close.vba
+
 '   Line continuation stress test.
     If _
     True _
