@@ -571,7 +571,7 @@ repository:
     end: (?=[,):'\n])
     beginCaptures:
       0:
-        name: storage.type.modifier.vba
+        name: storage.modifier.$1.vba
     patterns:
       - include: "#argumentSignatureFromParam"
       - include: "#lineContinuation"
@@ -900,7 +900,7 @@ repository:
         end: (?=[':\n])
         beginCaptures:
           0:
-            name: storage.modifier.declare.vba
+            name: storage.type.vba
         patterns:
           - include: "#separator"
           - include: "#lineContinuation"
@@ -912,7 +912,7 @@ repository:
         end: (?=[':\n])
         beginCaptures:
           0:
-            name: storage.modifier.declare.vba
+            name: storage.type.vba
         patterns:
           - include: "#separator"
           - include: "#lineContinuation"
@@ -978,7 +978,7 @@ repository:
         end: (?=[':\n])
         beginCaptures:
           0:
-            name: storage.modifier.declare.vba
+            name: storage.type.vba
         patterns:
           - include: "#lineContinuation"
           - include: "#methodDeclarationPtrsafe"
@@ -990,7 +990,7 @@ repository:
         end: (?=[)':\n])
         beginCaptures:
           0:
-            name: storage.modifier.declare.vba
+            name: storage.modifier.ptrsafe.vba
         patterns:
           - include: "#lineContinuation"
           - include: "#methodDeclarationMethod"

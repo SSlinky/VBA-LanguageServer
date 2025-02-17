@@ -12,12 +12,12 @@ Public Sub Foo(ByVal x As Long, ByRef y As Long, ParamArray vars() As Variant)
 ' <------------------------------------------------------------------------------   source.method.signature.vba
 ' <----------                                                                       storage.type.method.vba
 '          ^^^                                                                      entity.name.function.vba
-'              ^^^^^                                                                storage.type.modifier.vba
+'              ^^^^^                                                                storage.modifier.ByVal.vba
 '                    ^                                                              variable.parameter.vba
 '                      ^^                                                           keyword.control.as.vba
 '                         ^^^^                                                      support.type.primitive.Long.vba
 '                             ^                                                     punctuation.separator.vba
-'                               ^^^^^                                               storage.type.modifier.vba
+'                               ^^^^^                                               storage.modifier.ByRef.vba
 '                                     ^                                             variable.parameter.vba
 '                                       ^^                                          keyword.control.as.vba
 '                                          ^^^^                                     support.type.primitive.Long.vba
@@ -43,12 +43,12 @@ Public Function Foo(ByVal x As Long, ByRef y As Long, ParamArray vars() As Varia
 ' <---------------------------------------------------------------------------------------------    source.method.signature.vba
 ' <---------------                                                                                  storage.type.method.vba
 '               ^^^                                                                                 entity.name.function.vba
-'                   ^^^^^                                                                           storage.type.modifier.vba
+'                   ^^^^^                                                                           storage.modifier.ByVal.vba
 '                         ^                                                                         variable.parameter.vba
 '                           ^^                                                                      keyword.control.as.vba
 '                              ^^^^                                                                 support.type.primitive.Long.vba
 '                                  ^                                                                punctuation.separator.vba
-'                                    ^^^^^                                                          storage.type.modifier.vba
+'                                    ^^^^^                                                          storage.modifier.ByRef.vba
 '                                          ^                                                        variable.parameter.vba
 '                                            ^^                                                     keyword.control.as.vba
 '                                               ^^^^                                                support.type.primitive.Long.vba
@@ -82,7 +82,8 @@ Public Sub Foo(Optional Bar As String, _
 '                                     ^         punctuation.separator.vba
 '                                       ^       keyword.control.line-continuation.vba
         Optional ByVal Zip As Boolean = True)
-'       ^^^^^^^^ ^^^^^                          storage.type.modifier.vba
+'       ^^^^^^^^                                storage.type.modifier.vba
+'                ^^^^^                          storage.modifier.ByVal.vba
 '                      ^^^                      variable.parameter.vba
 '                          ^^                   keyword.control.as.vba
 '                             ^^^^^^^           support.type.primitive.Boolean.vba
@@ -124,7 +125,7 @@ Public Sub Foo( _
 '   ^^^^^^^^                                    storage.type.modifier.vba
 '            ^                                  keyword.control.line-continuation.vba
     ByRef _
-'   ^^^^^                                       storage.type.modifier.vba
+'   ^^^^^                                       storage.modifier.ByRef.vba
 '         ^                                     keyword.control.line-continuation.vba
     bix As _
 '   ^^^                                         variable.parameter.vba
