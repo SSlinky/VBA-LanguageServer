@@ -230,7 +230,7 @@ repository:
               - include: "#blockElseIfOpen"
               - include: "#blockEndIf"
               - include: "#blockElse"
-              - include: "#block"
+              - include: "#main"
           
           blockElseIfOpen:
             name: meta.block-if-else-if.vba
