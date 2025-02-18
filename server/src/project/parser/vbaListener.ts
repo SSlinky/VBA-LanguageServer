@@ -24,6 +24,7 @@ import {
 	SubroutineDeclarationContext,
 	TypeSuffixContext,
 	UdtDeclarationContext,
+	UnexpectedEndOfLineContext,
 	WhileStatementContext
 } from '../../antlr/out/vbaParser';
 
@@ -34,6 +35,7 @@ import { ClassElement, ModuleElement, ModuleIgnoredAttributeElement } from '../e
 import { DocumentSettings, VbaClassDocument, VbaModuleDocument } from '../document';
 import { FunctionDeclarationElement, PropertyGetDeclarationElement, PropertyLetDeclarationElement, PropertySetDeclarationElement, SubDeclarationElement } from '../elements/procedure';
 import { DeclarationStatementElement, EnumDeclarationElement, TypeDeclarationElement, TypeSuffixElement } from '../elements/typing';
+import { UnexpectedEndOfLineElement } from '../elements/utils';
 
 
 class CommonParserCapability {
@@ -169,6 +171,11 @@ export class VbaListener extends vbaListener {
     private enterVariableDeclaration = (ctx: PublicConstDeclarationContext | PrivateConstDeclarationContext | PublicVariableDeclarationContext | GlobalVariableDeclarationContext | PrivateVariableDeclarationContext) => {
         const element = DeclarationStatementElement.create(ctx, this.document.textDocument);
         element.declarations.forEach(x => this.document.registerElement(x));
+    }
+
+    enterUnexpectedEndOfLine = (ctx: UnexpectedEndOfLineContext) => {
+        const element = new UnexpectedEndOfLineElement(ctx, this.document.textDocument);
+        this.document.registerElement(element);
     }
 
     enterWhileStatement = (ctx: WhileStatementContext) => {

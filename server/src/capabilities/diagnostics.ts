@@ -75,6 +75,16 @@ export class ShadowDeclarationDiagnostic extends BaseDiagnostic {
 }
 
 
+// test
+export class UnexpectedLineEndingDiagnostic extends BaseDiagnostic {
+	message = "Unexpected line ending.";
+	severity = DiagnosticSeverity.Error;
+	constructor(range: Range) {
+		super(range);
+	}
+}
+
+
 export class IgnoredAttributeDiagnostic extends BaseDiagnostic {
 	severity = DiagnosticSeverity.Warning;
 	constructor(range: Range, attributeName: string) {
