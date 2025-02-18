@@ -22,7 +22,7 @@ startRule
 
 // Added form file entry
 module
-    : endOfLineNoWs* (
+    : (endOfLine | endOfLineNoWs)* (
           proceduralModule
         | classFileHeader classModule
         | formFileHeader classModule
@@ -68,7 +68,7 @@ beginPropertyBlock
 //---------------------------------------------------------------------------------------
 // 4.2 Modules
 proceduralModule
-    : proceduralModuleHeader endOfLineNoWs* proceduralModuleBody
+    : proceduralModuleHeader (endOfLine | endOfLineNoWs)* proceduralModuleBody
     ;
 classModule
     : classModuleHeader endOfLine* classModuleBody
@@ -532,10 +532,10 @@ statementBlock
     : blockStatement+
     ;
 blockStatement
-    : endOfStatement* endOfLineNoWs statementLabelDefinition
+    : endOfStatement* (endOfLineNoWs | endOfLine) statementLabelDefinition
     | endOfStatement+ remStatement
     | statement
-    | endOfStatement* endOfLineNoWs attributeStatement
+    | endOfStatement* (endOfLineNoWs | endOfLine) attributeStatement
     ;
 statement
     : controlStatement
