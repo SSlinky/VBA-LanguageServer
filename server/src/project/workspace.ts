@@ -28,6 +28,7 @@ import { LanguageServerConfiguration } from '../server';
 import { hasConfigurationCapability } from '../capabilities/workspaceFolder';
 import { sleep } from '../utils/helpers';
 import { NamespaceManager } from './scope';
+import { ParseCancellationException } from 'antlr4ng';
 
 
 /**
@@ -263,7 +264,16 @@ class WorkspaceEvents {
 	}
 
 	private async onFoldingRangesAsync(params: FoldingRangeParams, token: CancellationToken): Promise<FoldingRange[]> {
-		const document = await this.getParsedDocument(params.textDocument.uri, 0, token);
+		let document: BaseProjectDocument | undefined;
+		try {
+			document = await this.getParsedDocument(params.textDocument.uri, 0, token);
+		} catch (error) {
+			// Swallow parser cancellations and rethrow anything else.
+			if (!!(error instanceof ParseCancellationException)) {
+				throw error;
+			}
+			// this.workspace.connection.window.showInformationMessage(`Parser error: ${error}`);
+		}
 		const result = document?.languageServerFoldingRanges();
 		return result ?? [];
 	}
