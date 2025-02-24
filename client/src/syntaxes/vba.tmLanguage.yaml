@@ -827,7 +827,7 @@ repository:
 
   methodClose:
     name: storage.type.method.close.vba
-    match: (?i)End\s+(Sub|Function|Property)
+    match: (?i)End\s+(Sub|Function|Property)(?=$|\s)
 
   expressionList:
     begin:
