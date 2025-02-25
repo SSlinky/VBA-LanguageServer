@@ -739,13 +739,12 @@ repository:
           - include: "#comments"
   
   enumMember:
-    match: (?i)^\s*([a-z][a-z0-9_]*)(?:\s+(=)\s+([^\n']*))?(\s+(?:'|Rem).*)?
+    match: (?i)^\s*([a-z][a-z0-9_]*)(?:\s*(=)\s*([^\n']*))?(\s*(?:'|Rem).*)?
     captures:
       1:
-        name: constant.numeric.enum.vba
+        name: variable.other.enummember.vba
       2:
-        patterns:
-          - include: "#operators"
+        name: keyword.operator.assignment.vba
       3:
         patterns:
           - include: "#language"
