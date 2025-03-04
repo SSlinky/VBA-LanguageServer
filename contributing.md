@@ -37,3 +37,7 @@ Note the grammar file for this project can be found at /server/src/antlr/vba.g4
   * Show ATN Graph for Rule
 
 The grammar call graph is interesting, but not particularly useful. Generating "valid" input generates garbage.
+
+### Run unit tests for TextMate grammar
+
+`npm run tmUnitTest`
