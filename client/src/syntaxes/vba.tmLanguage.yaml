@@ -226,7 +226,7 @@ repository:
           
           inlineIfElse:
             name: meta.flow.inline-if-else.vba
-            match: (?i)\s*((?:else)?if)\s+(.*?)\s+(then)\s+(.*)\s+(else)\s+([^'\n]*)
+            match: (?i)\s*((?:else\s+)?if)\s+(.*?)\s+(then)\s+(.*)\s+(else)\s+([^'\n]*)
             captures:
               1:
                 name: keyword.control.flow.decision.vba
@@ -238,6 +238,8 @@ repository:
                 name: keyword.control.flow.decision.vba
               4:
                 patterns:
+                  - include: "#inlineIfElse"
+                  - include: "#inlineIf"
                   - include: "#expression"
                   - include: "#functionCall"
               5:
