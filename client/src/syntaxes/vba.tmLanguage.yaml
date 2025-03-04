@@ -259,6 +259,10 @@ repository:
                   - include: "#functionCall"
               3:
                 name: keyword.control.flow.decision.vba
+              4:
+                patterns:
+                  - include: "#inlineIfElse"
+                  - include: "#inlineIf"
 
           flowCall:
             name: keyword.control.flow.call.vba
