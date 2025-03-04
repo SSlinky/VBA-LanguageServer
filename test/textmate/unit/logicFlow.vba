@@ -122,4 +122,15 @@ Public Sub Foo()
     End If
 '   ^^^^^^                                                  meta.flow.block-if-else.vba
 '   ^^^^^^                                                  keyword.control.flow.block-decision.vba
+
+
+'   Variable condition with repeated If
+    If condition Then If condition Then MsgBox "foo"
+'   ^^^^^^^^^^^^^^^^^                                       meta.flow.inline-if.vba
+'   ^^                                                      keyword.control.flow.decision.vba
+'                ^^^^                                       keyword.control.flow.decision.vba
+'                     ^^                                    keyword.control.flow.decision.vba
+'                                  ^^^^                     keyword.control.flow.decision.vba
+
+
 End Sub
