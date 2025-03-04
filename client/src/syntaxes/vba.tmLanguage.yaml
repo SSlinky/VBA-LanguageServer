@@ -319,9 +319,10 @@ repository:
                 name: keyword.control.flow.decision.vba
               4:
                 patterns:
+                  - include: "#inlineIfElse"
+                  - include: "#inlineIf"
                   - include: "#valueAssignment"
                   - include: "#language"
-
 
           flowCall:
             name: keyword.control.flow.call.vba
