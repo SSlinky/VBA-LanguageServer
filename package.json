@@ -127,6 +127,7 @@
 		"devMate": "npx js-yaml client/src/syntaxes/dev.tmLanguage.yaml > client/out/vba.tmLanguage.json",
 		"antlr4ng": "antlr4ng -Dlanguage=TypeScript -visitor ./server/src/antlr/vba.g4 -o ./server/src/antlr/out/",
 		"antlr4ngPre": "antlr4ng -Dlanguage=TypeScript -visitor ./server/src/antlr/vbapre.g4 -o ./server/src/antlr/out/",
+		"antlr4ngFmt": "antlr4ng -Dlanguage=TypeScript -visitor ./server/src/antlr/vbafmt.g4 -o ./server/src/antlr/out/",
 		"test": "npm run tmSnapTest && npm run tmUnitTest && npm run vsctest",
 		"testsh": "sh ./scripts/e2e.sh",
 		"testps": "powershell ./scripts/e2e.ps1",

@@ -58,6 +58,16 @@
 			"visualParseTree": true
 		},
 		{
+			"name": "Debug ANTLR4 Fmt grammar",
+			"type": "antlr-debug",
+			"request": "launch",
+			"input": "${file}",
+			"grammar": "server/src/antlr/vbafmt.g4",
+			"startRule": "startRule",
+			"printParseTree": true,
+			"visualParseTree": true
+		},
+		{
 			"name": "Extension Tests",
 			"type": "extensionHost",
 			"request": "launch",

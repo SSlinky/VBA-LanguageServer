@@ -25,6 +25,7 @@ import { PropertyDeclarationElement,
 	PropertyLetDeclarationElement,
 	PropertySetDeclarationElement
 } from './elements/procedure';
+import { VbaFmtListener } from './parser/vbaListener';
 
 
 export interface DocumentSettings {
@@ -177,7 +178,7 @@ export abstract class BaseProjectDocument {
 		}
 
 		// Parse the document.
-		await (new SyntaxParser()).parseAsync(this)
+		await (new SyntaxParser()).parseAsync(this);
 
 		// Evaluate the diagnostics.
 		this.diagnostics = this.hasDiagnosticElements
@@ -186,6 +187,28 @@ export abstract class BaseProjectDocument {
 
 		this._isBusy = false;
 	};
+
+	async formatParseAsync(token: CancellationToken): Promise<VbaFmtListener | undefined> {
+		// Handle already cancelled.
+		if (token.isCancellationRequested) {
+			throw new ParseCancellationException(Error('Parse operation cancelled before it started.'));
+		}
+
+		// Listen for cancellation event.
+		token.onCancellationRequested(() => {
+			throw new ParseCancellationException(new Error('Parse operation cancelled during parse.'));
+		})
+
+		// Don't parse oversize documents.
+		if (await this.isOversize) {
+			console.log(`Document oversize: ${this.textDocument.lineCount} lines.`);
+            console.warn(`Syntax parsing has been disabled to prevent crashing.`);
+			return;
+		}
+
+		// Parse the document.
+		return await (new SyntaxParser()).formatParseAsync(this);
+	}
 
 	/**
 	 * Auto registers the element based on capabilities.

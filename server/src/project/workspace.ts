@@ -11,6 +11,7 @@ import {
 	DocumentDiagnosticParams,
 	DocumentDiagnosticReport,
 	DocumentDiagnosticReportKind,
+	DocumentFormattingParams,
 	DocumentSymbolParams,
 	FoldingRange,
 	FoldingRangeParams,
@@ -19,6 +20,7 @@ import {
 	SemanticTokensRangeParams,
 	SymbolInformation,
 	TextDocuments,
+	TextEdit,
 	WorkspaceFoldersChangeEvent,
 	_Connection
 } from 'vscode-languageserver';
@@ -29,6 +31,8 @@ import { hasConfigurationCapability } from '../capabilities/workspaceFolder';
 import { sleep } from '../utils/helpers';
 import { NamespaceManager } from './scope';
 import { ParseCancellationException } from 'antlr4ng';
+import { getFormattingEdits } from './formatter';
+import { VbaFmtListener } from './parser/vbaListener';
 
 
 /**
@@ -86,6 +90,19 @@ export class Workspace {
 		}
 
 		this.parseCancellationTokenSource = undefined;
+	}
+
+	async formatParseDocument(document: TextDocument): Promise<VbaFmtListener | undefined> {
+		this.parseCancellationTokenSource?.cancel();
+		this.parseCancellationTokenSource = new CancellationTokenSource();
+
+		// Exceptions thrown by the parser should be ignored.
+		let result: VbaFmtListener | undefined;
+		try { result = await this.activeDocument?.formatParseAsync(this.parseCancellationTokenSource.token); }
+		catch (error) { this.connection.console.log(`Parser error: ${error}`) }
+
+		this.parseCancellationTokenSource = undefined;
+		return result;
 	}
 
 	/**
@@ -207,6 +224,7 @@ class WorkspaceEvents {
 		connection.onDocumentSymbol(async (params, token) => await this.onDocumentSymbolAsync(params, token));
 		connection.onHover(params => this.onHover(params));
 		connection.languages.diagnostics.on(async (params, token) => await this.onDiagnosticAsync(params, token));
+		connection.onDocumentFormatting(params => this.onDocumentFormatting(params));
 
 		if (hasConfigurationCapability(this.configuration)) {
 			connection.onFoldingRanges(async (params, token) => this.onFoldingRangesAsync(params, token));
@@ -295,6 +313,16 @@ class WorkspaceEvents {
 			);
 			connection.client.register(DidChangeConfigurationNotification.type, undefined);
 		}
+	}
+
+	private async onDocumentFormatting(params: DocumentFormattingParams): Promise<TextEdit[]> {
+		const doc = this.documents.get(params.textDocument.uri);
+		if (!doc) return [];
+		// const infoMsg = `onDocumentFormatting called: ${params.textDocument.uri}\n${doc?.getText({start: {line: 4, character: 0}, end: {line: 4, character: 100}}) ?? "NO DOC!"}`
+		// this.workspace.connection.window.showInformationMessage(`onDocumentFormatting called: ${infoMsg}`)
+		const parseResult = await this.workspace.formatParseDocument(doc);
+
+		return parseResult ? getFormattingEdits(doc, parseResult) : [];
 	}
 
 	/** Documents event handlers */

@@ -85,7 +85,7 @@ export class LanguageServerConfiguration {
 		documentLinkProvider: undefined,
 		colorProvider: false,
 		workspaceSymbolProvider: false,
-		documentFormattingProvider: false,
+		documentFormattingProvider: true,
 		documentRangeFormattingProvider: false,
 		documentOnTypeFormattingProvider: undefined,
 		renameProvider: false,
