@@ -187,7 +187,7 @@ export class VbaListener extends vbaListener {
     };
 
     visitErrorNode(node: ErrorNode) {
-        console.log(node.getPayload());
+        this.document.workspace.logger.error(`Listener error @ ${node.getPayload()?.line ?? '--'}: ${node.getPayload()?.text}`);
     }
 }
 
