@@ -42,4 +42,8 @@ The grammar call graph is interesting, but not particularly useful. Generating "
 
 ### Run unit tests for TextMate grammar
 
-`npm run tmUnitTest`
+To verify that your changes haven't broken existing syntax or tests, and to ensure any new tests pass, run the following command:
+
+```
+npm run tmUnitTest
+```
