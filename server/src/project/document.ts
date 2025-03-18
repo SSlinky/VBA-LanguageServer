@@ -171,8 +171,8 @@ export abstract class BaseProjectDocument {
 
 		// Don't parse oversize documents.
 		if (await this.isOversize) {
-			console.log(`Document oversize: ${this.textDocument.lineCount} lines.`);
-            console.warn(`Syntax parsing has been disabled to prevent crashing.`);
+			this.workspace.logger.debug(`Document oversize: ${this.textDocument.lineCount} lines.`);
+            this.workspace.logger.warning(`Syntax parsing has been disabled to prevent crashing.`);
 			this._isBusy = false;
 			return;
 		}
@@ -201,8 +201,8 @@ export abstract class BaseProjectDocument {
 
 		// Don't parse oversize documents.
 		if (await this.isOversize) {
-			console.log(`Document oversize: ${this.textDocument.lineCount} lines.`);
-            console.warn(`Syntax parsing has been disabled to prevent crashing.`);
+			this.workspace.logger.debug(`Document oversize: ${this.textDocument.lineCount} lines.`);
+            this.workspace.logger.warning(`Syntax parsing has been disabled to prevent crashing.`);
 			return;
 		}
 

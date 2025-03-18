@@ -12,6 +12,7 @@ import {
 	ServerOptions,
 	TransportKind
 } from 'vscode-languageclient/node';
+import { VscodeLogger } from './logger';
 
 let client: LanguageClient;
 
@@ -53,8 +54,14 @@ export function activate(context: ExtensionContext) {
 		clientOptions
 	);
 
+	// Add logging support for messages received from the server.
+	client.onNotification("window/logMessage", (params) => {
+		VscodeLogger.logMessage(params);
+	})
+
 	// Start the client. This will also launch the server
 	client.start();
+	VscodeLogger.info('VBAPro activated')
 }
 
 export function deactivate(): Thenable<void> | undefined {

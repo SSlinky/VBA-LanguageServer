@@ -33,6 +33,7 @@ import { NamespaceManager } from './scope';
 import { ParseCancellationException } from 'antlr4ng';
 import { getFormattingEdits } from './formatter';
 import { VbaFmtListener } from './parser/vbaListener';
+import { LspLogger } from '../logger';
 
 
 /**
@@ -46,6 +47,8 @@ export class Workspace {
 
 	private _activeDocument?: BaseProjectDocument;
 	private readonly _hasConfigurationCapability: boolean;
+
+	logger: LspLogger;
 
 	get hasConfigurationCapability() {
 		return this._hasConfigurationCapability;
@@ -63,6 +66,7 @@ export class Workspace {
 
 	constructor(params: {connection: _Connection, capabilities: LanguageServerConfiguration}) {
 		this.connection = params.connection;
+		this.logger = new LspLogger(this.connection);
 		this._hasConfigurationCapability = hasConfigurationCapability(params.capabilities);
 		this.events = new WorkspaceEvents({
 			workspace: this,
@@ -82,11 +86,24 @@ export class Workspace {
 		this.parseCancellationTokenSource?.cancel();
 		this.parseCancellationTokenSource = new CancellationTokenSource();
 
+		if (!this.activeDocument) {
+			this.logger.error('No active document.');
+			return;
+		}
+		
 		// Exceptions thrown by the parser should be ignored.
 		try {
-			await this.activeDocument?.parseAsync(this.parseCancellationTokenSource.token);
-		} catch (error) {
-			this.connection.console.log(`Parser error: ${error}`)
+			this.logger.debug(`Parsing document: ${this.activeDocument.name}`);
+			await this.activeDocument.parseAsync(this.parseCancellationTokenSource.token);
+			this.logger.info(`Parsed ${this.activeDocument.name}`);
+		} catch (e) {
+			if (e instanceof ParseCancellationException) {
+				this.logger.debug('Parse cancelled successfully.')
+			} else if (e instanceof Error) {
+				this.logger.stack(e);
+			} else {
+				this.logger.error(`Parse failed: ${e}`)
+			}
 		}
 
 		this.parseCancellationTokenSource = undefined;
@@ -98,8 +115,20 @@ export class Workspace {
 
 		// Exceptions thrown by the parser should be ignored.
 		let result: VbaFmtListener | undefined;
-		try { result = await this.activeDocument?.formatParseAsync(this.parseCancellationTokenSource.token); }
-		catch (error) { this.connection.console.log(`Parser error: ${error}`) }
+		try {
+			this.logger.debug(`Format parsing document: ${document.uri}`);
+			result = await this.activeDocument?.formatParseAsync(this.parseCancellationTokenSource.token);
+			this.logger.info(`Formatted ${document.uri}`);
+		}
+		catch (e) {
+			if (e instanceof ParseCancellationException) {
+				this.logger.debug('Parse cancelled successfully.')
+			} else if (e instanceof Error) {
+				this.logger.stack(e);
+			} else {
+				this.logger.error(`Parse failed: ${e}`)
+			}
+		}
 
 		this.parseCancellationTokenSource = undefined;
 		return result;
@@ -240,7 +269,7 @@ class WorkspaceEvents {
 					return this.activeDocument?.languageServerSemanticTokens(rangeParams.range);
 				}
 				default:
-					console.error(`Unresolved request path: ${method}`);
+					this.workspace.logger.error(`Unresolved request path: ${method}`);
 			}
 		});
 	}
@@ -265,7 +294,7 @@ class WorkspaceEvents {
 
 	// TODO: Should trigger a full workspace refresh.
 	private onDidChangeWorkspaceFolders(e: WorkspaceFoldersChangeEvent) {
-		this.workspace.connection.console.log(`Workspace folder change event received.\n${e}`);
+		this.workspace.logger.debug(`Workspace folder change event received.\n${e}`);
 	}
 
 	private async onDocumentSymbolAsync(params: DocumentSymbolParams, token: CancellationToken): Promise<SymbolInformation[]> {
@@ -297,7 +326,7 @@ class WorkspaceEvents {
 	}
 
 	private onHover(params: HoverParams): Hover {
-		console.debug(`onHover`);
+		this.workspace.logger.debug(`onHover`);
 		return { contents: '' };
 	}
 
