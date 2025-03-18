@@ -153,8 +153,7 @@ export abstract class BaseProjectDocument {
 	languageServerDiagnostics(): DocumentDiagnosticReport {
 		return {
 			kind: DocumentDiagnosticReportKind.Full,
-			items: this.hasDiagnosticElements
-				.map((e) => e.diagnosticCapability.diagnostics).flat(1)
+			items: this.diagnostics
 		};
 	}
 

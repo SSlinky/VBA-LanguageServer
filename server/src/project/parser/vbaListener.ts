@@ -31,7 +31,7 @@ import {
 
 // Project
 import { DuplicateOperatorElement, WhileLoopElement } from '../elements/flow';
-import { CompilerLogicalBlock, GenericCommentElement } from '../elements/precompiled';
+import { CompilerLogicalBlock } from '../elements/precompiled';
 import { ClassElement, ModuleElement, ModuleIgnoredAttributeElement } from '../elements/module';
 import { DocumentSettings, VbaClassDocument, VbaModuleDocument } from '../document';
 import { FunctionDeclarationElement, PropertyGetDeclarationElement, PropertyLetDeclarationElement, PropertySetDeclarationElement, SubDeclarationElement } from '../elements/procedure';
@@ -214,25 +214,10 @@ export class VbaPreListener extends vbapreListener {
         const doc = this.common.document;
         const docprops = this.common.documentSettings;
         const element = new CompilerLogicalBlock(ctx, doc.textDocument, docprops);
-
-        // Register block subtraction and comment tokens.
-        element.inactiveBlocks.forEach(b => {
-            doc.registerSubtractElement(b);
-            b.linesToComments.forEach(c =>
-                doc.registerSemanticToken(c)
-                    .registerSemanticToken(c)
-            );
-        });
-    }
-
-    enterCompilerElseStatement = (ctx: CompilerElseStatementContext) => this.registerSemanticComment(ctx);
-    enterCompilerEndIfStatement = (ctx: CompilerEndIfStatementContext) => this.registerSemanticComment(ctx);
-    enterCompilerConditionalStatement = (ctx: CompilerConditionalStatementContext) => this.registerSemanticComment(ctx);
-
-    private registerSemanticComment(ctx: ParserRuleContext) {
-        const doc = this.common.document;
-        const element = new GenericCommentElement(ctx, doc.textDocument);
-        doc.registerSubtractElement(element);
+        element.inactiveBlocks.forEach(
+            b => doc.registerElement(b)
+                .registerSubtractElement(b)
+        );
     }
 }
 

@@ -1,14 +1,13 @@
 // Core
-import { Range, SemanticTokenTypes } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 
 // Antlr
-import { ParserRuleContext } from 'antlr4ng';
 import { CompilerConditionalBlockContext, CompilerDefaultBlockContext, CompilerIfBlockContext } from '../../antlr/out/vbapreParser';
 
 // Project
-import { SemanticTokenCapability } from '../../capabilities/capabilities';
-import { BaseContextSyntaxElement, HasSemanticTokenCapability } from '../elements/base';
+import { DiagnosticCapability } from '../../capabilities/capabilities';
+import { BaseContextSyntaxElement } from '../elements/base';
+import { UnreachableCodeDiagnostic } from '../../capabilities/diagnostics';
 
 
 export class CompilerLogicalBlock extends BaseContextSyntaxElement<CompilerIfBlockContext> {
@@ -29,6 +28,7 @@ export class CompilerLogicalBlock extends BaseContextSyntaxElement<CompilerIfBlo
 				resolved = true;
 				continue;
 			}
+			block.deactivate();
 			this.inactiveBlocks.push(block);
 		}
 	}
@@ -47,31 +47,6 @@ class CompilerConditionBlock extends BaseContextSyntaxElement<CompilerConditiona
 		return this.context.rule.compilerBlockContent()?.getText().split('\n') ?? [];
 	}
 
-	get linesToComments(): GenericCommentElement[] {
-		const rowX = this.context.range.start.line;
-		const rowY = this.context.range.end.line;
-
-		// Iterate the rows -- test what happens when you get to the end of the document.
-		// May require a try catch where the default offset is the character count of the document.
-		const result: GenericCommentElement[] = [];
-		for (let i = rowX; i < rowY; i++) {
-			const posX = this.context.document.offsetAt({ line: i, character: 0 });
-			const posY = this.context.document.offsetAt({ line: i + 1, character: 0 }) - 1;
-
-			const lineRange = Range.create(
-				this.context.document.positionAt(posX),
-				this.context.document.positionAt(posY)
-			);
-			result.push(new GenericCommentElement(
-				this.context.rule,
-				this.context.document,
-				lineRange)
-			);
-		}
-
-		return result;
-	}
-
 	get conditionResult(): boolean {
 		// Default "Else" block is always true.
 		const ctx = this.context.rule;
@@ -88,6 +63,11 @@ class CompilerConditionBlock extends BaseContextSyntaxElement<CompilerConditiona
 			throw new Error("Expected boolean result.");
 		}
 		return result;
+	}
+
+	deactivate(): void {
+		this.diagnosticCapability = new DiagnosticCapability(this);
+		this.diagnosticCapability.diagnostics.push(new UnreachableCodeDiagnostic(this.context.range))
 	}
 
 	/** Transpiles a VBA expression into Typescript. */
@@ -116,16 +96,5 @@ class CompilerConditionBlock extends BaseContextSyntaxElement<CompilerConditiona
 		});
 
 		return result;
-	}
-}
-
-
-export class GenericCommentElement extends BaseContextSyntaxElement<ParserRuleContext> implements HasSemanticTokenCapability {
-	semanticTokenCapability: SemanticTokenCapability;
-
-	constructor(ctx: ParserRuleContext, doc: TextDocument, range?: Range) {
-		super(ctx, doc);
-		const textLen = range ? doc.offsetAt(range.end) - doc.offsetAt(range.start) + 1 : undefined;
-		this.semanticTokenCapability = new SemanticTokenCapability(this, SemanticTokenTypes.comment, [], range, textLen)
 	}
 }

@@ -84,6 +84,15 @@ export class UnexpectedLineEndingDiagnostic extends BaseDiagnostic {
 	}
 }
 
+// test
+export class UnreachableCodeDiagnostic extends BaseDiagnostic {
+	severity = DiagnosticSeverity.Hint;
+	tags = [DiagnosticTag.Unnecessary];
+	constructor(range: Range) {
+		super(range);
+	}
+}
+
 
 export class IgnoredAttributeDiagnostic extends BaseDiagnostic {
 	severity = DiagnosticSeverity.Warning;
