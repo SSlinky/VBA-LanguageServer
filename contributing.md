@@ -8,7 +8,7 @@
 3. Install [NPM](https://github.com/coreybutler/nvm-windows)
 4. `npm install` to install dependencies.
 5. `npm run textMate` first time and every time grammar is changed.
-6. `npm run antlr4ng` first time and every time grammar is changed.
+6. `npm run antlr` first time and every time grammar is changed.
 7. Create a `.\sample` directory as a default workspace for client debugging (or update .\\.vscode\\launch.json as preferred).
 7. (Optional) Install [ANTLR4 grammar syntax support](https://marketplace.visualstudio.com/items?itemName=mike-lischke.vscode-antlr4) VSCode extension.
     Note: to debug a grammar, you'll first need to activate the extension by opening one of the *.g4 files.
