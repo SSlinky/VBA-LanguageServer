@@ -220,7 +220,7 @@ comment
 	;
 
 colonEnding
-    : COLON
+    : COLON ws? NEWLINE?
     ;
 
 lineEnding
