@@ -106,10 +106,18 @@ methodClose
     : ws? END ws (SUB | FUNCTION | PROPERTY)
     ;
 
+withBlockOpen
+    : ws? WITH ws expression+ endOfStatement
+    ;
+
+withBlockClose
+    : ws? END ws WITH endOfStatement
+    ;
+
 withBlock
-    : ws? WITH ws expression endOfStatement
+    : withBlockOpen
         block?
-        ws? END ws WITH endOfStatement
+        withBlockClose
     ;
 
 block
@@ -164,7 +172,7 @@ forBlockClose
     ;
 
 forBlock
-    : ws? forBlockOpen
+    : forBlockOpen
         block?
         forBlockClose
     ;
@@ -213,11 +221,12 @@ caseDefaultStatement
     ;
 
 caseBlock
-    : ((caseStatement | caseDefaultStatement) block?)+
+    : ((caseStatement | caseDefaultStatement) block)+
     ;
 
 selectCaseBlock
     : selectCaseOpen
+        documentElement*
         caseBlock?
         selectCaseClose
     ;
@@ -257,7 +266,6 @@ keywordComponent
     | GLOBAL
     | IF
     | IS
-    | NEXT
     | PRIVATE
     | PROPERTY
     | PUBLIC
