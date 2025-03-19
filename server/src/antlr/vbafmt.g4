@@ -49,6 +49,7 @@ documentElement
     | ifElseBlock
     | selectCaseBlock
     | whileBlock
+    | withBlock
     | basicStatement
     | blankLine
 	;
@@ -103,6 +104,12 @@ methodParameters
 
 methodClose
     : ws? END ws (SUB | FUNCTION | PROPERTY)
+    ;
+
+withBlock
+    : ws? WITH ws expression endOfStatement
+        block?
+        END ws WITH endOfStatement
     ;
 
 block
@@ -421,6 +428,10 @@ SUB
 
 UNDERSCORE
     : '_'
+    ;
+
+WITH
+    : 'WITH'
     ;
 
 TAB
