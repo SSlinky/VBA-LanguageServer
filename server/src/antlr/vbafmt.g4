@@ -109,7 +109,7 @@ methodClose
 withBlock
     : ws? WITH ws expression endOfStatement
         block?
-        END ws WITH endOfStatement
+        ws? END ws WITH endOfStatement
     ;
 
 block
