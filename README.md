@@ -10,6 +10,9 @@ Adds VBA language support to VSCode via LSP compliant Language Server.
 * Semantic highlighting
 * Folding ranges
 * Document symbols
+* Document formatting\*
+
+\*Currently full document `Shift+Alt+F` formatting only.
 
 ## Coming Soon
 
