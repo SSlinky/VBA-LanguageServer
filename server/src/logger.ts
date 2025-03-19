@@ -16,7 +16,7 @@ export class LspLogger {
 	}
 
 	error = (msg: string, lvl?: number) => this.emit(LogLevel.error, msg, lvl)
-	warning = (msg: string, lvl?: number) => this.emit(LogLevel.warning, msg, lvl)
+	warn = (msg: string, lvl?: number) => this.emit(LogLevel.warning, msg, lvl)
 	info = (msg: string, lvl?: number) => this.emit(LogLevel.info, msg, lvl)
 	log = (msg: string, lvl?: number) => this.emit(LogLevel.log, msg, lvl)
 	debug = (msg: string, lvl?: number) => this.emit(LogLevel.debug, msg, lvl)
