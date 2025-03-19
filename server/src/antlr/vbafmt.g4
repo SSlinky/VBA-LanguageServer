@@ -17,19 +17,40 @@ document
 	: documentElement* endOfFile
 	;
 
-basicStatement
-    : ws (ambiguousComponent ws?)+ endOfStatement
+classHeader
+    : ws? BEGIN endOfStatement
+        classHeaderBlock
+        ws? END endOfStatement
     ;
 
-// endOfStatement
-//     : bols? NEWLINE
-//     ;
+classHeaderBlock
+    : documentElement+
+    ;
+
+basicStatement
+    : ws? ((ambiguousComponent | keywordComponent | flowCharacter) ws?)+ endOfStatement
+    ;
+
+blankLine
+    : ws? comment? NEWLINE
+    ;
 
 documentElement
 	: comment
+    | classHeader
+    | doBlock
+    | forBlock
+    | endStatement
+    | enumBlock
+    | labelStatement
 	| methodDeclaration
 	| attributeStatement
+    | ifElseStatement
+    | ifElseBlock
+    | selectCaseBlock
+    | whileBlock
     | basicStatement
+    | blankLine
 	;
 
 attributeStatement
@@ -46,36 +67,169 @@ visibility
 	| GLOBAL
 	;
 
+endStatement
+    : ws? END endOfStatement
+    ;
+
+enumBlockOpen
+    : ws? (visibility ws)? ENUM ws ambiguousComponent endOfStatement
+    ;
+
+enumBlockClose
+    : ws? END ws ENUM
+    ;
+
+enumBlock
+    : enumBlockOpen
+        block?
+        enumBlockClose
+    ;
+
+labelStatement
+    : ws? ambiguousComponent COLON
+    ;
+
+methodSignature
+    : methodOpen ws? methodParameters
+    ;
+
 methodOpen
     : ws? (visibility ws)? (SUB | FUNCTION | (PROPERTY ws ANYCHARS)) ws ANYCHARS
     ;
 
 methodParameters
-    : LPAREN (ANYCHARS | AS | STRINGLITERAL | ws)* RPAREN asType? endOfStatement
+    : LPAREN (ANYCHARS | AS | STRINGLITERAL | ws)* RPAREN asType?
     ;
 
 methodClose
-    : ws? END ws (SUB | FUNCTION | PROPERTY) endOfStatement
+    : ws? END ws (SUB | FUNCTION | PROPERTY)
     ;
 
-methodBody
-    : documentElement*
+block
+    : documentElement+
     ;
 
 methodDeclaration
-	: methodOpen
-		methodParameters
-        attributeStatement?
-		methodBody
-		methodClose
+	: methodSignature endOfStatement
+        attributeStatement*
+		block?
+		methodClose endOfStatement
 	;
+
+expression
+    : (ambiguousComponent | flowCharacter | keywordComponent) ws?
+    ;
+
+doBlockOpen
+    : ws? DO (ws (WHILE | UNTIL) ws expression+)? endOfStatement
+    ;
+
+doBlockClose
+    : ws? LOOP (ws (WHILE | UNTIL) ws expression+)? endOfStatement
+    ;
+
+doBlock
+    : doBlockOpen
+        block?
+        doBlockClose
+    ;
+
+whileBlockOpen
+    : ws? WHILE ws expression+ endOfStatement
+    ;
+
+whileBlockClose
+    : ws? WEND endOfStatement
+    ;
+
+whileBlock
+    : whileBlockOpen
+        block?
+        whileBlockClose
+    ;
+
+forBlockOpen
+    : ws? FOR (ws EACH)? ws expression+ endOfStatement
+    ;
+
+forBlockClose
+    : ws? NEXT (ws expression+)? endOfStatement
+    ;
+
+forBlock
+    : ws? forBlockOpen
+        block?
+        forBlockClose
+    ;
+
+ifBlockOpen
+    : ws? IF ws expression+ THEN endOfStatement
+    ;
+
+elseIfBlockOpen
+    : ws? ELSEIF ws expression+ THEN endOfStatement
+    ;
+
+ifBlockDefault
+    : ws? ELSE endOfStatement
+    ;
+
+ifBlockClose
+    : ws? END ws IF endOfStatement
+    ;
+
+ifElseBlock
+    : ifBlockOpen block?
+        (elseIfBlockOpen block?)*
+        (ifBlockDefault block?)?
+        ifBlockClose
+    ;
+
+ifElseStatement
+    : ws? IF ws expression+ THEN ws expression+ (ELSE ws expression+)? endOfStatement
+    ;
+
+selectCaseOpen
+    : ws? SELECT ws CASE basicStatement
+    ;
+
+selectCaseClose
+    : ws? END ws SELECT
+    ;
+
+caseStatement
+    : ws? CASE (ws IS)? basicStatement?
+    ;
+
+caseDefaultStatement
+    : ws? CASE ws ELSE endOfStatement
+    ;
+
+caseBlock
+    : ((caseStatement | caseDefaultStatement) block?)+
+    ;
+
+selectCaseBlock
+    : selectCaseOpen
+        caseBlock?
+        selectCaseClose
+    ;
 
 comment
-	: ws? (COMMENT | REMCOMMENT) (ws | ANYCHARS)*
+	: ws? (COMMENT | REMCOMMENT)
 	;
 
+colonEnding
+    : COLON
+    ;
+
+lineEnding
+    : ws? NEWLINE
+    | endOfFile
+    ;
+
 endOfStatement
-    : comment? (NEWLINE+ | endOfFile)
+    : comment? (colonEnding | lineEnding)
     ;
 
 continuation
@@ -85,6 +239,29 @@ continuation
 ambiguousComponent
     : ANYCHARS
     | STRINGLITERAL
+    ;
+
+keywordComponent
+    : AS
+    | BEGIN
+    | DO
+    | FOR
+    | FUNCTION
+    | GLOBAL
+    | IF
+    | IS
+    | NEXT
+    | PRIVATE
+    | PROPERTY
+    | PUBLIC
+    | THEN
+    | SUB
+    | ASSIGNMENT
+    ;
+
+flowCharacter
+    : LPAREN
+    | RPAREN
     ;
 
 ws
@@ -106,6 +283,10 @@ COMMENT
 
 // LEXER RULES
 
+ASSIGNMENT
+    : ':='
+    ;
+
 STRINGLITERAL
     : '"' (~["\r\n] | '""')* '"'
     ;
@@ -126,13 +307,77 @@ AS
     : 'AS'
     ;
 
+BEGIN
+    : 'BEGIN'
+    ;
+
 ATTRIBUTE
 	: 'ATTRIBUTE'
+	;
+
+DO
+    : 'DO'
+    ;
+
+LOOP
+    : 'LOOP'
+    ;
+
+FOR
+    : 'FOR'
+    ;
+
+EACH
+    : 'EACH'
+    ;
+
+NEXT
+    : 'NEXT'
+    ;
+
+WHILE
+    : 'WHILE'
+    ;
+
+UNTIL
+    : 'UNTIL'
+    ;
+
+WEND
+    : 'WEND'
+    ;
+
+IF
+	: 'IF'
+	;
+
+IS
+    : 'IS'
+    ;
+
+ELSE
+	: 'ELSE'
+	;
+
+ELSEIF
+	: 'ELSEIF'
+	;
+
+THEN
+	: 'THEN'
 	;
 
 END
 	: 'END'
 	;
+
+SELECT
+    : 'SELECT'
+    ;
+
+CASE
+    : 'CASE'
+    ;
 
 ENUM
     : 'ENUM'
@@ -196,5 +441,5 @@ ANYCHARS
     ;
 
 fragment ANYCHAR
-    : ~[\r\n\u2028\u2029 \t\u0019\u3000()]
+    : ~[\r\n\u2028\u2029 \t\u0019\u3000():]
     ;

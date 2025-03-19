@@ -1,5 +1,5 @@
 // Antlr
-import { ErrorNode, Parser, ParserRuleContext } from 'antlr4ng';
+import { ErrorNode, ParserRuleContext } from 'antlr4ng';
 import { vbaListener } from '../../antlr/out/vbaListener';
 import { vbapreListener } from '../../antlr/out/vbapreListener';
 import { vbafmtListener } from '../../antlr/out/vbafmtListener';
@@ -37,8 +37,7 @@ import { DocumentSettings, VbaClassDocument, VbaModuleDocument } from '../docume
 import { FunctionDeclarationElement, PropertyGetDeclarationElement, PropertyLetDeclarationElement, PropertySetDeclarationElement, SubDeclarationElement } from '../elements/procedure';
 import { DeclarationStatementElement, EnumDeclarationElement, TypeDeclarationElement, TypeSuffixElement } from '../elements/typing';
 import { UnexpectedEndOfLineElement } from '../elements/utils';
-import { ContinuationContext, MethodBodyContext, MethodOpenContext, MethodParametersContext } from '../../antlr/out/vbafmtParser';
-import { Range } from 'vscode-languageserver';
+import { BasicStatementContext, BlockContext, CaseBlockContext, ClassHeaderBlockContext, ContinuationContext, LabelStatementContext, LineEndingContext, MethodParametersContext, MethodSignatureContext } from '../../antlr/out/vbafmtParser';
 
 
 class CommonParserCapability {
@@ -224,9 +223,11 @@ export class VbaPreListener extends vbapreListener {
 
 export class VbaFmtListener extends vbafmtListener {
     common: CommonParserCapability;
-    private continuedElements: ParserRuleContext[] = [];
+    indentOffsets: number[];
+
     private activeElements: ParserRuleContext[] = [];
-     indentOffsets: number[];
+    private ignoredElements: ParserRuleContext[] = [];
+    private continuedElements: ParserRuleContext[] = [];
 
     constructor(document: VbaClassDocument | VbaModuleDocument) {
         super();
@@ -240,10 +241,15 @@ export class VbaFmtListener extends vbafmtListener {
         return result;
     }
 
+    visitErrorNode(node: ErrorNode): void {
+        const doc = this.common.document.textDocument;
+        this.common.document.workspace.logger.error(`Couldn't parse ${node.toRange(doc)}\n${node.getText()}`)
+    }
+
     getIndent(n: number): number {
         let result: number | undefined;
 
-        for (let i = n; !result && i >= 0; i--) {
+        for (let i = n; result === undefined && i >= 0; i--) {
             result = this.indentOffsets[i];
         }
         return (result ?? 0);
@@ -255,7 +261,7 @@ export class VbaFmtListener extends vbafmtListener {
         const continuedElement = this.continuedElements.at(-1);
         if (activeElement) {
             // Don't indent if we're already indented.
-            if (continuedElement?.hasPositionOf(activeElement))
+            if (continuedElement === activeElement)
                 return;
             
             // Flag this element as continued / indented.
@@ -264,65 +270,123 @@ export class VbaFmtListener extends vbafmtListener {
             // Indent the next line.
             const doc = this.common.document.textDocument;
             const line = ctx.toRange(doc).start.line;
-            this.indentAt(line + 1, 2);
+            this.indentAt(line + 1, 2, `${this.rangeText(ctx)} cont`);
         }
     }
 
-    enterMethodOpen = (ctx: MethodOpenContext) =>
+    // Handle anything that has been continued.
+    exitEveryRule(node: ParserRuleContext): void {
+        // Remove from active elements if required.
+        if (node === this.activeElements.at(-1))
+            this.activeElements.pop();
+
+        // Stop here if not continued.
+        if (node !== this.continuedElements.at(-1))
+            return;
+
+        // Remove from continued and outdent next line.
+        this.continuedElements.pop();
+        const doc = this.common.document.textDocument;
+        const offset = this.endsWithLineEnding(node) ? 0 : 1
+        const line = node.toRange(doc).end.line + offset;
+        this.indentAt(line, -2, `${this.rangeText(node)} cont`);
+    }
+
+    enterBasicStatement = (ctx: BasicStatementContext) =>
         this.activeElements.push(ctx);
 
-    exitMethodOpen = (ctx: MethodOpenContext) => {
-        this.outdentOnExit(ctx);
-        this.exitContinuableElement(ctx);
-    }
+    enterMethodSignature = (ctx: MethodSignatureContext) =>
+        this.activeElements.push(ctx);
 
-    enterMethodBody = (ctx: MethodBodyContext) => {
+    enterClassHeaderBlock = (ctx: ClassHeaderBlockContext) =>
+        this.indentOnEnter(ctx, 1);
+
+    exitClassHeaderBlock = (ctx: ClassHeaderBlockContext) =>
+        this.outdentOnExit(ctx, -1);
+
+    enterBlock = (ctx: BlockContext) =>
         this.indentOnEnter(ctx);
-    }
 
-    exitMethodBody = (ctx: MethodBodyContext) => {
+    exitBlock = (ctx: BlockContext) =>
         this.outdentOnExit(ctx);
-        this.exitContinuableElement(ctx);
+
+    enterCaseBlock = (ctx: CaseBlockContext) =>
+        this.indentOnEnter(ctx);
+
+    exitCaseBlock = (ctx: CaseBlockContext)  =>
+        this.outdentOnExit(ctx);
+
+    enterLabelStatement? = (ctx: LabelStatementContext) => {
+        // A label is a special case that will always be 0 indent
+        // and will not affect the flow to the next line.
+        const doc = this.common.document.textDocument;
+        const line = ctx.toRange(doc).start.line;
+        this.indentOffsets[line + 1] = this.getIndent(line);
+        this.indentOffsets[line] = 0;
     }
     
     enterMethodParameters = (ctx: MethodParametersContext) =>
         this.activeElements.push(ctx);
 
-    exitMethodParameters = (ctx: MethodParametersContext) =>
-        this.exitContinuableElement(ctx);
-
-    private indentOnEnter(ctx: ParserRuleContext): void {
+    private indentOnEnter(ctx: ParserRuleContext, indent?: number): void {
         this.activeElements.push(ctx);
         const doc = this.common.document.textDocument;
         const line = ctx.toRange(doc).start.line;
-        this.indentAt(line, 2);
+        const shift = indent ?? 2;
+        this.indentAt(line, shift, this.rangeText(ctx));
     }
 
-    private outdentOnExit(ctx: ParserRuleContext): void {
+    private outdentOnExit(ctx: ParserRuleContext, indent?: number): void {
         const doc = this.common.document.textDocument;
-        const line = ctx.toRange(doc).end.line + 1;
-        if (line >= this.indentOffsets.length) return;
-        this.indentAt(line + 1, -2);
-    }
-
-    private exitContinuableElement(ctx: ParserRuleContext): void {
-        // Remove from continued stack if required.
-        const e = this.continuedElements.at(-1);
-        if (e?.hasPositionOf(ctx)) {
-            this.continuedElements.pop();
-
-            // Outdent the next line
-            const doc = this.common.document.textDocument;
-            const line = ctx.toRange(doc).start.line + 1;
-            this.indentAt(line + 1, -2);
+        const line = ctx.toRange(doc).end.line;
+        const shift = indent ?? -2;
+        if (line > this.indentOffsets.length) {
+            this.common.document.workspace.logger.error(`Format line ${line + 1} bang out of order in document of ${this.indentOffsets.length + 1} lines.`);
+            return;
         }
-
-        // Remove from active elements.
-        this.activeElements.pop();
+        this.indentAt(line, shift, this.rangeText(ctx));
     }
 
-    private indentAt(line: number, offset: number): void {
-        const n = this.getIndent(line);
-        this.indentOffsets[line] = n + offset;
+    private indentAt(line: number, offset: number, text?: string): void {
+        const currentIndent = this.getIndent(line);
+        const newIndent = currentIndent + offset;
+        this.indentOffsets[line] = newIndent;
+
+        const num = (line + 1).toString().padStart(3, '0');
+        const arrows = '>'.repeat(newIndent);
+        this.common.document.workspace.logger.debug(`${num}: ${arrows} ${text}`)
+    }
+
+    private rangeText(ctx: ParserRuleContext): string {
+        const r = ctx.toRange(this.common.document.textDocument);
+        return `[${r.start.line + 1}, ${r.start.character}, ${r.end.line + 1}, ${r.end.character}]`
+    }
+
+    /**
+     * Checks if the context spills over into the next line.
+     * This is useful to prevent indentation of the wrong line.
+     * @param ctx A ParserRuleContext hopefully.
+     * @returns True if the last child is a LineEndingContext.
+     */
+    private endsWithLineEnding(ctx: ParserRuleContext): boolean {
+        // Ensure we have a context.
+        if (!(ctx instanceof ParserRuleContext))
+            return false;
+
+        // Check last child is a line ending.
+        const child = ctx.children.at(-1);
+        if (!child)
+            return false;
+
+        // Line endings don't have structures so no need to check children.
+        if (child instanceof LineEndingContext)
+            return true;
+
+        // Run it again!
+        if (child.getChildCount() > 0)
+            return this.endsWithLineEnding(child as ParserRuleContext);
+
+        // Not a line ending and no more children.
+        return false;
     }
 }

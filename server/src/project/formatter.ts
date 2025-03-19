@@ -14,16 +14,23 @@ export function getFormattingEdits(document: TextDocument, listener: VbaFmtListe
 	const startLine = range?.start.line ?? 0;
 	const endLine = (range?.end.line ?? document.lineCount) + 1;
 
-	let trackedIndentLevel = 0;
-	const baseIndentLevel = getIndentLevel(document.getText(range));
-
 	for (let i = startLine; i < endLine; i++) {
 		const text = getLine(document, i);
 
 		// Ignore comment lines.
 		if (/^\s*'/.test(text)) continue;
 
-		// Actual indent level
+		// Delete trailing whitespace.
+		const trailingWhitespaceRange = getTrailingWhitespaceRange(text, i);
+		if (trailingWhitespaceRange) result.push({
+			range: trailingWhitespaceRange,
+			newText: ''
+		});
+
+		// Ignore blank lines as we'll have already deleted any whitespace.
+		if (/^\s*$/.test(text)) continue;
+
+		// Set the indent level if it is not the expected level.
 		const currentIndentLevel = getIndentLevel(text);
 		const newIndentLevel = listener.getIndent(i);
 		if (currentIndentLevel != newIndentLevel) {
@@ -31,7 +38,11 @@ export function getFormattingEdits(document: TextDocument, listener: VbaFmtListe
 				range: getIndentRange(text, i)!,
 				newText: ' '.repeat(newIndentLevel * 2)
 			});
+			continue;
 		}
+
+		// Replace tabs.
+		// ToDo (need to somehow respect the user's preference here and above)
 	}
 
 	return result;
@@ -44,7 +55,7 @@ function getExpectedIndent(listener: VbaFmtListener, range: Range, n: number) {
 }
 
 function getIndentRange(text: string, n: number): Range | undefined {
-	const match = /^(?!\s*')(\s*)/m.exec(text);
+	const match = /^(?!\s*')([^\S\r\n]*)/m.exec(text);
 	if (match) {
 		return {
 			start: { line: n, character: 0 },
@@ -53,9 +64,19 @@ function getIndentRange(text: string, n: number): Range | undefined {
 	}
 }
 
+function getTrailingWhitespaceRange(text: string, n: number): Range | undefined {
+	const match = /[^\S\r\n]+$/m.exec(text);
+	if (match) {
+		return {
+			start: { line: n, character: match.index },
+			end: { line: n, character: match.index + match[0].length }
+		}
+	}
+}
+
 function getIndentLevel(text: string): number {
 	// Get spaces at start of non-comment lines (tab is four spaces)
-	const normalised = text.replace(/\t/g, '    ')
+	const normalised = text.replace(/\t/g, '    ');
 	const match = /^(?!\s*')(\s*)/m.exec(normalised);
 	
 	// Default is no indent.
@@ -64,7 +85,7 @@ function getIndentLevel(text: string): number {
 	}
 
 	// Four spaces per indent.
-	return (match[0].length / 4) | 0;
+	return (match[0].length / 2) | 0;
 }
 
 function getLine(d: TextDocument, n: number): string {
