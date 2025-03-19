@@ -895,7 +895,7 @@ repository:
 
       variableDeclarationDim:
         name: meta.declare.variable.vba
-        begin: (?i)dim
+        begin: (?i)dim(?=\s)
         end: (?=[':\n])
         beginCaptures:
           0:
@@ -907,7 +907,7 @@ repository:
 
       variableDeclarationConst:
         name: meta.declare.constant.vba
-        begin: (?i)const
+        begin: (?i)const(?=\s)
         end: (?=[':\n])
         beginCaptures:
           0:
