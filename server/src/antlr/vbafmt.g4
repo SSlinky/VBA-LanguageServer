@@ -98,7 +98,7 @@ methodOpen
     ;
 
 methodParameters
-    : LPAREN (ANYCHARS | AS | STRINGLITERAL | ws)* RPAREN asType?
+    : LPAREN (ANYCHARS | AS | STRINGLITERAL | flowCharacter | ws)* RPAREN asType?
     ;
 
 methodClose
