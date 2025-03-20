@@ -50,6 +50,7 @@ documentElement
     | selectCaseBlock
     | whileBlock
     | withBlock
+    | onErrorResumeNextStatement
     | basicStatement
     | blankLine
 	;
@@ -147,6 +148,10 @@ doBlock
     : doBlockOpen
         block?
         doBlockClose
+    ;
+
+onErrorResumeNextStatement
+    : ws? ON ws ERROR ws RESUME ws NEXT endOfStatement
     ;
 
 whileBlockOpen
@@ -259,19 +264,22 @@ ambiguousComponent
 
 keywordComponent
     : AS
+    | ASSIGNMENT
     | BEGIN
     | DO
+    | ERROR
     | FOR
     | FUNCTION
     | GLOBAL
     | IF
     | IS
+    | ON
     | PRIVATE
     | PROPERTY
     | PUBLIC
-    | THEN
+    | RESUME
     | SUB
-    | ASSIGNMENT
+    | THEN
     ;
 
 flowCharacter
@@ -360,6 +368,18 @@ UNTIL
 
 WEND
     : 'WEND'
+    ;
+
+ON
+    : 'ON'
+    ;
+
+ERROR
+    : 'ERROR'
+    ;
+
+RESUME
+    : 'RESUME'
     ;
 
 IF
