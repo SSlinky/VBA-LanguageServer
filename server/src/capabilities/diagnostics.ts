@@ -32,7 +32,7 @@ export class MultipleOperatorsDiagnostic extends BaseDiagnostic {
 
 export class WhileWendDeprecatedDiagnostic extends BaseDiagnostic {
 	message = "The Do...Loop statement provides a more structured and flexible way to perform looping.";
-	severity = DiagnosticSeverity.Information;
+	severity = DiagnosticSeverity.Hint;
 	constructor(range: Range) {
 		super(Range.create(range.start, Position.create(range.start.line, range.start.character + 4)));
 	}
