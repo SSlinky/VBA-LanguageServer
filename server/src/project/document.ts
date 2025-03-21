@@ -158,16 +158,6 @@ export abstract class BaseProjectDocument {
 	}
 
 	async parseAsync(token: CancellationToken): Promise<void> {
-		// Handle already cancelled.
-		if (token.isCancellationRequested) {
-			throw new ParseCancellationException(Error('Parse operation cancelled before it started.'));
-		}
-
-		// Listen for cancellation event.
-		token.onCancellationRequested(() => {
-			throw new ParseCancellationException(new Error('Parse operation cancelled during parse.'));
-		})
-
 		// Don't parse oversize documents.
 		if (await this.isOversize) {
 			this.workspace.logger.debug(`Document oversize: ${this.textDocument.lineCount} lines.`);
@@ -177,7 +167,7 @@ export abstract class BaseProjectDocument {
 		}
 
 		// Parse the document.
-		await (new SyntaxParser()).parseAsync(this);
+		await (new SyntaxParser(this.workspace.logger)).parseAsync(token, this);
 
 		// Evaluate the diagnostics.
 		this.diagnostics = this.hasDiagnosticElements
@@ -188,16 +178,6 @@ export abstract class BaseProjectDocument {
 	};
 
 	async formatParseAsync(token: CancellationToken): Promise<VbaFmtListener | undefined> {
-		// Handle already cancelled.
-		if (token.isCancellationRequested) {
-			throw new ParseCancellationException(Error('Parse operation cancelled before it started.'));
-		}
-
-		// Listen for cancellation event.
-		token.onCancellationRequested(() => {
-			throw new ParseCancellationException(new Error('Parse operation cancelled during parse.'));
-		})
-
 		// Don't parse oversize documents.
 		if (await this.isOversize) {
 			this.workspace.logger.debug(`Document oversize: ${this.textDocument.lineCount} lines.`);
@@ -206,7 +186,7 @@ export abstract class BaseProjectDocument {
 		}
 
 		// Parse the document.
-		return await (new SyntaxParser()).formatParseAsync(this);
+		return await (new SyntaxParser(this.workspace.logger)).formatParseAsync(token, this);
 	}
 
 	/**

@@ -33,7 +33,8 @@ import { NamespaceManager } from './scope';
 import { ParseCancellationException } from 'antlr4ng';
 import { getFormattingEdits } from './formatter';
 import { VbaFmtListener } from './parser/vbaListener';
-import { LspLogger } from '../logger';
+import { LspLogger } from '../utils/logger';
+import { returnDefaultOnCancelClientRequest } from '../utils/wrappers';
 
 
 /**
@@ -93,17 +94,13 @@ export class Workspace {
 		
 		// Exceptions thrown by the parser should be ignored.
 		try {
-			this.logger.debug(`Parsing document: ${this.activeDocument.name}`);
 			await this.activeDocument.parseAsync(this.parseCancellationTokenSource.token);
 			this.logger.info(`Parsed ${this.activeDocument.name}`);
 		} catch (e) {
-			if (e instanceof ParseCancellationException) {
-				this.logger.debug('Parse cancelled successfully.')
-			} else if (e instanceof Error) {
-				this.logger.stack(e);
-			} else {
-				this.logger.error(`Parse failed: ${e}`)
-			}
+			// Swallow cancellation exceptions. They're good. We like these.
+			if (e instanceof ParseCancellationException) { }
+			else if (e instanceof Error) { this.logger.stack(e); }
+			else { this.logger.error('Something went wrong.')}
 		}
 
 		this.parseCancellationTokenSource = undefined;
@@ -116,7 +113,6 @@ export class Workspace {
 		// Exceptions thrown by the parser should be ignored.
 		let result: VbaFmtListener | undefined;
 		try {
-			this.logger.debug(`Format parsing document: ${document.uri}`);
 			result = await this.activeDocument?.formatParseAsync(this.parseCancellationTokenSource.token);
 			this.logger.info(`Formatted ${document.uri}`);
 		}
@@ -244,19 +240,31 @@ class WorkspaceEvents {
 	}
 
 	private initialiseConnectionEvents(connection: _Connection) {
+		const cancellableOnDocSymbol = returnDefaultOnCancelClientRequest(
+			(p: DocumentSymbolParams, t) => this.onDocumentSymbolAsync(p, t), [], this.workspace.logger, 'Document Symbols');
+
+		const cancellableOnDiagnostics = returnDefaultOnCancelClientRequest(
+			(p: DocumentDiagnosticParams, t) => this.onDiagnosticAsync(p, t),
+			{kind: DocumentDiagnosticReportKind.Full, items: []},
+			this.workspace.logger,
+			'Diagnostics');
+		
+		const cancellableOnFoldingRanges = returnDefaultOnCancelClientRequest(
+			(p: FoldingRangeParams, t) => this.onFoldingRangesAsync(p, t), [], this.workspace.logger, 'Folding Range')
+
 		connection.onInitialized(() => this.onInitialized());
 		connection.onDidOpenTextDocument(params => this.onDidOpenTextDocumentAsync(params));
 		connection.onCompletion(params => this.onCompletion(params));
 		connection.onCompletionResolve(item => this.onCompletionResolve(item));
 		connection.onDidChangeConfiguration(_ => this.workspace.clearDocumentsConfiguration());
 		connection.onDidChangeWatchedFiles(params => this.onDidChangeWatchedFiles(params));
-		connection.onDocumentSymbol(async (params, token) => await this.onDocumentSymbolAsync(params, token));
+		connection.onDocumentSymbol(async (params, token) => await cancellableOnDocSymbol(params, token));
 		connection.onHover(params => this.onHover(params));
-		connection.languages.diagnostics.on(async (params, token) => await this.onDiagnosticAsync(params, token));
+		connection.languages.diagnostics.on(async (params, token) => await cancellableOnDiagnostics(params, token));
 		connection.onDocumentFormatting(params => this.onDocumentFormatting(params));
 
 		if (hasConfigurationCapability(this.configuration)) {
-			connection.onFoldingRanges(async (params, token) => this.onFoldingRangesAsync(params, token));
+			connection.onFoldingRanges(async (params, token) => await cancellableOnFoldingRanges(params, token));
 		}
 
 		connection.onRequest((method: string, params: object | object[] | any) => {
@@ -303,6 +311,7 @@ class WorkspaceEvents {
 	}
 
 	private async onDiagnosticAsync(params: DocumentDiagnosticParams, token: CancellationToken): Promise<DocumentDiagnosticReport> {
+		// const document = await this.withTimeout(this.activeParsedDocument(0, token), 10000).catch(() => null);
 		const document = await this.activeParsedDocument(0, token);
 		return document?.languageServerDiagnostics() ?? {
 			kind: DocumentDiagnosticReportKind.Full,
