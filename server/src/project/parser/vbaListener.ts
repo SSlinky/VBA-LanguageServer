@@ -56,16 +56,17 @@ import {
 import { CompilerLogicalBlock } from '../elements/precompiled';
 import { UnexpectedEndOfLineElement } from '../elements/utils';
 import { DuplicateOperatorElement, WhileLoopElement } from '../elements/flow';
-import { DocumentSettings, VbaClassDocument, VbaModuleDocument } from '../document';
+import { VbaClassDocument, VbaModuleDocument } from '../document';
 import { ClassElement, ModuleElement, ModuleIgnoredAttributeElement } from '../elements/module';
 import { DeclarationStatementElement, EnumDeclarationElement, TypeDeclarationElement, TypeSuffixElement } from '../elements/typing';
 import { FunctionDeclarationElement, PropertyGetDeclarationElement, PropertyLetDeclarationElement, PropertySetDeclarationElement, SubDeclarationElement } from '../elements/procedure';
+import { ExtensionConfiguration } from '../workspace';
 
 export class CommonParserCapability {
     document: VbaClassDocument | VbaModuleDocument;
-    protected _documentSettings?: DocumentSettings;
+    protected _documentSettings?: ExtensionConfiguration;
 
-    get documentSettings(): DocumentSettings {
+    get documentSettings(): ExtensionConfiguration {
         if (!this._documentSettings) {
             throw new Error("Sad times");
 
@@ -78,14 +79,14 @@ export class CommonParserCapability {
     }
 
     async ensureHasSettingsAsync() {
-        this._documentSettings = await this.document.getDocumentConfiguration();
+        this._documentSettings = await this.document.workspace.extensionConfiguration;
     }
 }
 
 
 export class VbaListener extends vbaListener {
     document: VbaClassDocument | VbaModuleDocument;
-    protected documentSettings?: DocumentSettings;
+    protected documentSettings?: ExtensionConfiguration;
     protected isAfterMethodDeclaration = false;
 
     constructor(document: VbaClassDocument | VbaModuleDocument) {
@@ -100,7 +101,7 @@ export class VbaListener extends vbaListener {
     }
 
     async ensureHasSettingsAsync() {
-        this.documentSettings = await this.document.getDocumentConfiguration();
+        this.documentSettings = await this.document.workspace.extensionConfiguration;
     }
 
     enterAnyOperator = (ctx: AnyOperatorContext) => {

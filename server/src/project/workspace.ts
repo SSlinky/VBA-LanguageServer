@@ -36,6 +36,19 @@ import { VbaFmtListener } from './parser/vbaListener';
 import { LspLogger } from '../utils/logger';
 import { returnDefaultOnCancelClientRequest } from '../utils/wrappers';
 
+export interface ExtensionConfiguration {
+	maxDocumentLines: number;
+	maxNumberOfProblems: number;
+	doWarnOptionExplicitMissing: boolean;
+	environment: {
+		os: string;
+		version: string;
+	}
+	logLevel: {
+		outputChannel: string;
+	}
+}
+
 
 /**
  * Organises project documents and runs actions at a workspace level.
@@ -48,6 +61,7 @@ export class Workspace {
 
 	private _activeDocument?: BaseProjectDocument;
 	private readonly _hasConfigurationCapability: boolean;
+	private _extensionConfiguration?: ExtensionConfiguration;
 
 	logger: LspLogger;
 
@@ -55,7 +69,14 @@ export class Workspace {
 		return this._hasConfigurationCapability;
 	}
 	
-	readonly connection: _Connection;
+	get extensionConfiguration() {
+		return (async () => {
+			if (!this._extensionConfiguration && this.hasConfigurationCapability) {
+				this._extensionConfiguration = await this.getConfiguration();
+			}
+			return this._extensionConfiguration;
+		})();
+	}
 
 	get activeDocument() {
 		return this._activeDocument;
@@ -155,8 +176,29 @@ export class Workspace {
 		});
 
 	clearDocumentsConfiguration = () => {
-		this.documents.forEach(d => d.clearDocumentConfiguration());
+		this.logger.debug('Received didChangeConfiguration');
+		this._extensionConfiguration = undefined;
+
+		// TODO: This will trigger configuration to be requested
+		// immediately anyway so no point in it being lazy. May not
+		// even be working as diagnostics will already have been resolved.
 		this.connection.languages.diagnostics.refresh();
+	}
+
+	private getConfiguration = async () =>
+		await this.connection.workspace.getConfiguration('vbaLanguageServer');
+
+	/**
+	 * Workspace activation method designed to run once after construction.
+	 * If this log message is placed in the constructor, the connection throws
+	 * and the server does not start.
+	 */
+	private workspaceActivation(): void {
+		if (this.isActivated)
+			return;
+
+		this.isActivated = true;
+		this.logger.info('VBAPro Workspace activated.')
 	}
 }
 
@@ -256,7 +298,7 @@ class WorkspaceEvents {
 		connection.onDidOpenTextDocument(params => this.onDidOpenTextDocumentAsync(params));
 		connection.onCompletion(params => this.onCompletion(params));
 		connection.onCompletionResolve(item => this.onCompletionResolve(item));
-		connection.onDidChangeConfiguration(_ => this.workspace.clearDocumentsConfiguration());
+		connection.onDidChangeConfiguration(() => this.workspace.clearDocumentsConfiguration());
 		connection.onDidChangeWatchedFiles(params => this.onDidChangeWatchedFiles(params));
 		connection.onDocumentSymbol(async (params, token) => await cancellableOnDocSymbol(params, token));
 		connection.onHover(params => this.onHover(params));

@@ -28,17 +28,6 @@ import { PropertyDeclarationElement,
 import { VbaFmtListener } from './parser/vbaListener';
 
 
-export interface DocumentSettings {
-	maxDocumentLines: number;
-	maxNumberOfProblems: number;
-	doWarnOptionExplicitMissing: boolean;
-	environment: {
-		os: string;
-		version: string;
-	}
-}
-
-
 // TODO ---------------------------------------------
 //	* Create a special register property that registers the name
 //    normally and tracks to avoid readding duplicates (unless we have two gets).
@@ -55,7 +44,6 @@ export abstract class BaseProjectDocument {
 	readonly textDocument: TextDocument;
 
 	protected diagnostics: Diagnostic[] = [];
-	protected documentConfiguration?: DocumentSettings;
 	protected documentScopeDeclarations: Map<string, Map<string, any>> = new Map();
 	protected foldableElements: FoldingRange[] = [];
 	protected hasDiagnosticElements: HasDiagnosticCapability[] = [];
@@ -72,43 +60,44 @@ export abstract class BaseProjectDocument {
 
 	get isOversize() {
 		// Workaround for async getter.
-		return (async () =>
-			this.textDocument.lineCount > (await this.getDocumentConfiguration()).maxDocumentLines
-		)();
+		return (async () => {
+			const config = await this.workspace.extensionConfiguration;
+			return config && this.textDocument.lineCount > config.maxDocumentLines;
+		})();
 	}
 
 	get redactedText() {
 		return this.subtractTextFromRanges(this.redactedElements.map(x => x.context.range));
 	}
 
-	async getDocumentConfiguration(): Promise<DocumentSettings> {
-		// Get the stored configuration.
-		if (this.documentConfiguration) {
-			return this.documentConfiguration;
-		}
+	// async getDocumentConfiguration(): Promise<DocumentSettings> {
+	// 	// Get the stored configuration.
+	// 	if (this.documentConfiguration) {
+	// 		return this.documentConfiguration;
+	// 	}
 		
-		// Get the configuration from the client.
-		if (this.workspace.hasConfigurationCapability) {
-			this.documentConfiguration = await this.workspace.requestDocumentSettings(this.textDocument.uri);
-			if (this.documentConfiguration) {
-				return this.documentConfiguration;
-			}
-		}
+	// 	// Get the configuration from the client.
+	// 	if (this.workspace.hasConfigurationCapability) {
+	// 		this.documentConfiguration = await this.workspace.requestDocumentSettings(this.textDocument.uri);
+	// 		if (this.documentConfiguration) {
+	// 			return this.documentConfiguration;
+	// 		}
+	// 	}
 
-		// Use the defaults.
-		this.documentConfiguration = {
-			maxDocumentLines: 1500,
-			maxNumberOfProblems: 100,
-			doWarnOptionExplicitMissing: true,
-			environment: {
-				os: "Win64",
-				version: "Vba7"
-			}
-		};
-		return this.documentConfiguration;
-	}
+	// 	// Use the defaults.
+	// 	this.documentConfiguration = {
+	// 		maxDocumentLines: 1500,
+	// 		maxNumberOfProblems: 100,
+	// 		doWarnOptionExplicitMissing: true,
+	// 		environment: {
+	// 			os: "Win64",
+	// 			version: "Vba7"
+	// 		}
+	// 	};
+	// 	return this.documentConfiguration;
+	// }
 
-	clearDocumentConfiguration = () => this.documentConfiguration = undefined;
+	// clearDocumentConfiguration = () => this.documentConfiguration = undefined;
 
 	constructor(workspace: Workspace, name: string, document: TextDocument) {
 		this.textDocument = document;
