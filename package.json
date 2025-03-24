@@ -53,7 +53,7 @@
 				"vbaLanguageServer.maxDocumentLines": {
 					"scope": "resource",
 					"type": "number",
-					"default": 1000,
+					"default": 5000,
 					"description": "Limits the file size the language server will attempt to parse."
 				},
 				"vbaLanguageServer.maxNumberOfProblems": {
