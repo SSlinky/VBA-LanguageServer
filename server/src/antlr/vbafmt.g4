@@ -28,7 +28,7 @@ classHeaderBlock
     ;
 
 basicStatement
-    : ws? ((ambiguousComponent | keywordComponent | flowCharacter) ws?)+ endOfStatement
+    : ws? ((ambiguousComponent | keywordComponent | flowCharacter) ws*)+ endOfStatement
     ;
 
 blankLine
@@ -38,22 +38,50 @@ blankLine
 documentElement
 	: comment
     | classHeader
-    | doBlock
-    | forBlock
     | endStatement
-    | enumBlock
     | labelStatement
-	| methodDeclaration
 	| attributeStatement
     | ifElseStatement
-    | ifElseBlock
-    | selectCaseBlock
-    | whileBlock
-    | withBlock
+    | preIfElseBlock
     | onErrorResumeNextStatement
+    | indentAfterElement
+    | outdentBeforeElement
+    | outdentOnIndentAfterElement
+    | caseDefaultStatement
+    | caseStatement
     | basicStatement
     | blankLine
 	;
+
+indentAfterElement
+    : doBlockOpen
+    | enumBlockOpen
+    | forBlockOpen
+    | ifBlockOpen
+    | methodSignature
+    | selectCaseOpen
+    | typeBlockOpen
+    | withBlockOpen
+    | whileBlockOpen
+    ;
+
+outdentOnIndentAfterElement
+    : elseIfBlockOpen
+    | ifBlockDefault
+    ;
+
+outdentBeforeElement
+    : doBlockClose
+    | enumBlockClose
+    | forBlockClose
+    | ifBlockOpen
+    | ifBlockClose
+    | methodClose
+    | selectCaseClose
+    | typeBlockClose
+    | withBlockClose
+    | whileBlockClose
+    ;
 
 attributeStatement
 	: ws? ATTRIBUTE (ANYCHARS | ws | continuation | STRINGLITERAL)* endOfStatement
@@ -81,11 +109,25 @@ enumBlockClose
     : ws? END ws ENUM
     ;
 
-enumBlock
-    : enumBlockOpen
-        block?
-        enumBlockClose
+// enumBlock
+//     : enumBlockOpen
+//         block?
+//         enumBlockClose
+//     ;
+
+typeBlockOpen
+    : ws? (visibility ws)? TYPE ws ambiguousComponent endOfStatement
     ;
+
+typeBlockClose
+    : ws? END ws TYPE
+    ;
+
+// typeBlock
+//     : typeBlockOpen
+//         block?
+//         typeBlockClose
+//     ;
 
 labelStatement
     : ws? ambiguousComponent COLON
@@ -115,14 +157,18 @@ withBlockClose
     : ws? END ws WITH endOfStatement
     ;
 
-withBlock
-    : withBlockOpen
-        block?
-        withBlockClose
-    ;
+// withBlock
+//     : withBlockOpen
+//         block?
+//         withBlockClose
+//     ;
 
 block
-    : documentElement+
+    : (documentElement endOfStatement?)+
+    ;
+
+preBlock
+    : (documentElement endOfStatement? | preIfElseBlock)+
     ;
 
 methodDeclaration
@@ -144,11 +190,11 @@ doBlockClose
     : ws? LOOP (ws (WHILE | UNTIL) ws expression+)? endOfStatement
     ;
 
-doBlock
-    : doBlockOpen
-        block?
-        doBlockClose
-    ;
+// doBlock
+//     : doBlockOpen
+//         block?
+//         doBlockClose
+//     ;
 
 onErrorResumeNextStatement
     : ws? ON ws ERROR ws RESUME ws NEXT endOfStatement
@@ -205,6 +251,29 @@ ifElseBlock
         ifBlockClose
     ;
 
+preIfBlockOpen
+    : ws? PREIF ws expression+ THEN endOfStatement
+    ;
+
+preElseIfBlockOpen
+    : ws? PREELSEIF ws expression+ THEN endOfStatement
+    ;
+
+preIfBlockDefault
+    : ws? PREELSE endOfStatement
+    ;
+
+preIfBlockClose
+    : ws? PREEND ws IF endOfStatement
+    ;
+
+preIfElseBlock
+    : preIfBlockOpen preBlock?
+        (preElseIfBlockOpen preBlock?)*
+        (preIfBlockDefault preBlock?)?
+        preIfBlockClose
+    ;
+
 ifElseStatement
     : ws? IF ws expression+ THEN ws expression+ (ELSE ws expression+)? endOfStatement
     ;
@@ -229,23 +298,23 @@ caseBlock
     : ((caseStatement | caseDefaultStatement) block)+
     ;
 
-selectCaseBlock
-    : selectCaseOpen
-        documentElement*
-        caseBlock?
-        selectCaseClose
-    ;
+// selectCaseBlock
+//     : selectCaseOpen
+//         documentElement*
+//         caseBlock?
+//         selectCaseClose
+//     ;
 
 comment
 	: ws? (COMMENT | REMCOMMENT)
 	;
 
 colonEnding
-    : COLON ws? NEWLINE?
+    : COLON ws? lineEnding?
     ;
 
 lineEnding
-    : ws? NEWLINE
+    : (ws? NEWLINE)+
     | endOfFile
     ;
 
@@ -273,6 +342,7 @@ keywordComponent
     | GLOBAL
     | IF
     | IS
+    | NEXT
     | ON
     | PRIVATE
     | PROPERTY
@@ -280,6 +350,7 @@ keywordComponent
     | RESUME
     | SUB
     | THEN
+    | TYPE
     ;
 
 flowCharacter
@@ -382,6 +453,10 @@ RESUME
     : 'RESUME'
     ;
 
+PREIF
+	: '#IF'
+	;
+
 IF
 	: 'IF'
 	;
@@ -390,8 +465,16 @@ IS
     : 'IS'
     ;
 
+PREELSE
+	: '#ELSE'
+	;
+
 ELSE
 	: 'ELSE'
+	;
+
+PREELSEIF
+	: '#ELSEIF'
 	;
 
 ELSEIF
@@ -400,6 +483,10 @@ ELSEIF
 
 THEN
 	: 'THEN'
+	;
+
+PREEND
+	: '#END'
 	;
 
 END
@@ -452,6 +539,10 @@ SINGLEQUOTE
 
 SUB
     : 'SUB'
+    ;
+
+TYPE
+    : 'TYPE'
     ;
 
 UNDERSCORE

@@ -80,7 +80,8 @@ export class VbaFmtParser extends vbafmtParser {
 
 	static create(document: string): VbaFmtParser {
         const lexer = VbaFmtLexer.create(document);
-        const parser = new VbaFmtParser(new CommonTokenStream(lexer));
+        const tokens = new CommonTokenStream(lexer);
+        const parser = new VbaFmtParser(tokens);
         parser.removeErrorListeners();
         parser.errorHandler = new VbaErrorHandler();
         return parser;

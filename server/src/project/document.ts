@@ -3,7 +3,7 @@ import { Range, TextDocument } from 'vscode-languageserver-textdocument';
 import { CancellationToken, Diagnostic, DocumentDiagnosticReport, DocumentDiagnosticReportKind, SymbolInformation, SymbolKind } from 'vscode-languageserver';
 
 // Antlr
-import { ParseCancellationException, ParserRuleContext } from 'antlr4ng';
+import { ParserRuleContext } from 'antlr4ng';
 
 // Project
 import { Workspace } from './workspace';
