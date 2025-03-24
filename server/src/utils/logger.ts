@@ -43,13 +43,11 @@ export class LspLogger {
 
 			} catch {
 				// Advise we couldn't convert log level and deafult to debug.
-				this.workspace.connection.sendNotification("window/logMessage",
-					this.unableToConvertMessage(config!.logLevel.outputChannel)
-				);
+				this.sendMessage(this.unableToConvertLogLevelMessage(config!.logLevel.outputChannel));
 			}
 
 			// If we got here then we should send the message.
-			this.workspace.connection.sendNotification("window/logMessage", {
+			this.sendMessage({
 				type: logLevel,
 				message: msgText,
 				level: msgLevel ?? 0
@@ -57,9 +55,15 @@ export class LspLogger {
 		})
 	}
 
-	private unableToConvertMessage = (level: string): LogMessage => ({
-		type: 1,
-		message: `Unable to convert logLevel.outputChannel: '${level}' to log level.`,
+	private sendMessage = (message: LogMessage) =>
+		this.workspace.connection.sendNotification(
+			"window/logMessage",
+			message
+		);
+
+	private unableToConvertLogLevelMessage = (level: string): LogMessage => ({
+		type: LogLevel.error,
+		message: `Unable to convert '${level}' to LogLevel`,
 		level: 0
 	})
 }

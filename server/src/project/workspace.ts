@@ -58,7 +58,6 @@ export class Workspace {
 	private nsManager: NamespaceManager = new NamespaceManager();
 	private documents: BaseProjectDocument[] = [];
 	private parseCancellationTokenSource?: CancellationTokenSource;
-	private isActivated: boolean = false;
 
 	private _activeDocument?: BaseProjectDocument;
 	private readonly _hasConfigurationCapability: boolean;
@@ -81,7 +80,6 @@ export class Workspace {
 	}
 
 	get activeDocument() {
-		this.workspaceActivation();
 		return this._activeDocument;
 	}
 
@@ -179,7 +177,7 @@ export class Workspace {
 		});
 
 	clearDocumentsConfiguration = () => {
-		this.logger.debug('Received didChangeConfiguration');
+		this.logger.debug('[event] didChangeConfiguration');
 		this._extensionConfiguration = undefined;
 
 		// TODO: This will trigger configuration to be requested
@@ -188,20 +186,9 @@ export class Workspace {
 		this.connection.languages.diagnostics.refresh();
 	}
 
-	private getConfiguration = async () =>
-		await this.connection.workspace.getConfiguration('vbaLanguageServer');
-
-	/**
-	 * Workspace activation method designed to run once after construction.
-	 * If this log message is placed in the constructor, the connection throws
-	 * and the server does not start.
-	 */
-	private workspaceActivation(): void {
-		if (this.isActivated)
-			return;
-
-		this.isActivated = true;
-		this.logger.info('VBAPro Workspace activated.')
+	private getConfiguration = async () => {
+		// Logging here will cause a cyclical crash of the server.
+		return await this.connection.workspace.getConfiguration('vbaLanguageServer');
 	}
 }
 
@@ -275,6 +262,7 @@ class WorkspaceEvents {
 		connection.onHover(params => this.onHover(params));
 		connection.languages.diagnostics.on(async (params, token) => await cancellableOnDiagnostics(params, token));
 		connection.onDocumentFormatting(params => this.onDocumentFormatting(params));
+		connection.onDidCloseTextDocument(params => {this.workspace.logger.debug('[event] onDidCloseTextDocument'); this.workspace.logger.debug(JSON.stringify(params), 1);});
 
 		if (hasConfigurationCapability(this.configuration)) {
 			connection.onFoldingRanges(async (params, token) => await cancellableOnFoldingRanges(params, token));
@@ -302,20 +290,27 @@ class WorkspaceEvents {
 	/** Connection event handlers */
 
 	private onCompletion(params: CompletionParams): never[] {
+		this.workspace.logger.debug('[event] onCompletion');
+		this.workspace.logger.debug(JSON.stringify(params), 1);
 		return [];
 	}
 
 	private onCompletionResolve(item: CompletionItem): CompletionItem {
+		this.workspace.logger.debug('[event] onCompletionResolve');
+		this.workspace.logger.debug(JSON.stringify(item), 1);
 		return item;
 	}
 
 	private onDidChangeWatchedFiles(params: DidChangeWatchedFilesParams) {
+		this.workspace.logger.debug('[event] onDidChangeWatchedFiles');
+		this.workspace.logger.debug(JSON.stringify(params), 1);
 		return;
 	}
 
 	// TODO: Should trigger a full workspace refresh.
 	private onDidChangeWorkspaceFolders(e: WorkspaceFoldersChangeEvent) {
-		this.workspace.logger.debug(`Workspace folder change event received.\n${e}`);
+		this.workspace.logger.debug('[event] onDidChangeWorkspaceFolders');
+		this.workspace.logger.debug(JSON.stringify(e), 1);
 	}
 
 	private async onDocumentSymbolAsync(params: DocumentSymbolParams, token: CancellationToken): Promise<SymbolInformation[]> {
@@ -347,7 +342,8 @@ class WorkspaceEvents {
 	}
 
 	private onHover(params: HoverParams): Hover {
-		this.workspace.logger.debug(`onHover`);
+		this.workspace.logger.debug('[event] onHover');
+		this.workspace.logger.debug(JSON.stringify(params), 1);
 		return { contents: '' };
 	}
 
@@ -366,10 +362,10 @@ class WorkspaceEvents {
 	}
 
 	private async onDocumentFormatting(params: DocumentFormattingParams): Promise<TextEdit[]> {
+		this.workspace.logger.debug('[event] onDocumentFormatting');
+		this.workspace.logger.debug(JSON.stringify(params), 1);
 		const doc = this.documents.get(params.textDocument.uri);
 		if (!doc) return [];
-		// const infoMsg = `onDocumentFormatting called: ${params.textDocument.uri}\n${doc?.getText({start: {line: 4, character: 0}, end: {line: 4, character: 100}}) ?? "NO DOC!"}`
-		// this.workspace.connection.window.showInformationMessage(`onDocumentFormatting called: ${infoMsg}`)
 		const parseResult = await this.workspace.formatParseDocument(doc);
 
 		return parseResult ? getFormattingEdits(doc, parseResult) : [];
@@ -382,6 +378,10 @@ class WorkspaceEvents {
 	 * @param doc The document that changed.
 	 */
 	async onDidOpenTextDocumentAsync(params: DidOpenTextDocumentParams) {
+		this.workspace.logger.debug('[event] onDidOpenTextDocumentAsync');
+		this.workspace.logger.debug(`uri: ${params.textDocument.uri}`, 1);
+		this.workspace.logger.debug(`languageId: ${params.textDocument.languageId}`, 1);
+		this.workspace.logger.debug(`version: ${params.textDocument.version}`, 1);
 		await this.handleChangeOrOpenAsync(TextDocument.create(
 			params.textDocument.uri,
 			params.textDocument.languageId,
@@ -391,6 +391,10 @@ class WorkspaceEvents {
 	}
 
 	async onDidChangeContentAsync(document: TextDocument) {
+		this.workspace.logger.debug('[event] onDidChangeContentAsync');
+		this.workspace.logger.debug(`uri: ${document.uri}`, 1);
+		this.workspace.logger.debug(`languageId: ${document.languageId}`, 1);
+		this.workspace.logger.debug(`version: ${document.version}`, 1);
 		await this.handleChangeOrOpenAsync(document);
 	}
 
