@@ -6,7 +6,7 @@
 	"icon": "images/vba-lsp-icon.png",
 	"author": "SSlinky",
 	"license": "MIT",
-	"version": "1.5.2",
+	"version": "1.5.3",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/SSlinky/VBA-LanguageServer"
