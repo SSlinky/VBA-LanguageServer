@@ -428,6 +428,13 @@ class WorkspaceEvents {
 	}
 
 	protected async handleChangeOrOpenAsync(document: TextDocument) {
+		// If the event is fired for the same version of the document, don't reparse.
+		const currentDocument = this.parsedDocuments.get(document.uri);
+		if (!!currentDocument && currentDocument.textDocument.version >= document.version) {
+			this.workspace.logger.debug('Document already parsed.');
+			return;
+		}
+
 		const doc = BaseProjectDocument.create(this.workspace, document);
 		this.parsedDocuments.set(document.uri, doc);
 		this.activeDocument = doc;
