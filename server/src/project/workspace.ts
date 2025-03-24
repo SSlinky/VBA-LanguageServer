@@ -225,38 +225,6 @@ class WorkspaceEvents {
 		this.documents.listen(params.connection);
 	}
 
-	/**
-	 * 
-	 * @param version the target document version (zero for any version).
-	 * @param token the cancellation token.
-	 * @returns the document when it is ready or undefined.
-	 */
-	private async activeParsedDocument(version: number, token: CancellationToken): Promise<BaseProjectDocument|undefined> {
-		let document: BaseProjectDocument | undefined;
-		document = this.activeDocument;
-		
-		// Sleep between attempting to grab the document.
-		// Loop while we have undefined or an earlier version.
-		while (!document || document.textDocument.version < version) {
-			if (token.isCancellationRequested) {
-				return;
-			}
-			await sleep(5);
-			document = this.activeDocument;
-		}
-
-		// Return if the version somehow outpaced us.
-		if (version > 0 && document.textDocument.version != version) {
-			return;
-		}
-
-		// Return the parsed document.
-		while (document.isBusy) {
-			await sleep(5);
-		}
-		return document;
-	}
-
 	private async getParsedDocument(uri: string, version: number, token: CancellationToken): Promise<BaseProjectDocument|undefined> {
 		// Handle token cancellation.
 		if (token.isCancellationRequested) { throw new Error("Request cancelled before start."); }
@@ -351,13 +319,12 @@ class WorkspaceEvents {
 	}
 
 	private async onDocumentSymbolAsync(params: DocumentSymbolParams, token: CancellationToken): Promise<SymbolInformation[]> {
-		const document = await this.activeParsedDocument(0, token);
+		const document = await this.getParsedDocument(params.textDocument.uri, 0, token);
 		return document?.languageServerSymbolInformation() ?? [];
 	}
 
 	private async onDiagnosticAsync(params: DocumentDiagnosticParams, token: CancellationToken): Promise<DocumentDiagnosticReport> {
-		// const document = await this.withTimeout(this.activeParsedDocument(0, token), 10000).catch(() => null);
-		const document = await this.activeParsedDocument(0, token);
+		const document = await this.getParsedDocument(params.textDocument.uri, 0, token);
 		return document?.languageServerDiagnostics() ?? {
 			kind: DocumentDiagnosticReportKind.Full,
 			items: []
