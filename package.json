@@ -50,6 +50,18 @@
 			"type": "object",
 			"title": "VBA Pro",
 			"properties": {
+				"vbaLanguageServer.logLevel.outputChannel": {
+					"scope": "resource",
+					"type": "string",
+					"enum": [
+						"Debug",
+						"Info",
+						"Warn",
+						"Error"
+					],
+					"default": "Info",
+					"description": "Sets the logging level for the output channel."
+				},
 				"vbaLanguageServer.maxDocumentLines": {
 					"scope": "resource",
 					"type": "number",

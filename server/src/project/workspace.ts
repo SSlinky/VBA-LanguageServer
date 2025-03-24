@@ -58,13 +58,15 @@ export class Workspace {
 	private nsManager: NamespaceManager = new NamespaceManager();
 	private documents: BaseProjectDocument[] = [];
 	private parseCancellationTokenSource?: CancellationTokenSource;
+	private isActivated: boolean = false;
 
 	private _activeDocument?: BaseProjectDocument;
 	private readonly _hasConfigurationCapability: boolean;
 	private _extensionConfiguration?: ExtensionConfiguration;
 
+	readonly connection: _Connection;
 	logger: LspLogger;
-
+	
 	get hasConfigurationCapability() {
 		return this._hasConfigurationCapability;
 	}
@@ -79,6 +81,7 @@ export class Workspace {
 	}
 
 	get activeDocument() {
+		this.workspaceActivation();
 		return this._activeDocument;
 	}
 
@@ -88,13 +91,13 @@ export class Workspace {
 
 	constructor(params: {connection: _Connection, capabilities: LanguageServerConfiguration}) {
 		this.connection = params.connection;
-		this.logger = new LspLogger(this.connection);
 		this._hasConfigurationCapability = hasConfigurationCapability(params.capabilities);
 		this.events = new WorkspaceEvents({
 			workspace: this,
 			connection: params.connection,
 			configuration: params.capabilities,
 		});
+		this.logger = new LspLogger(this);
 	}
 
 	activateDocument(document?: BaseProjectDocument) {
