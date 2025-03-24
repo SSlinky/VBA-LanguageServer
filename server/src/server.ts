@@ -15,6 +15,7 @@ import {
 // Ensures globally available type extensions.
 import './extensions/stringExtensions';
 import './extensions/parserExtensions';
+import './extensions/numberExtensions';
 import { Workspace } from './project/workspace';
 import { activateSemanticTokenProvider } from './capabilities/semanticTokens';
 import { activateWorkspaceFolderCapability } from './capabilities/workspaceFolder';
