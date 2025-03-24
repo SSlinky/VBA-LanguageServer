@@ -11,6 +11,7 @@ import {
 	DocumentDiagnosticParams,
 	DocumentDiagnosticReport,
 	DocumentDiagnosticReportKind,
+	DocumentFormattingParams,
 	DocumentSymbolParams,
 	FoldingRange,
 	FoldingRangeParams,
@@ -19,6 +20,7 @@ import {
 	SemanticTokensRangeParams,
 	SymbolInformation,
 	TextDocuments,
+	TextEdit,
 	WorkspaceFoldersChangeEvent,
 	_Connection
 } from 'vscode-languageserver';
@@ -28,6 +30,11 @@ import { LanguageServerConfiguration } from '../server';
 import { hasConfigurationCapability } from '../capabilities/workspaceFolder';
 import { sleep } from '../utils/helpers';
 import { NamespaceManager } from './scope';
+import { ParseCancellationException } from 'antlr4ng';
+import { getFormattingEdits } from './formatter';
+import { VbaFmtListener } from './parser/vbaListener';
+import { LspLogger } from '../utils/logger';
+import { returnDefaultOnCancelClientRequest } from '../utils/wrappers';
 
 
 /**
@@ -41,6 +48,8 @@ export class Workspace {
 
 	private _activeDocument?: BaseProjectDocument;
 	private readonly _hasConfigurationCapability: boolean;
+
+	logger: LspLogger;
 
 	get hasConfigurationCapability() {
 		return this._hasConfigurationCapability;
@@ -58,6 +67,7 @@ export class Workspace {
 
 	constructor(params: {connection: _Connection, capabilities: LanguageServerConfiguration}) {
 		this.connection = params.connection;
+		this.logger = new LspLogger(this.connection);
 		this._hasConfigurationCapability = hasConfigurationCapability(params.capabilities);
 		this.events = new WorkspaceEvents({
 			workspace: this,
@@ -77,14 +87,47 @@ export class Workspace {
 		this.parseCancellationTokenSource?.cancel();
 		this.parseCancellationTokenSource = new CancellationTokenSource();
 
+		if (!this.activeDocument) {
+			this.logger.error('No active document.');
+			return;
+		}
+		
 		// Exceptions thrown by the parser should be ignored.
 		try {
-			await this.activeDocument?.parseAsync(this.parseCancellationTokenSource.token);
-		} catch (error) {
-			this.connection.console.log(`Parser error: ${error}`)
+			await this.activeDocument.parseAsync(this.parseCancellationTokenSource.token);
+			this.logger.info(`Parsed ${this.activeDocument.name}`);
+		} catch (e) {
+			// Swallow cancellation exceptions. They're good. We like these.
+			if (e instanceof ParseCancellationException) { }
+			else if (e instanceof Error) { this.logger.stack(e); }
+			else { this.logger.error('Something went wrong.')}
 		}
 
 		this.parseCancellationTokenSource = undefined;
+	}
+
+	async formatParseDocument(document: TextDocument): Promise<VbaFmtListener | undefined> {
+		this.parseCancellationTokenSource?.cancel();
+		this.parseCancellationTokenSource = new CancellationTokenSource();
+
+		// Exceptions thrown by the parser should be ignored.
+		let result: VbaFmtListener | undefined;
+		try {
+			result = await this.activeDocument?.formatParseAsync(this.parseCancellationTokenSource.token);
+			this.logger.info(`Formatted ${document.uri}`);
+		}
+		catch (e) {
+			if (e instanceof ParseCancellationException) {
+				this.logger.debug('Parse cancelled successfully.')
+			} else if (e instanceof Error) {
+				this.logger.stack(e);
+			} else {
+				this.logger.error(`Parse failed: ${e}`)
+			}
+		}
+
+		this.parseCancellationTokenSource = undefined;
+		return result;
 	}
 
 	/**
@@ -197,18 +240,31 @@ class WorkspaceEvents {
 	}
 
 	private initialiseConnectionEvents(connection: _Connection) {
+		const cancellableOnDocSymbol = returnDefaultOnCancelClientRequest(
+			(p: DocumentSymbolParams, t) => this.onDocumentSymbolAsync(p, t), [], this.workspace.logger, 'Document Symbols');
+
+		const cancellableOnDiagnostics = returnDefaultOnCancelClientRequest(
+			(p: DocumentDiagnosticParams, t) => this.onDiagnosticAsync(p, t),
+			{kind: DocumentDiagnosticReportKind.Full, items: []},
+			this.workspace.logger,
+			'Diagnostics');
+		
+		const cancellableOnFoldingRanges = returnDefaultOnCancelClientRequest(
+			(p: FoldingRangeParams, t) => this.onFoldingRangesAsync(p, t), [], this.workspace.logger, 'Folding Range')
+
 		connection.onInitialized(() => this.onInitialized());
 		connection.onDidOpenTextDocument(params => this.onDidOpenTextDocumentAsync(params));
 		connection.onCompletion(params => this.onCompletion(params));
 		connection.onCompletionResolve(item => this.onCompletionResolve(item));
 		connection.onDidChangeConfiguration(_ => this.workspace.clearDocumentsConfiguration());
 		connection.onDidChangeWatchedFiles(params => this.onDidChangeWatchedFiles(params));
-		connection.onDocumentSymbol(async (params, token) => await this.onDocumentSymbolAsync(params, token));
+		connection.onDocumentSymbol(async (params, token) => await cancellableOnDocSymbol(params, token));
 		connection.onHover(params => this.onHover(params));
-		connection.languages.diagnostics.on(async (params, token) => await this.onDiagnosticAsync(params, token));
+		connection.languages.diagnostics.on(async (params, token) => await cancellableOnDiagnostics(params, token));
+		connection.onDocumentFormatting(params => this.onDocumentFormatting(params));
 
 		if (hasConfigurationCapability(this.configuration)) {
-			connection.onFoldingRanges(async (params, token) => this.onFoldingRangesAsync(params, token));
+			connection.onFoldingRanges(async (params, token) => await cancellableOnFoldingRanges(params, token));
 		}
 
 		connection.onRequest((method: string, params: object | object[] | any) => {
@@ -221,7 +277,7 @@ class WorkspaceEvents {
 					return this.activeDocument?.languageServerSemanticTokens(rangeParams.range);
 				}
 				default:
-					console.error(`Unresolved request path: ${method}`);
+					this.workspace.logger.error(`Unresolved request path: ${method}`);
 			}
 		});
 	}
@@ -246,7 +302,7 @@ class WorkspaceEvents {
 
 	// TODO: Should trigger a full workspace refresh.
 	private onDidChangeWorkspaceFolders(e: WorkspaceFoldersChangeEvent) {
-		this.workspace.connection.console.log(`Workspace folder change event received.\n${e}`);
+		this.workspace.logger.debug(`Workspace folder change event received.\n${e}`);
 	}
 
 	private async onDocumentSymbolAsync(params: DocumentSymbolParams, token: CancellationToken): Promise<SymbolInformation[]> {
@@ -255,6 +311,7 @@ class WorkspaceEvents {
 	}
 
 	private async onDiagnosticAsync(params: DocumentDiagnosticParams, token: CancellationToken): Promise<DocumentDiagnosticReport> {
+		// const document = await this.withTimeout(this.activeParsedDocument(0, token), 10000).catch(() => null);
 		const document = await this.activeParsedDocument(0, token);
 		return document?.languageServerDiagnostics() ?? {
 			kind: DocumentDiagnosticReportKind.Full,
@@ -263,13 +320,22 @@ class WorkspaceEvents {
 	}
 
 	private async onFoldingRangesAsync(params: FoldingRangeParams, token: CancellationToken): Promise<FoldingRange[]> {
-		const document = await this.getParsedDocument(params.textDocument.uri, 0, token);
+		let document: BaseProjectDocument | undefined;
+		try {
+			document = await this.getParsedDocument(params.textDocument.uri, 0, token);
+		} catch (error) {
+			// Swallow parser cancellations and rethrow anything else.
+			if (!!(error instanceof ParseCancellationException)) {
+				throw error;
+			}
+			// this.workspace.connection.window.showInformationMessage(`Parser error: ${error}`);
+		}
 		const result = document?.languageServerFoldingRanges();
 		return result ?? [];
 	}
 
 	private onHover(params: HoverParams): Hover {
-		console.debug(`onHover`);
+		this.workspace.logger.debug(`onHover`);
 		return { contents: '' };
 	}
 
@@ -285,6 +351,16 @@ class WorkspaceEvents {
 			);
 			connection.client.register(DidChangeConfigurationNotification.type, undefined);
 		}
+	}
+
+	private async onDocumentFormatting(params: DocumentFormattingParams): Promise<TextEdit[]> {
+		const doc = this.documents.get(params.textDocument.uri);
+		if (!doc) return [];
+		// const infoMsg = `onDocumentFormatting called: ${params.textDocument.uri}\n${doc?.getText({start: {line: 4, character: 0}, end: {line: 4, character: 100}}) ?? "NO DOC!"}`
+		// this.workspace.connection.window.showInformationMessage(`onDocumentFormatting called: ${infoMsg}`)
+		const parseResult = await this.workspace.formatParseDocument(doc);
+
+		return parseResult ? getFormattingEdits(doc, parseResult) : [];
 	}
 
 	/** Documents event handlers */

@@ -19,42 +19,39 @@ import { DiagnosticCapability, IdentifierCapability, SymbolInformationCapability
 
 abstract class BaseProcedureElement<T extends ParserRuleContext> extends BaseContextSyntaxElement<T> implements HasDiagnosticCapability, HasSymbolInformationCapability {
 	diagnosticCapability: DiagnosticCapability;
+	symbolInformationCapability: SymbolInformationCapability;
 	abstract identifierCapability: IdentifierCapability;
-	abstract symbolInformationCapability: SymbolInformationCapability;
 
-	constructor(ctx: T, doc: TextDocument) {
+	constructor(ctx: T, doc: TextDocument, symbolKind: SymbolKind) {
 		super(ctx, doc);
 		this.diagnosticCapability = new DiagnosticCapability(this);
+		this.symbolInformationCapability = new SymbolInformationCapability(this, symbolKind);
 	}
 }
 
 
 export class SubDeclarationElement extends BaseProcedureElement<SubroutineDeclarationContext> {
 	identifierCapability: IdentifierCapability;
-	symbolInformationCapability: SymbolInformationCapability;
 
 	constructor(ctx: SubroutineDeclarationContext, doc: TextDocument) {
-		super(ctx, doc);
+		super(ctx, doc, SymbolKind.Method);
 		this.identifierCapability = new IdentifierCapability({
 			element: this,
 			getNameContext: () => ctx.subroutineName()?.ambiguousIdentifier(),
 		});
-		this.symbolInformationCapability = new SymbolInformationCapability(this, SymbolKind.Method);
 	}
 }
 
 
 export class FunctionDeclarationElement extends BaseProcedureElement<FunctionDeclarationContext> {
 	identifierCapability: IdentifierCapability;
-	symbolInformationCapability: SymbolInformationCapability;
 
 	constructor(ctx: FunctionDeclarationContext, doc: TextDocument) {
-		super(ctx, doc);
+		super(ctx, doc, SymbolKind.Method);
 		this.identifierCapability = new IdentifierCapability({
 			element: this,
 			getNameContext: () => ctx.functionName()?.ambiguousIdentifier(),
 		});
-		this.symbolInformationCapability = new SymbolInformationCapability(this, SymbolKind.Method);
 	}
 }
 
@@ -81,7 +78,6 @@ export class PropertyDeclarationElement {
  */
 abstract class BasePropertyDeclarationElement<T extends ParserRuleContext> extends BaseProcedureElement<T> {
 	identifierCapability: IdentifierCapability;
-	symbolInformationCapability: SymbolInformationCapability;
 
 	private propertyType: string;
 	private nameContext?: AmbiguousIdentifierContext;
@@ -89,10 +85,9 @@ abstract class BasePropertyDeclarationElement<T extends ParserRuleContext> exten
 	get propertyName(): string { return `${this.identifierCapability.name.split(' ')[1]}`; }
 
 	constructor(ctx: T, doc: TextDocument, propertyType: string, nameCtx?: AmbiguousIdentifierContext) {
-		super(ctx, doc);
+		super(ctx, doc, SymbolKind.Property);
 		this.nameContext = nameCtx;
 		this.propertyType = propertyType;
-		this.symbolInformationCapability = new SymbolInformationCapability(this, SymbolKind.Property);
 		this.identifierCapability = new IdentifierCapability({
 			element: this,
 			getNameContext: () => this.nameContext,

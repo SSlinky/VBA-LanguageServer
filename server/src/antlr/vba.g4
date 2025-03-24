@@ -22,7 +22,7 @@ startRule
 
 // Added form file entry
 module
-    : endOfLineNoWs* (
+    : (endOfLine | endOfLineNoWs)* (
           proceduralModule
         | classFileHeader classModule
         | formFileHeader classModule
@@ -68,7 +68,7 @@ beginPropertyBlock
 //---------------------------------------------------------------------------------------
 // 4.2 Modules
 proceduralModule
-    : proceduralModuleHeader endOfLineNoWs* proceduralModuleBody
+    : proceduralModuleHeader (endOfLine | endOfLineNoWs)* proceduralModuleBody
     ;
 classModule
     : classModuleHeader endOfLine* classModuleBody
@@ -464,7 +464,7 @@ functionType: AS wsc typeExpression wsc? arrayDesignator?;
 arrayDesignator: '(' wsc? ')';
 
 // 5.3.1.5 Parameter Lists
-procedureParameters: '(' wsc? parameterList? wsc? ')';
+procedureParameters: '(' wsc? parameterList? wscu? ')';
 propertyParameters: '(' wsc? (parameterList wsc? ',' wsc?)? valueParam wsc? ')';
 validParameterList
     : (positionalParameters wsc? ',' wsc? optionalParameters)
@@ -532,10 +532,10 @@ statementBlock
     : blockStatement+
     ;
 blockStatement
-    : endOfStatement* endOfLineNoWs statementLabelDefinition
+    : endOfStatement* (endOfLineNoWs | endOfLine) statementLabelDefinition
     | endOfStatement+ remStatement
     | statement
-    | endOfStatement* endOfLineNoWs attributeStatement
+    | endOfStatement* (endOfLineNoWs | endOfLine) attributeStatement
     ;
 statement
     : controlStatement
@@ -1197,6 +1197,14 @@ wsc: (WS | LINE_CONTINUATION)+;
 // known as EOL in MS-VBAL
 endOfLine
     : wsc? (NEWLINE | commentBody | remStatement) wsc?
+    ;
+unexpectedEndOfLine
+    : wsc? (NEWLINE | commentBody | remStatement) wsc?
+    ;
+// White space, continuation, unexpected ending.
+// TODO: Replace as many wsc with wscu and test.
+wscu
+    : (wsc | unexpectedEndOfLine)+
     ;
 // We usually don't care if a line of code begins with whitespace, and the parser rules are
 // cleaner if we lump that in with the EOL or EOS "token". However, for those cases where

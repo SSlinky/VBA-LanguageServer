@@ -76,7 +76,7 @@ suite('Should get diagnostics', () => {
 			{
 				message: 'The Do...Loop statement provides a more structured and flexible way to perform looping.',
 				range: toRange(10, 4, 10, 8),
-				severity: vscode.DiagnosticSeverity.Information,
+				severity: vscode.DiagnosticSeverity.Hint,
 				source: 'ex'
 			},
 			{
@@ -124,7 +124,7 @@ suite('Should get diagnostics', () => {
 			{
 				message: 'The Do...Loop statement provides a more structured and flexible way to perform looping.',
 				range: toRange(19, 4, 19, 8),
-				severity: vscode.DiagnosticSeverity.Information,
+				severity: vscode.DiagnosticSeverity.Hint,
 				source: 'ex'
 			},
 			{

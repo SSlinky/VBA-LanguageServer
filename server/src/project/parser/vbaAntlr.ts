@@ -5,6 +5,8 @@ import { vbaLexer } from '../../antlr/out/vbaLexer';
 import { vbaParser } from '../../antlr/out/vbaParser';
 import { vbapreLexer } from '../../antlr/out/vbapreLexer';
 import { vbapreParser } from '../../antlr/out/vbapreParser';
+import { vbafmtLexer } from '../../antlr/out/vbafmtLexer';
+import { vbafmtParser } from '../../antlr/out/vbafmtParser';
 
 
 export class VbaLexer extends vbaLexer {
@@ -53,6 +55,33 @@ export class VbaPreParser extends vbapreParser {
 	static create(document: string): VbaPreParser {
         const lexer = VbaPreLexer.create(document);
         const parser = new VbaPreParser(new CommonTokenStream(lexer));
+        parser.removeErrorListeners();
+        parser.errorHandler = new VbaErrorHandler();
+        return parser;
+	}
+}
+
+
+export class VbaFmtLexer extends vbafmtLexer {
+    constructor(input: CharStream) {
+        super(input);
+    }
+
+	static create(doc: string): VbaFmtLexer {
+		return new VbaFmtLexer(CharStream.fromString(doc))
+	}
+}
+
+
+export class VbaFmtParser extends vbafmtParser {
+	constructor(input: TokenStream) {
+		super(input);
+	}
+
+	static create(document: string): VbaFmtParser {
+        const lexer = VbaFmtLexer.create(document);
+        const tokens = new CommonTokenStream(lexer);
+        const parser = new VbaFmtParser(tokens);
         parser.removeErrorListeners();
         parser.errorHandler = new VbaErrorHandler();
         return parser;

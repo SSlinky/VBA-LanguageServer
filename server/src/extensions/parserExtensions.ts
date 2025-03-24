@@ -30,6 +30,7 @@ declare module 'antlr4ng' {
 		toRange(doc: TextDocument): Range;
       startIndex(): number;
       stopIndex(): number;
+      hasPositionOf(ctx: ParserRuleContext): boolean;
 	}
 
    interface TerminalNode {
@@ -118,6 +119,10 @@ ParserRuleContext.prototype.startIndex = function (): number {
 
 ParserRuleContext.prototype.stopIndex = function (): number {
    return this.stop?.stop ?? this.startIndex();
+}
+
+ParserRuleContext.prototype.hasPositionOf = function (ctx: ParserRuleContext): boolean {
+   return this.startIndex() === ctx.startIndex() && this.stopIndex() === ctx.stopIndex();
 }
 
 

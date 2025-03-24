@@ -26,6 +26,9 @@ patterns:
 # * Rules missing an end key will match to the end of the document (or capture - see tips).
 # * Similar to match/captures, you can pair begin/beginCaptures and end/endCaptures.
 # * Repository key is ignored and rules within are not accessible from anywhere.
+# * Patterns are tested after end. A begin and end that match the same thing immediately exits.
+#   Note that this is only relevant to lookarounds as matches will consume the text.
+# * An empty end key will not run any includes as it will always immediately exit.
 
 # --- Empty Rules ------------------------------------------------------------------------------
 # * Empty rules are used to organise rule flow with a patterns key, and optionally, repository.
@@ -35,7 +38,9 @@ patterns:
 
 # --- Tips and Tricks --------------------------------------------------------------------------
 # * It can be advantageous to match without consuming anything, e.g., multi-level begin/end
-#   rules. You can cascade ends with (?=.) to match anything without consuming.
+#   rules. You can cascade ends with (?=foo) to match anything without consuming. --NOTE--
+#   Recursive rules that "ride the kick" with lookarounds must always capture at the top level
+#   or the first exit condition will exit all levels of recursion.
 #   Similarly, you may wish to end at [':\n] but consuming will cause comments to fail.
 # * You can strategically consume content to skip it matching elsewhere, e.g., line continuation
 #   on a comment. Begin on ' and end on \n. If you consume the continuation _\s*\n then the
@@ -43,6 +48,7 @@ patterns:
 # * Begin/End rules run until ended or until they reach the end of their scope of operation.
 #   This means passing a capture group from (begin|end)?capture down to a begin/end will _always
 #   end at the end of the what was captured!_. This cannot be more than to the end of the line.
+# * An empty match key, i.e., begin/end/match will always "match".
 #
 #   "Put conventional logic aside and enjoy. Well... I say, 'enjoy.'"
 #       - Garth Marenghi
@@ -59,7 +65,6 @@ repository:
       - include: "#methodSignature"
       - include: "#enum"
       - include: "#struct"
-      - include: "#variableDeclarations"
       - include: "#main"
 
   continuations:
@@ -83,9 +88,8 @@ repository:
 
   main:
     patterns:
-      - include: "#declareFunctionSignature"
       - include: "#methodSignature"
-      - include: "#variableDeclarations"
+      - include: "#declaration"
       - include: "#block"
 
 
@@ -99,7 +103,7 @@ repository:
       - include: "#keywords"
       - include: "#kw-storageMe"
       - include: "#functionCall"
-      - include: "#objectModel"
+      # - include: "#objectModel"
       - include: "#subCall"
       - include: "#subCallNoArgs"
       - name: keyword.control.line-separator.vba
@@ -135,6 +139,7 @@ repository:
       - include: "#opsArithmetic"
       - include: "#opsComparison"
       - include: "#opsConcatenation"
+      - include: "#opsRange"
       - include: "#opsLogical"
       - include: "#opsOther"
     repository:
@@ -144,6 +149,9 @@ repository:
       opsComparison:
         name: keyword.operator.comparison.vba
         match: (?i)([<>=]|\b(is|like)\b)
+      opsRange:
+        name: keyword.operator.range.vba
+        match: (?i)\bto\b
       opsConcatenation:
         name: keyword.operator.concatenation.vba
         match: (?i)[&+]
@@ -151,7 +159,7 @@ repository:
         name: keyword.operator.logical.vba
         match: (?i)\b(and|eqv|imp|not|or|xor)\b
       opsOther:
-        name: keyword.operator.concatenation.vba
+        name: keyword.operator.other.vba
         match: (?i)\b(addressof|typeof)\b
 
   keywords:
@@ -180,32 +188,82 @@ repository:
           - include: "#inlineIfElse"
           - include: "#inlineIf"
           - include: "#blockIf"
-          - include: "#blockIfEnd"
           - include: "#forEachLoop"
           - include: "#flowLoop"
           - include: "#flowCall"
           - include: "#methodClose"
           - include: "#flowPauseExit"
           - include: "#flowBranch"
+          - include: "#flowSwitch"
         repository:
           blockIf:
-            name: meta.flow.block-if-else.vba
-            match: (?i)(?:^|\s+)((?:[#]?else\s+)?[#]?if)(.*?)(then)
-            captures:
+            name: meta.block-if-else.vba
+            begin: (?i)(#?if)\s+(?=[^'\n])  # Look ahead to anything other than a comment.
+            end: (?i)#?if                   # Safe to assume this is not an open.
+            beginCaptures:
               1:
-                name: keyword.control.flow.block-decision.vba
-              2:
-                patterns:
-                  - include: "#expression"
-                  - include: "#functionCall"
-              3:
-                name: keyword.control.flow.block-decision.vba
-          blockIfEnd:
-            name: meta.flow.block-if-else.vba
-            match: (?i)([#]?end\s+if)
-            captures:
+                name: keyword.control.block-if.open.vba
+            endCaptures:
+              0:
+                name: keyword.control.block-if.close.vba
+            patterns:
+              - include: "#blockIfOpen"
+
+          blockIfOpen:
+            name: meta.block-if.condition.vba
+            begin:
+            end: (?i)(?=if)
+            patterns:
+              - include: "#lineContinuation"
+              - include: "#blockIfThen"
+              - include: "#expression"
+
+          blockIfThen:
+            name: meta.block-if.then.vba
+            begin: (?i)then
+            end: (?i)(?=if(?:\s*)['\n])
+            beginCaptures:
+              0:
+                name: keyword.control.block-if.open.vba
+            patterns:
+              - include: "#lineContinuation"
+              - include: "#blockElseIfOpen"
+              - include: "#blockEndIf"
+              - include: "#blockElse"
+              - include: "#main"
+          
+          blockElseIfOpen:
+            name: meta.block-if-else-if.vba
+            begin: (?i)(#?else)\s+(?=(if|_))
+            end: (?i)(?=if(?:\s*)['\n])
+            beginCaptures:
               1:
-                name: keyword.control.flow.block-decision.vba
+                name: keyword.control.block-if.open.vba
+            patterns:
+              - include: "#lineContinuation"
+              - include: "#blockElseIf"
+
+          blockElseIf:
+            begin: (?i)(if)\s+(?=[^'\n])
+            end: (?i)(?=if(?:\s*)['\n])
+            beginCaptures:
+              1:
+                name: keyword.control.block-if.open.vba
+            patterns:
+              - include: "#blockIfOpen"
+
+          blockElse:
+            name: keyword.control.block-if.else.vba
+            match: (?i)#?else
+
+          blockEndIf:
+            begin: (?i)(#?end)\s+(?=(if|_))
+            end: (?i)(?=if(?:\s*)['\n])
+            beginCaptures:
+              1:
+                name: keyword.control.block-if.close.vba
+            patterns:
+              - include: "#lineContinuation"
 
           flowLoop:
             name: keyword.control.flow.loop.vba
@@ -226,7 +284,7 @@ repository:
           
           inlineIfElse:
             name: meta.flow.inline-if-else.vba
-            match: (?i)\s*((?:else)?if)\s+(.*?)\s+(then)\s+(.*)\s+(else)\s+([^'\n]*)
+            match: (?i)\s*((?:else\s+)?if)\s+(.*?)\s+(then)\s+(.*)\s+(else)\s+([^'\n]*)
             captures:
               1:
                 name: keyword.control.flow.decision.vba
@@ -238,14 +296,18 @@ repository:
                 name: keyword.control.flow.decision.vba
               4:
                 patterns:
+                  - include: "#inlineIfElse"
+                  - include: "#inlineIf"
+                  - include: "#valueAssignment"
+                  - include: "#language"
                   - include: "#expression"
                   - include: "#functionCall"
               5:
                 name: keyword.control.flow.decision.vba
               6:
                 patterns:
-                  - include: "#expression"
-                  - include: "#functionCall"
+                  - include: "#valueAssignment"
+                  - include: "#language"
           
           inlineIf:
             name: meta.flow.inline-if.vba
@@ -259,6 +321,12 @@ repository:
                   - include: "#functionCall"
               3:
                 name: keyword.control.flow.decision.vba
+              4:
+                patterns:
+                  - include: "#inlineIfElse"
+                  - include: "#inlineIf"
+                  - include: "#valueAssignment"
+                  - include: "#language"
 
           flowCall:
             name: keyword.control.flow.call.vba
@@ -270,33 +338,71 @@ repository:
             
           flowBranch:
             patterns:
-              - include: "#flowBranchOnGos"
-              - include: "#flowBranchSimple"
+              - include: "#onErrorStatement"
+              - include: "#onExpressionGoStatement"
+              - include: "#goToGoSubReturnStatement"
             repository:
-              flowBranchOnGos:
-                match: "(?i)\\b(on\\s+error|on)\\s+(.*\\s+)?(goto|gosub)\\s+([a-z][a-z0-9_]*|\\d+)\\b(.*)"
+              onErrorStatement:
+                name: meta.onErrorStatement.vba
+                match: (?i)\b(on\s+error)\s+(?:(resume\s+next)|(goto)\s+([a-z0-9]+))
                 captures:
                   1:
-                    name: keyword.control.flow.branch.vba
+                    name: keyword.control.flow.jump.vba
                   2:
-                    patterns:
-                      - include: "#language"
+                    name: keyword.control.flow.jump.vba
                   3:
-                    name: keyword.control.flow.branch.vba
+                    name: keyword.control.flow.jump.vba
                   4:
-                    name: variable.other.constant.label.vba
-                  5:
                     patterns:
-                      - include: "#main"
+                      - include: "#literals"
+                      - match: .*
+                        name: variable.other.constant.label.vba
 
-              flowBranchSimple:
-                name: keyword.control.flow.branch.vba
-                match: "(?i)\\b(gosub|return|goto)(?:\\s+([a-z][a-z0-9_]*|\\d+))?\\b"
+              onExpressionGoStatement:
+                name: meta.onExpressionGoStatement.vba
+                begin: (?i)\b(on)\s+(.*?)(go(?:to|sub))
+                end: ([\n':])
+                beginCaptures:
+                  1:
+                    name: keyword.control.flow.jump.vba
+                  2:
+                    patterns: 
+                      - include: "#expression"
+                  3:
+                    name: keyword.control.flow.jump.vba
+                patterns:
+                  - include: "#separator"
+                  - include: "#literals"
+                  - match: (?i)([a-z][a-z0-9]*)
+                    name: variable.other.constant.label.vba
+              goToGoSubReturnStatement:
+                name: meta.goToGoSubReturnStatement.vba
+                match: (?i)\b(gosub|return|goto)(?:\s+([a-z][a-z0-9_]*|\d+))?\b
                 captures:
                   1:
-                    name: keyword.control.flow.branch.vba
+                    name: keyword.control.jump.vba
                   2:
-                    name: variable.other.constant.label.vba
+                    patterns:
+                      - include: "#literals"
+                      - match: .*
+                        name: variable.other.constant.label.vba
+
+          flowSwitch:
+            name: meta.flow.switch.vba
+            begin: (?i)(select\s+case\b)(.*)
+            end: (?i)end\s+select\b
+            beginCaptures:
+              1:
+                name: keyword.control.flow.switch.vba
+              2:
+                patterns:
+                  - include: "#expression"
+            endCaptures:
+              0:
+                name: keyword.control.flow.switch.vba
+            patterns:
+              - include: "#flowCase"
+              - include: "#language"
 
       kw-array:
         name: keyword.array.vba
@@ -327,6 +433,15 @@ repository:
             name: invalid.illegal.vba
             match: "^#.*"
 
+  flowCase:
+    begin: (?i)case(\s+else)?
+    end: (?=[\n:'])
+    beginCaptures:
+      0:
+        name: keyword.control.flow.switch.vba
+    patterns:
+      - include: "#expressionList"
+
   labels:
     # name: variable.other.constant.label.vba
     match: '(?i)^(\s*[a-z][a-z0-9_]*|\d+):'
@@ -346,57 +461,57 @@ repository:
         match: (?i)(vbNewLine|vbCr|vbLf|vbCrLf)
         name: constant.numeric.enum.vba
 
-  objectModel:
-    patterns:
-      - include: "#application"
-      - include: "#objects"
-    repository:
-      application:
-        patterns:
-          - include: "#objectModelApplicationMethods"
-          - include: "#objectModelApplicationProperties"
-          - include: "#objectModelApplicationUnknown"
-        repository:
-          objectModelApplicationMethods:
-            match: "(?i)\\b(application)(\\.(ActivateMicrosoftApp|AddCustomList|Calculate|CalculateFull|CalculateFullRebuild|CalculateUntilAsyncQueriesDone|CentimetersToPoints|CheckAbort|CheckSpelling|ConvertFormula|DDEExecute|DDEInitiate|DDEPoke|DDERequest|DDETerminate|DeleteCustomList|DisplayXMLSourcePane|DoubleClick|Evaluate|ExecuteExcel4Macro|FindFile|GetCustomListContents|GetCustomListNum|GetOpenFilename|GetPhonetic|GetSaveAsFilename|Goto|Help|InchesToPoints|InputBox|Intersect|MacroOptions|MailLogoff|MailLogon|NextLetter|OnKey|OnRepeat|OnTime|OnUndo|Quit|RecordMacro|RegisterXLL|Repeat|Run|SendKeys|SharePointVersion|Undo|Union|Volatile|Wait)\\b)"
-            captures:
-              1:
-                name: entity.name.type.vba
-              3:
-                name: entity.name.function.vba
+  # objectModel:
+  #   patterns:
+  #     - include: "#application"
+  #     - include: "#objects"
+  #   repository:
+  #     application:
+  #       patterns:
+  #         - include: "#objectModelApplicationMethods"
+  #         - include: "#objectModelApplicationProperties"
+  #         - include: "#objectModelApplicationUnknown"
+  #       repository:
+  #         objectModelApplicationMethods:
+  #           match: "(?i)\\b(application)(\\.(ActivateMicrosoftApp|AddCustomList|Calculate|CalculateFull|CalculateFullRebuild|CalculateUntilAsyncQueriesDone|CentimetersToPoints|CheckAbort|CheckSpelling|ConvertFormula|DDEExecute|DDEInitiate|DDEPoke|DDERequest|DDETerminate|DeleteCustomList|DisplayXMLSourcePane|DoubleClick|Evaluate|ExecuteExcel4Macro|FindFile|GetCustomListContents|GetCustomListNum|GetOpenFilename|GetPhonetic|GetSaveAsFilename|Goto|Help|InchesToPoints|InputBox|Intersect|MacroOptions|MailLogoff|MailLogon|NextLetter|OnKey|OnRepeat|OnTime|OnUndo|Quit|RecordMacro|RegisterXLL|Repeat|Run|SendKeys|SharePointVersion|Undo|Union|Volatile|Wait)\\b)"
+  #           captures:
+  #             1:
+  #               name: entity.name.type.vba
+  #             3:
+  #               name: entity.name.function.vba
                 
-          objectModelApplicationProperties:
-            match: "(?i)\\b(application)(\\.(ActiveCell|ActiveChart|ActiveEncryptionSession|ActivePrinter|ActiveProtectedViewWindow|ActiveSheet|ActiveWindow|ActiveWorkbook|AddIns|AddIns2|AlertBeforeOverwriting|AltStartupPath|AlwaysUseClearType|Application|ArbitraryXMLSupportAvailable|AskToUpdateLinks|Assistance|AutoCorrect|AutoFormatAsYouTypeReplaceHyperlinks|AutomationSecurity|AutoPercentEntry|AutoRecover|Build|CalculateBeforeSave|Calculation|CalculationInterruptKey|CalculationState|CalculationVersion|Caller|CanPlaySounds|CanRecordSounds|Caption|CellDragAndDrop|Cells|ChartDataPointTrack|Charts|ClipboardFormats|ClusterConnector|Columns|COMAddIns|CommandBars|CommandUnderlines|ConstrainNumeric|ControlCharacters|CopyObjectsWithCells|Creator|Cursor|CursorMovement|CustomListCount|CutCopyMode|DataEntryMode|DDEAppReturnCode|DecimalSeparator|DefaultFilePath|DefaultSaveFormat|DefaultSheetDirection|DefaultWebOptions|DeferAsyncQueries|Dialogs|DisplayAlerts|DisplayClipboardWindow|DisplayCommentIndicator|DisplayDocumentActionTaskPane|DisplayDocumentInformationPanel|DisplayExcel4Menus|DisplayFormulaAutoComplete|DisplayFormulaBar|DisplayFullScreen|DisplayFunctionToolTips|DisplayInsertOptions|DisplayNoteIndicator|DisplayPasteOptions|DisplayRecentFiles|DisplayScrollBars|DisplayStatusBar|EditDirectlyInCell|EnableAnimations|EnableAutoComplete|EnableCancelKey|EnableCheckFileExtensions|EnableEvents|EnableLargeOperationAlert|EnableLivePreview|EnableMacroAnimations|EnableSound|ErrorCheckingOptions|Excel4IntlMacroSheets|Excel4MacroSheets|ExtendList|FeatureInstall|FileConverters|FileDialog|FileExportConverters|FileValidation|FileValidationPivot|FindFormat|FixedDecimal|FixedDecimalPlaces|FlashFill|FlashFillMode|FormulaBarHeight|GenerateGetPivotData|GenerateTableRefs|Height|HighQualityModeForGraphics|Hinstance|HinstancePtr|Hwnd|IgnoreRemoteRequests|Interactive|International|IsSandboxed|Iteration|LanguageSettings|LargeOperationCellThousandCount|Left|LibraryPath|MailSession|MailSystem|MapPaperSize|MathCoprocessorAvailable|MaxChange|MaxIterations|MeasurementUnit|MergeInstances|MouseAvailable|MoveAfterReturn|MoveAfterReturnDirection|MultiThreadedCalculation|Name|Names|NetworkTemplatesPath|NewWorkbook|ODBCErrors|ODBCTimeout|OLEDBErrors|OnWindow|OperatingSystem|OrganizationName|Parent|Path|PathSeparator|PivotTableSelection|PreviousSelections|PrintCommunication|ProductCode|PromptForSummaryInfo|ProtectedViewWindows|QuickAnalysis|Range|Ready|RecentFiles|RecordRelative|ReferenceStyle|RegisteredFunctions|ReplaceFormat|RollZoom|Rows|RTD|ScreenUpdating|Selection|SensitivityLabelPolicy|Sheets|SheetsInNewWorkbook|ShowChartTipNames|ShowChartTipValues|ShowDevTools|ShowMenuFloaties|ShowQuickAnalysis|ShowSelectionFloaties|ShowStartupDialog|ShowToolTips|SmartArtColors|SmartArtLayouts|SmartArtQuickStyles|Speech|SpellingOptions|StandardFont|StandardFontSize|StartupPath|StatusBar|TemplatesPath|ThisCell|ThisWorkbook|ThousandsSeparator|Top|TransitionMenuKey|TransitionMenuKeyAction|TransitionNavigKeys|UsableHeight|UsableWidth|UseClusterConnector|UsedObjects|UserControl|UserLibraryPath|UserName|UseSystemSeparators|Value|VBE|Version|Visible|WarnOnFunctionNameConflict|Watches|Width|Windows|WindowsForPens|WindowState|Workbooks|WorksheetFunction|Worksheets)\\b)"
-            captures:
-              1:
-                name: entity.name.type.vba
-              3:
-                name: support.type.property-name.vba
+  #         objectModelApplicationProperties:
+  #           match: "(?i)\\b(application)(\\.(ActiveCell|ActiveChart|ActiveEncryptionSession|ActivePrinter|ActiveProtectedViewWindow|ActiveSheet|ActiveWindow|ActiveWorkbook|AddIns|AddIns2|AlertBeforeOverwriting|AltStartupPath|AlwaysUseClearType|Application|ArbitraryXMLSupportAvailable|AskToUpdateLinks|Assistance|AutoCorrect|AutoFormatAsYouTypeReplaceHyperlinks|AutomationSecurity|AutoPercentEntry|AutoRecover|Build|CalculateBeforeSave|Calculation|CalculationInterruptKey|CalculationState|CalculationVersion|Caller|CanPlaySounds|CanRecordSounds|Caption|CellDragAndDrop|Cells|ChartDataPointTrack|Charts|ClipboardFormats|ClusterConnector|Columns|COMAddIns|CommandBars|CommandUnderlines|ConstrainNumeric|ControlCharacters|CopyObjectsWithCells|Creator|Cursor|CursorMovement|CustomListCount|CutCopyMode|DataEntryMode|DDEAppReturnCode|DecimalSeparator|DefaultFilePath|DefaultSaveFormat|DefaultSheetDirection|DefaultWebOptions|DeferAsyncQueries|Dialogs|DisplayAlerts|DisplayClipboardWindow|DisplayCommentIndicator|DisplayDocumentActionTaskPane|DisplayDocumentInformationPanel|DisplayExcel4Menus|DisplayFormulaAutoComplete|DisplayFormulaBar|DisplayFullScreen|DisplayFunctionToolTips|DisplayInsertOptions|DisplayNoteIndicator|DisplayPasteOptions|DisplayRecentFiles|DisplayScrollBars|DisplayStatusBar|EditDirectlyInCell|EnableAnimations|EnableAutoComplete|EnableCancelKey|EnableCheckFileExtensions|EnableEvents|EnableLargeOperationAlert|EnableLivePreview|EnableMacroAnimations|EnableSound|ErrorCheckingOptions|Excel4IntlMacroSheets|Excel4MacroSheets|ExtendList|FeatureInstall|FileConverters|FileDialog|FileExportConverters|FileValidation|FileValidationPivot|FindFormat|FixedDecimal|FixedDecimalPlaces|FlashFill|FlashFillMode|FormulaBarHeight|GenerateGetPivotData|GenerateTableRefs|Height|HighQualityModeForGraphics|Hinstance|HinstancePtr|Hwnd|IgnoreRemoteRequests|Interactive|International|IsSandboxed|Iteration|LanguageSettings|LargeOperationCellThousandCount|Left|LibraryPath|MailSession|MailSystem|MapPaperSize|MathCoprocessorAvailable|MaxChange|MaxIterations|MeasurementUnit|MergeInstances|MouseAvailable|MoveAfterReturn|MoveAfterReturnDirection|MultiThreadedCalculation|Name|Names|NetworkTemplatesPath|NewWorkbook|ODBCErrors|ODBCTimeout|OLEDBErrors|OnWindow|OperatingSystem|OrganizationName|Parent|Path|PathSeparator|PivotTableSelection|PreviousSelections|PrintCommunication|ProductCode|PromptForSummaryInfo|ProtectedViewWindows|QuickAnalysis|Range|Ready|RecentFiles|RecordRelative|ReferenceStyle|RegisteredFunctions|ReplaceFormat|RollZoom|Rows|RTD|ScreenUpdating|Selection|SensitivityLabelPolicy|Sheets|SheetsInNewWorkbook|ShowChartTipNames|ShowChartTipValues|ShowDevTools|ShowMenuFloaties|ShowQuickAnalysis|ShowSelectionFloaties|ShowStartupDialog|ShowToolTips|SmartArtColors|SmartArtLayouts|SmartArtQuickStyles|Speech|SpellingOptions|StandardFont|StandardFontSize|StartupPath|StatusBar|TemplatesPath|ThisCell|ThisWorkbook|ThousandsSeparator|Top|TransitionMenuKey|TransitionMenuKeyAction|TransitionNavigKeys|UsableHeight|UsableWidth|UseClusterConnector|UsedObjects|UserControl|UserLibraryPath|UserName|UseSystemSeparators|Value|VBE|Version|Visible|WarnOnFunctionNameConflict|Watches|Width|Windows|WindowsForPens|WindowState|Workbooks|WorksheetFunction|Worksheets)\\b)"
+  #           captures:
+  #             1:
+  #               name: entity.name.type.vba
+  #             3:
+  #               name: support.type.property-name.vba
 
-          objectModelApplicationUnknown:
-            name: invalid.unimplemented.vba
-            match: "(?i)\\b(application)(\\.([a-z][a-z0-9_]*))"
+  #         objectModelApplicationUnknown:
+  #           name: invalid.unimplemented.vba
+  #           match: "(?i)\\b(application)(\\.([a-z][a-z0-9_]*))"
 
-      objects:
-        patterns:
-          - include: "#objectModelDebug"
-        repository:
-          objectModelDebug:
-            patterns:
-              - include: "#objectModelDebugValid"
-              - include: "#objectModelDebugInvalid"
-            repository:
-              objectModelDebugValid:
-                match: (?i)\b(debug)(\.(print|assert))
-                captures:
-                  1:
-                    name: entity.name.type.vba
-                  3:
-                    name: entity.name.function
+  #     objects:
+  #       patterns:
+        #   - include: "#objectModelDebug"
+        # repository:
+        #   objectModelDebug:
+        #     patterns:
+        #       - include: "#objectModelDebugValid"
+        #       - include: "#objectModelDebugInvalid"
+        #     repository:
+        #       objectModelDebugValid:
+        #         match: (?i)\b(debug)(\.(print|assert))
+        #         captures:
+        #           1:
+        #             name: entity.name.type.vba
+        #           3:
+        #             name: entity.name.function
 
-              objectModelDebugInvalid:
-                name: invalid.unimplemented.vba
-                match: (?i)\b(debug)(\.([a-z][a-z0-9_]*))
+        #       objectModelDebugInvalid:
+        #         name: invalid.unimplemented.vba
+        #         match: (?i)\b(debug)(\.([a-z][a-z0-9_]*))
 
   types:
     name: meta.variables.type.vba
@@ -411,6 +526,8 @@ repository:
         patterns:
           - include: "#AsTypePrimative"
           - include: "#AsTypeObject"
+          - name: punctuation.accessor.vba
+            match: '\.'
   AsTypePrimative:
     name: support.type.primitive.$1.vba
     match: (?i)(boolean|byte|currency|date|decimal|double|integer|long(long|ptr)?|single|string|variant)\b
@@ -459,7 +576,7 @@ repository:
     end: (?=[,):'\n])
     beginCaptures:
       0:
-        name: storage.type.modifier.vba
+        name: storage.modifier.$1.vba
     patterns:
       - include: "#argumentSignatureFromParam"
       - include: "#lineContinuation"
@@ -496,19 +613,29 @@ repository:
         patterns:
           - include: "#AsTypePrimative"
           - include: "#AsTypeObject"
+          - name: punctuation.accessor.vba
+            match: '\.'
     patterns:
-      - include: "#variableAssignment"
+      - include: "#valueAssignment"
       - include: "#lineContinuation"
 
   arguments:
     name: meta.arguments.vba
     begin: (\s+|\(\s*)
-    end: (?=[\n')])
+    end: (?=[:)'\n])
     patterns:
       - include: "#lineContinuation"
-      - include: "#functionCall"
       - include: "#separator"
       - include: "#expression"
+
+  argumentName:
+    name: meta.arg-name.vba
+    match: (?i)([a-z][a-z0-9_]*)?(:=)
+    captures:
+      1:
+        name: variable.parameter.name.vba
+      2:
+        name: punctuation.assignment.parameter.vba
 
   comments:
     patterns:
@@ -617,13 +744,12 @@ repository:
           - include: "#comments"
   
   enumMember:
-    match: (?i)^\s*([a-z][a-z0-9_]*)(?:\s+(=)\s+([^\n']*))?(\s+(?:'|Rem).*)?
+    match: (?i)^\s*([a-z][a-z0-9_]*)(?:\s*(=)\s*([^\n']*))?(\s*(?:'|Rem).*)?
     captures:
       1:
-        name: constant.numeric.enum.vba
+        name: variable.other.enummember.vba
       2:
-        patterns:
-          - include: "#operators"
+        name: keyword.operator.assignment.vba
       3:
         patterns:
           - include: "#language"
@@ -670,36 +796,6 @@ repository:
         patterns:
           - include: "#comments"
 
-  declareFunctionSignature:
-    name: source.declare.signature.vba
-    begin: (?i)^\s*((?:Public|Private|Friend)?\b\s*Declare)\s+(PtrSafe\s+)?(Sub|Function)\s+([a-z][a-z0-9_]*)\s+(Lib)\s+("[a-z][a-z0-9._]*")(?:\s+(Alias)\s+("[a-z][a-z0-9_]*"))?\s+\(
-    end: '(?i)(?:\))\s+(as\s+[a-z][a-z0-9_]*)'
-    beginCaptures:
-      1: # Public|Private|Friend Declare
-        name: storage.type.method.vba
-      2: # PtrSafe
-        name: storage.type.method.vba
-      3: # Sub|Function
-        name: storage.type.method.vba
-      4: # Name
-        name: entity.name.function.vba
-      5: # Lib
-        name: storage.type.method.vba
-      6: # Lib name
-        patterns:
-          - include: "#literals"
-      7: # Alias
-        name: storage.type.method.vba
-      8: # Alias name
-        patterns:
-          - include: "#literals"
-    endCaptures:
-      1: # return type
-        patterns:
-          - include: "#types"
-    patterns:
-      - include: "#argumentsSignature"
-
   methodSignature:
     name: source.method.signature.vba
     begin: (?i)^\s*((?:Public|Private)?\b\s*(?:(?:Sub|Function)|Property\s+(?:Let|Get|Set)))\s+([a-z][a-z0-9_]*)\s*(\()
@@ -735,15 +831,23 @@ repository:
 
   methodClose:
     name: storage.type.method.close.vba
-    match: (?i)End\s+(Sub|Function|Property)
+    match: (?i)End\s+(Sub|Function|Property)(?=$|\s)
+
+  expressionList:
+    begin:
+    end: (?=\n|\sThen|\)|'|:)
+    patterns:
+      - include: "#separator"
+      - include: "#expression"
 
   expression:
     # Begins and ends without consuming anything.
     name: meta.expression.vba
-    begin: (?=.)
-    end: (?=\n|\sThen|\)|'|,|:)
+    begin: (?i)(?!=\n|\sThen|\)|'|,|:|\s)
+    end: (?i)(?=\n|\sThen|\)|'|,|:)
     patterns:
       - include: "#literals"
+      - include: "#argumentName"
       - include: "#operators"
       - include: "#functionCall"
       - include: "#variable"
@@ -752,8 +856,8 @@ repository:
   block:
     patterns:
       - include: "#testing"
-      - include: "#variableDeclarations"
-      - include: "#variableAssignment"
+      - include: "#declaration"
+      - include: "#valueAssignment"
       - include: "#methodAttribute"
       - include: "#methodClose"
       - include: "#language"
@@ -773,70 +877,194 @@ repository:
     name: punctuation.separator.vba
     match: ','
 
-  variableDeclarations:
+  declaration:
     patterns:
-      - include: "#constDeclaration"
-      - include: "#variableDeclaration"
+      - include: "#variableDeclarationVisbility"
+      - include: "#variableDeclarationDim"
+      - include: "#variableDeclarationConst"
+      - include: "#methodDeclarationDeclare"
     repository:
-      variableDeclaration:
-        name: meta.variable.declaration.vba
-        begin: (?i)(global|public|private|dim\s+)(?!const)
+      variableDeclarationVisbility:
+        name: meta.declare.$1.vba
+        begin: (?i)(global|public|private)
         end: (?=[':\n])
         beginCaptures:
-          1:
-            name: storage.modifier.declare-variable.vba
+          0:
+            name: storage.modifier.visibility.vba
+        patterns:
+          - include: "#separator"
+          - include: "#lineContinuation"
+          - include: "#variableDeclarationConst"
+          - include: "#methodDeclarationDeclare"
+          - include: "#variableDeclarationVarName"
+
+      variableDeclarationDim:
+        name: meta.declare.variable.vba
+        begin: (?i)dim(?=\s)
+        end: (?=[':\n])
+        beginCaptures:
+          0:
+            name: storage.type.vba
+        patterns:
+          - include: "#separator"
+          - include: "#lineContinuation"
+          - include: "#variableDeclarationVarName"
+
+      variableDeclarationConst:
+        name: meta.declare.constant.vba
+        begin: (?i)const(?=\s)
+        end: (?=[':\n])
+        beginCaptures:
+          0:
+            name: storage.type.vba
+        patterns:
+          - include: "#separator"
+          - include: "#lineContinuation"
+          - include: "#variableDeclarationConstName"
+
+      variableDeclarationVarName:
+        begin: (?i)[a-z][a-z0-9_]*
+        end: (?=[':\n,])
+        beginCaptures:
+          0:
+            patterns:
+              - include: "#variable"
         patterns:
           - include: "#lineContinuation"
-          - include: "#separator"
-          - include: "#types"
-          - include: "#variable"
+          - include: "#variableDeclarationTypeAs"
+          - include: "#variableDeclarationArrayBounds"
 
-      constDeclaration:
-        name: meta.const.declaration.vba
-        begin: (?i)(?:(global|public|private)\s+)?(const)
+      variableDeclarationArrayBounds:
+        name: meta.declare.array-bounds.vba
+        begin: \(
+        end: \)
+        patterns:
+          - include: "#separator"
+          - include: "#expression"
+
+      variableDeclarationConstName:
+        begin: (?i)[a-z][a-z0-9_]*
+        end: (?=[':\n,])
+        beginCaptures:
+          0:
+            patterns:
+              - include: "#variable"
+        patterns:
+          - include: "#lineContinuation"
+          - include: "#variableDeclarationTypeAs"
+          - include: "#valueAssignment"
+
+      variableDeclarationTypeAs:
+        begin: (?i)\bas\b
+        end: (?=[,):'\n])
+        beginCaptures:
+          0:
+            patterns:
+              - include: "#keywords"
+        patterns:
+          - include: "#lineContinuation"
+          - include: "#variableDeclarationTypeNew"
+          - include: "#argumentSignatureFromTypeName"
+
+      variableDeclarationTypeNew:
+        begin: (?i)\bnew\b
+        end: (?=[,):'\n])
+        beginCaptures:
+          0:
+            name: keyword.storage.new.vba
+        patterns:
+          - include: "#lineContinuation"
+          - include: "#argumentSignatureFromTypeName"
+
+      methodDeclarationDeclare:
+        name: meta.declare.function.vba
+        begin: (?i)declare
         end: (?=[':\n])
         beginCaptures:
-          1:
-            name: storage.modifier.vba
-          2:
+          0:
             name: storage.type.vba
         patterns:
           - include: "#lineContinuation"
+          - include: "#methodDeclarationPtrsafe"
+          - include: "#methodDeclarationMethod"
+          - include: "#argumentSignatureFromTypeAs"
+
+      methodDeclarationPtrsafe:
+        begin: (?i)ptrsafe
+        end: (?=[)':\n])
+        beginCaptures:
+          0:
+            name: storage.modifier.ptrsafe.vba
+        patterns:
+          - include: "#lineContinuation"
+          - include: "#methodDeclarationMethod"
+
+      methodDeclarationMethod:
+        begin: (?i)sub|function
+        end: (?=[)':\n])
+        beginCaptures:
+          0:
+            name: storage.type.$0.vba
+        patterns:
+          - include: "#lineContinuation"
+          - include: "#methodDeclarationIdentifier"
+
+      methodDeclarationIdentifier:
+        begin: (?i)[a-z][a-z0-9_]*
+        end: (?=[)':\n])
+        beginCaptures:
+          0:
+            name: entity.name.function.vba
+        patterns:
+          - include: "#lineContinuation"
+          - include: "#methodDeclarationLib"
+
+      methodDeclarationLib:
+        begin: (?i)lib
+        end: (?=[)':\n])
+        beginCaptures:
+          0:
+            name: storage.type.dll.vba
+        patterns:
+          - include: "#lineContinuation"
+          - include: "#methodDeclarationLibIdentifier"
+
+      methodDeclarationLibIdentifier:
+        begin: (?i)"[a-z][a-z0-9._]*"(\s+\()?
+        end: (?=[)':\n])
+        beginCaptures:
+          0:
+            patterns:
+              - include: "#literals"
+        patterns:
           - include: "#separator"
-          - include: "#types"
-          - include: "#variable"
-          - match: (=)\s+([^,'_\n]*)
-            captures:
-              1:
-                name: keyword.operator.assignment.vba
-              2:
-                patterns:
-                  - include: "#literals"
+          - include: "#lineContinuation"
+          - include: "#methodDeclarationAlias"
+          - include: "#argumentsSignature"
 
+      methodDeclarationAlias:
+        begin: (?i)alias
+        end: (?=[)':\n])
+        beginCaptures:
+          0:
+            name: storage.type.dll.vba
+        patterns:
+          - include: "#lineContinuation"
+          - include: "#methodDeclarationAliasIdentifier"
 
-      constDeclaration2:
-        name: storage.const-declaration.vba
-        match: (?i)^\s*((?:(?:Public|Private)\s+)?Const)\s+([a-z][a-z0-9_]*)([&%#!@$^])?(\s+As\s+[a-z][a-z0-9_]*)?(.*)
-        captures:
-          1:
-            # Public|Private Const
-            name: storage.type.vba
-          2:
-            # CONSTNAME
-            name: variable.other.constant
-          3:
-            # Type hint?
-            name: support.type.primitive.vba
-          4:
-            # As Type
+      methodDeclarationAliasIdentifier:
+        begin: (?i)"[a-z][a-z0-9._]*"
+        end: (?=[)':\n])
+        beginCaptures:
+          0:
             patterns:
-              - include: "#types"
-          5:
-            # = "some value"
-            patterns:
-              - include: "#language"
+              - include: "#literals"
+        patterns:
+          - include: "#separator"
+          - include: "#lineContinuation"
+          - include: "#argumentsSignature"
 
-  variableAssignment:
+  valueAssignment:
     name: meta.variable-assignment.vba
     begin: (?i)(?:(Let|Set)\s+)?((?:[a-z][a-z0-9_]*)?(?:\.(?:(?:[a-z][a-z0-9_]*)?\.)*)?(?:[a-z][a-z0-9_]*)?)(\s*=\s*)
     end: (?=[',:)\n])
@@ -865,7 +1093,7 @@ repository:
 
   variable:
     name: meta.variable-or-property.vba
-    match: (?i)(?:(?:(Me)|([a-z][a-z0-9_]*)))((?:\.(?:[a-z][a-z0-9_]*))+)?
+    match: (?i)(?:(?:(\bMe\b)|([a-z][a-z0-9_]*)))((?:\.(?:[a-z][a-z0-9_]*))+)?
     captures:
       1:
         patterns:
@@ -904,7 +1132,7 @@ repository:
   subCall:
     name: meta.sub-call.vba
     begin: (?i)(?:([a-z][a-z0-9_]*)(?=\.))?(\.(?:(?:[a-z][a-z0-9_]*)?\.)*)?([a-z][a-z0-9_]*)\s*(?=\s[^,'\n])
-    end: (?=[\n'])
+    end: (?=[:'\n])
     beginCaptures:
       1:
         patterns:

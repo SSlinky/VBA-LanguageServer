@@ -32,7 +32,7 @@ export class MultipleOperatorsDiagnostic extends BaseDiagnostic {
 
 export class WhileWendDeprecatedDiagnostic extends BaseDiagnostic {
 	message = "The Do...Loop statement provides a more structured and flexible way to perform looping.";
-	severity = DiagnosticSeverity.Information;
+	severity = DiagnosticSeverity.Hint;
 	constructor(range: Range) {
 		super(Range.create(range.start, Position.create(range.start.line, range.start.character + 4)));
 	}
@@ -69,6 +69,25 @@ export class DuplicateDeclarationDiagnostic extends BaseDiagnostic {
 export class ShadowDeclarationDiagnostic extends BaseDiagnostic {
 	message = "Declaration is shadowed in the local scope.";
 	severity = DiagnosticSeverity.Error;
+	constructor(range: Range) {
+		super(range);
+	}
+}
+
+
+// test
+export class UnexpectedLineEndingDiagnostic extends BaseDiagnostic {
+	message = "Unexpected line ending.";
+	severity = DiagnosticSeverity.Error;
+	constructor(range: Range) {
+		super(range);
+	}
+}
+
+// test
+export class UnreachableCodeDiagnostic extends BaseDiagnostic {
+	severity = DiagnosticSeverity.Hint;
+	tags = [DiagnosticTag.Unnecessary];
 	constructor(range: Range) {
 		super(range);
 	}

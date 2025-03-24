@@ -6,7 +6,7 @@
 	"icon": "images/vba-lsp-icon.png",
 	"author": "SSlinky",
 	"license": "MIT",
-	"version": "1.4.8",
+	"version": "1.5.2",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/SSlinky/VBA-LanguageServer"
@@ -118,15 +118,17 @@
 		]
 	},
 	"scripts": {
-		"vscode:prepublish": "npm run antlr4ngPre && npm run antlr4ng && npm run textMate && npm run compile",
+		"vscode:prepublish": "npm run textMate && npm run antlr",
 		"compile": "tsc -b",
 		"watch": "tsc -b -w",
 		"lint": "eslint ./client/src ./server/src --ext .ts,.tsx",
 		"postinstall": "cd client && npm install && cd ../server && npm install && cd ..",
 		"textMate": "npx js-yaml client/src/syntaxes/vba.tmLanguage.yaml > client/out/vba.tmLanguage.json",
 		"devMate": "npx js-yaml client/src/syntaxes/dev.tmLanguage.yaml > client/out/vba.tmLanguage.json",
+		"antlr": "npm run antlr4ngPre && npm run antlr4ng && npm run antlr4ngFmt && npm run compile",
 		"antlr4ng": "antlr4ng -Dlanguage=TypeScript -visitor ./server/src/antlr/vba.g4 -o ./server/src/antlr/out/",
 		"antlr4ngPre": "antlr4ng -Dlanguage=TypeScript -visitor ./server/src/antlr/vbapre.g4 -o ./server/src/antlr/out/",
+		"antlr4ngFmt": "antlr4ng -Dlanguage=TypeScript -visitor ./server/src/antlr/vbafmt.g4 -o ./server/src/antlr/out/",
 		"test": "npm run tmSnapTest && npm run tmUnitTest && npm run vsctest",
 		"testsh": "sh ./scripts/e2e.sh",
 		"testps": "powershell ./scripts/e2e.ps1",

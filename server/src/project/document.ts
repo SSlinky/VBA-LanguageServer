@@ -3,7 +3,7 @@ import { Range, TextDocument } from 'vscode-languageserver-textdocument';
 import { CancellationToken, Diagnostic, DocumentDiagnosticReport, DocumentDiagnosticReportKind, SymbolInformation, SymbolKind } from 'vscode-languageserver';
 
 // Antlr
-import { ParseCancellationException, ParserRuleContext } from 'antlr4ng';
+import { ParserRuleContext } from 'antlr4ng';
 
 // Project
 import { Workspace } from './workspace';
@@ -25,6 +25,7 @@ import { PropertyDeclarationElement,
 	PropertyLetDeclarationElement,
 	PropertySetDeclarationElement
 } from './elements/procedure';
+import { VbaFmtListener } from './parser/vbaListener';
 
 
 export interface DocumentSettings {
@@ -152,32 +153,21 @@ export abstract class BaseProjectDocument {
 	languageServerDiagnostics(): DocumentDiagnosticReport {
 		return {
 			kind: DocumentDiagnosticReportKind.Full,
-			items: this.hasDiagnosticElements
-				.map((e) => e.diagnosticCapability.diagnostics).flat(1)
+			items: this.diagnostics
 		};
 	}
 
 	async parseAsync(token: CancellationToken): Promise<void> {
-		// Handle already cancelled.
-		if (token.isCancellationRequested) {
-			throw new ParseCancellationException(Error('Parse operation cancelled before it started.'));
-		}
-
-		// Listen for cancellation event.
-		token.onCancellationRequested(() => {
-			throw new ParseCancellationException(new Error('Parse operation cancelled during parse.'));
-		})
-
 		// Don't parse oversize documents.
 		if (await this.isOversize) {
-			console.log(`Document oversize: ${this.textDocument.lineCount} lines.`);
-            console.warn(`Syntax parsing has been disabled to prevent crashing.`);
+			this.workspace.logger.debug(`Document oversize: ${this.textDocument.lineCount} lines.`);
+            this.workspace.logger.warn(`Syntax parsing has been disabled to prevent crashing.`);
 			this._isBusy = false;
 			return;
 		}
 
 		// Parse the document.
-		await (new SyntaxParser()).parseAsync(this)
+		await (new SyntaxParser(this.workspace.logger)).parseAsync(token, this);
 
 		// Evaluate the diagnostics.
 		this.diagnostics = this.hasDiagnosticElements
@@ -186,6 +176,18 @@ export abstract class BaseProjectDocument {
 
 		this._isBusy = false;
 	};
+
+	async formatParseAsync(token: CancellationToken): Promise<VbaFmtListener | undefined> {
+		// Don't parse oversize documents.
+		if (await this.isOversize) {
+			this.workspace.logger.debug(`Document oversize: ${this.textDocument.lineCount} lines.`);
+            this.workspace.logger.warn(`Syntax parsing has been disabled to prevent crashing.`);
+			return;
+		}
+
+		// Parse the document.
+		return await (new SyntaxParser(this.workspace.logger)).formatParseAsync(token, this);
+	}
 
 	/**
 	 * Auto registers the element based on capabilities.
