@@ -1,5 +1,6 @@
 import { CancellationToken } from 'vscode-languageserver';
 import { LspLogger } from './logger';
+import { Logger } from '../injection/interface';
 
 type signature<T,A extends any[]> = (token: CancellationToken, ...args: A) => Promise<T|void>;
 type paramsSignature<T,P> = (params: P, token: CancellationToken) => Promise<T>;
@@ -9,7 +10,7 @@ type paramsSignature<T,P> = (params: P, token: CancellationToken) => Promise<T>;
  * @param fn An async function that requires cancellation token handling.
  * @param defaultValue The value to return when cancelled.
  */
-function returnDefaultOnCancel<T, A extends any[]>(fn: signature<T,A>, logger?: LspLogger, name?: string, defaultValue?: T, cancelError?: Error): signature<T,A> {
+function returnDefaultOnCancel<T, A extends any[]>(fn: signature<T,A>, logger?: Logger, name?: string, defaultValue?: T, cancelError?: Error): signature<T,A> {
 	return async (token: CancellationToken, ...args: A): Promise<T|void> => {
         if (token.isCancellationRequested) {
 			if (logger) logger.debug(`Cancellation requested before start for ${name ?? 'unknown'}. Returning default.`);
@@ -34,16 +35,21 @@ function returnDefaultOnCancel<T, A extends any[]>(fn: signature<T,A>, logger?: 
  * @param fn An async function that requires cancellation token handling.
  * @param defaultValue The value to return when cancelled.
  */
-export function returnDefaultOnCancelClientRequest<T, P>(fn: paramsSignature<T,P>, defaultValue: T, logger: LspLogger, name: string): paramsSignature<T,P> {
+export function returnDefaultOnCancelClientRequest<T, P>(fn: paramsSignature<T,P>, defaultValue: T, logger: Logger | undefined, name: string): paramsSignature<T,P> {
 	return async (params: P, token: CancellationToken): Promise<T> => {
         if (token.isCancellationRequested) {
-			logger.debug(`Cancellation requested before start for ${name}. Returning default.`)
+            // The logger has started dereferencing since I added the parseTokenSource.dispose() to parseDocumentAsync.
+            const msg = `Cancellation requested before start for ${name}. Returning default.`;
+            if (logger) logger.debug(msg);
+            else console.debug(msg);
             return defaultValue;
         }
 
         return new Promise<T>((resolve) => {
             const onCancel = () =>{
-				logger.debug(`Cancellation requested during processing for ${name}. Returning default.`);
+				const msg = `Cancellation requested during processing for ${name}. Returning default.`;
+                if (logger) logger.debug(msg);
+                else console.debug(msg);
 				resolve(defaultValue);
 			}
             token.onCancellationRequested(onCancel);

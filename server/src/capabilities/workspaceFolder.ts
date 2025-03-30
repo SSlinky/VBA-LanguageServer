@@ -2,19 +2,17 @@
 import { ClientCapabilities, InitializeResult } from 'vscode-languageserver';
 
 // Project
-import { LanguageServerConfiguration } from '../server';
+import { ILanguageServer } from '../injection/interface';
 
 
 function hasWorkspaceFolderCapability(x: ClientCapabilities) {
 	return !!(x.workspace && !!x.workspace.workspaceFolders);
 }
 
-
-export function hasConfigurationCapability(languageServerConfiguration: LanguageServerConfiguration) {
-	const capabilities = languageServerConfiguration.params.capabilities;
-	return !!(capabilities.workspace && !!capabilities.workspace.configuration);
+export function hasWorkspaceConfigurationCapability(server: ILanguageServer) {
+	const capabilities = server.configuration?.params.capabilities;
+	return !!(capabilities?.workspace && !!capabilities.workspace.configuration);
 }
-
 
 export function activateWorkspaceFolderCapability(capabilities: ClientCapabilities, result: InitializeResult) {
 	if (hasWorkspaceFolderCapability(capabilities)) {

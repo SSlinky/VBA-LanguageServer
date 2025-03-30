@@ -26,15 +26,16 @@ import {
 } from 'vscode-languageserver';
 
 import { BaseProjectDocument } from './document';
-import { LanguageServerConfiguration } from '../server';
-import { hasConfigurationCapability } from '../capabilities/workspaceFolder';
+import { hasWorkspaceConfigurationCapability } from '../capabilities/workspaceFolder';
 import { sleep } from '../utils/helpers';
 import { NamespaceManager } from './scope';
 import { ParseCancellationException } from 'antlr4ng';
 import { getFormattingEdits } from './formatter';
 import { VbaFmtListener } from './parser/vbaListener';
-import { LspLogger } from '../utils/logger';
 import { returnDefaultOnCancelClientRequest } from '../utils/wrappers';
+import { container, inject, injectable } from 'tsyringe';
+import { Logger, ILanguageServer, IWorkspace } from '../injection/interface';
+import { Services } from '../injection/services';
 
 export interface ExtensionConfiguration {
 	maxDocumentLines: number;
@@ -53,8 +54,9 @@ export interface ExtensionConfiguration {
 /**
  * Organises project documents and runs actions at a workspace level.
  */
-export class Workspace {
-	private events: WorkspaceEvents;
+@injectable()
+export class Workspace implements IWorkspace {
+	private events?: WorkspaceEvents;
 	private nsManager: NamespaceManager = new NamespaceManager();
 	private documents: BaseProjectDocument[] = [];
 	private parseCancellationTokenSource?: CancellationTokenSource;
@@ -63,8 +65,11 @@ export class Workspace {
 	private readonly _hasConfigurationCapability: boolean;
 	private _extensionConfiguration?: ExtensionConfiguration;
 
-	readonly connection: _Connection;
-	logger: LspLogger;
+	private readonly textDocuments: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
+	private readonly projectDocuments: Map<string, BaseProjectDocument> = new Map();
+
+	// readonly connection: _Connection;
+	logger: Logger;
 	
 	get hasConfigurationCapability() {
 		return this._hasConfigurationCapability;
@@ -87,15 +92,13 @@ export class Workspace {
 		return this.nsManager;
 	}
 
-	constructor(params: {connection: _Connection, capabilities: LanguageServerConfiguration}) {
-		this.connection = params.connection;
-		this._hasConfigurationCapability = hasConfigurationCapability(params.capabilities);
-		this.events = new WorkspaceEvents({
-			workspace: this,
-			connection: params.connection,
-			configuration: params.capabilities,
-		});
-		this.logger = new LspLogger(this);
+	constructor(
+		@inject("_Connection") public readonly connection: _Connection,
+		@inject("ILanguageServer") private server: ILanguageServer) {
+			
+		this.logger = Services.logger;
+		this.events = new WorkspaceEvents(this.textDocuments, this.projectDocuments);
+		this._hasConfigurationCapability = hasWorkspaceConfigurationCapability(this.server);
 	}
 
 	activateDocument(document?: BaseProjectDocument) {
@@ -104,7 +107,7 @@ export class Workspace {
 		}
 	}
 
-	async parseActiveDocument(document?: BaseProjectDocument) {
+	async parseDocument(document?: BaseProjectDocument) {
 		this.activateDocument(document);
 		this.parseCancellationTokenSource?.cancel();
 		this.parseCancellationTokenSource = new CancellationTokenSource();
@@ -195,35 +198,33 @@ export class Workspace {
 
 // TODO: This class should not be doing anything with connection.
 class WorkspaceEvents {
-	private readonly workspace: Workspace;
-	private readonly documents: TextDocuments<TextDocument>;
-	private readonly configuration: LanguageServerConfiguration;
-	private readonly parsedDocuments: Map<string, BaseProjectDocument>;
-
 	private activeDocument?: BaseProjectDocument;
 
-	constructor(params: {connection: _Connection, workspace: Workspace, configuration: LanguageServerConfiguration}) {
-		this.workspace = params.workspace;
-		this.configuration = params.configuration;
-		this.documents = new TextDocuments(TextDocument);
-		this.parsedDocuments = new Map<string, BaseProjectDocument>();
-		this.initialiseConnectionEvents(params.connection);
+	constructor(
+		private readonly documents: TextDocuments<TextDocument>,
+		private readonly projectDocuments: Map<string, BaseProjectDocument>
+	) {
+		const connection = Services.connection;
+		this.initialiseConnectionEvents(connection);
 		this.initialiseDocumentsEvents();
-		this.documents.listen(params.connection);
+		this.documents.listen(connection);
 	}
 
-	private async getParsedDocument(uri: string, version: number, token: CancellationToken): Promise<BaseProjectDocument|undefined> {
+	private async getParsedProjectDocument(uri: string, version: number, token: CancellationToken): Promise<BaseProjectDocument|undefined> {
 		// Handle token cancellation.
-		if (token.isCancellationRequested) { throw new Error("Request cancelled before start."); }
-		token.onCancellationRequested(() => { throw new Error("Request cancelled during run."); });
+		if (token.isCancellationRequested) return undefined;
+
+		let cancelled = false;
+		token.onCancellationRequested(() => cancelled = true);
 
 		let document: BaseProjectDocument | undefined;
-		document = this.parsedDocuments.get(uri);
+		document = this.projectDocuments.get(uri);
 
 		// Ensure we have the appropriately versioned document.
 		while (!document || document.textDocument.version < version) {
+			if (cancelled) return undefined;
 			await sleep(5);
-			document = this.parsedDocuments.get(uri);
+			document = this.projectDocuments.get(uri);
 		}
 
 		// Return nothing if the document version is newer than requested.
@@ -233,6 +234,7 @@ class WorkspaceEvents {
 
 		// Ensure the document is parsed.
 		while (document.isBusy) {
+			if (cancelled) return undefined;
 			await sleep(5);
 		}
 
@@ -241,36 +243,37 @@ class WorkspaceEvents {
 
 	private initialiseConnectionEvents(connection: _Connection) {
 		const cancellableOnDocSymbol = returnDefaultOnCancelClientRequest(
-			(p: DocumentSymbolParams, t) => this.onDocumentSymbolAsync(p, t), [], this.workspace.logger, 'Document Symbols');
+			(p: DocumentSymbolParams, t) => this.onDocumentSymbolAsync(p, t), [], Services.logger, 'Document Symbols');
 
 		const cancellableOnDiagnostics = returnDefaultOnCancelClientRequest(
 			(p: DocumentDiagnosticParams, t) => this.onDiagnosticAsync(p, t),
 			{kind: DocumentDiagnosticReportKind.Full, items: []},
-			this.workspace.logger,
+			Services.logger,
 			'Diagnostics');
 		
 		const cancellableOnFoldingRanges = returnDefaultOnCancelClientRequest(
-			(p: FoldingRangeParams, t) => this.onFoldingRangesAsync(p, t), [], this.workspace.logger, 'Folding Range')
+			(p: FoldingRangeParams, t) => this.onFoldingRangesAsync(p, t), [], Services.logger, 'Folding Range');
 
 		connection.onInitialized(() => this.onInitialized());
 		connection.onDidOpenTextDocument(params => this.onDidOpenTextDocumentAsync(params));
 		connection.onCompletion(params => this.onCompletion(params));
 		connection.onCompletionResolve(item => this.onCompletionResolve(item));
-		connection.onDidChangeConfiguration(() => this.workspace.clearDocumentsConfiguration());
+		connection.onDidChangeConfiguration(() => Services.workspace.clearDocumentsConfiguration());
 		connection.onDidChangeWatchedFiles(params => this.onDidChangeWatchedFiles(params));
 		connection.onDocumentSymbol(async (params, token) => await cancellableOnDocSymbol(params, token));
 		connection.onHover(params => this.onHover(params));
 		connection.languages.diagnostics.on(async (params, token) => await cancellableOnDiagnostics(params, token));
-		connection.onDocumentFormatting(params => this.onDocumentFormatting(params));
-		connection.onDidCloseTextDocument(params => {this.workspace.logger.debug('[event] onDidCloseTextDocument'); this.workspace.logger.debug(JSON.stringify(params), 1);});
+		connection.onDocumentFormatting(async (params, token) => await this.onDocumentFormatting(params, token));
+		connection.onDidCloseTextDocument(params => {Services.logger.debug('[event] onDidCloseTextDocument'); Services.logger.debug(JSON.stringify(params), 1);});
 
-		if (hasConfigurationCapability(this.configuration)) {
+		if (hasWorkspaceConfigurationCapability(Services.server)) {
 			connection.onFoldingRanges(async (params, token) => await cancellableOnFoldingRanges(params, token));
 		}
 
 		connection.onRequest((method: string, params: object | object[] | any) => {
 			switch (method) {
 				case 'textDocument/semanticTokens/full': {
+					const uri: string = params.textDocument.uri;
 					return this.activeDocument?.languageServerSemanticTokens();
 				}
 				case 'textDocument/semanticTokens/range': {
@@ -278,7 +281,7 @@ class WorkspaceEvents {
 					return this.activeDocument?.languageServerSemanticTokens(rangeParams.range);
 				}
 				default:
-					this.workspace.logger.error(`Unresolved request path: ${method}`);
+					Services.logger.error(`Unresolved request path: ${method}`);
 			}
 		});
 	}
@@ -290,46 +293,50 @@ class WorkspaceEvents {
 	/** Connection event handlers */
 
 	private onCompletion(params: CompletionParams): never[] {
-		this.workspace.logger.debug('[event] onCompletion');
-		this.workspace.logger.debug(JSON.stringify(params), 1);
+		Services.logger.debug('[event] onCompletion');
+		Services.logger.debug(JSON.stringify(params), 1);
 		return [];
 	}
 
 	private onCompletionResolve(item: CompletionItem): CompletionItem {
-		this.workspace.logger.debug('[event] onCompletionResolve');
-		this.workspace.logger.debug(JSON.stringify(item), 1);
+		Services.logger.debug('[event] onCompletionResolve');
+		Services.logger.debug(JSON.stringify(item), 1);
 		return item;
 	}
 
 	private onDidChangeWatchedFiles(params: DidChangeWatchedFilesParams) {
-		this.workspace.logger.debug('[event] onDidChangeWatchedFiles');
-		this.workspace.logger.debug(JSON.stringify(params), 1);
+		Services.logger.debug('[event] onDidChangeWatchedFiles');
+		Services.logger.debug(JSON.stringify(params), 1);
 		return;
 	}
 
 	// TODO: Should trigger a full workspace refresh.
 	private onDidChangeWorkspaceFolders(e: WorkspaceFoldersChangeEvent) {
-		this.workspace.logger.debug('[event] onDidChangeWorkspaceFolders');
-		this.workspace.logger.debug(JSON.stringify(e), 1);
+		Services.logger.debug('[event] onDidChangeWorkspaceFolders');
+		Services.logger.debug(JSON.stringify(e), 1);
 	}
 
 	private async onDocumentSymbolAsync(params: DocumentSymbolParams, token: CancellationToken): Promise<SymbolInformation[]> {
-		const document = await this.getParsedDocument(params.textDocument.uri, 0, token);
+		const document = await this.getParsedProjectDocument(params.textDocument.uri, 0, token);
 		return document?.languageServerSymbolInformation() ?? [];
 	}
 
 	private async onDiagnosticAsync(params: DocumentDiagnosticParams, token: CancellationToken): Promise<DocumentDiagnosticReport> {
-		const document = await this.getParsedDocument(params.textDocument.uri, 0, token);
-		return document?.languageServerDiagnostics() ?? {
-			kind: DocumentDiagnosticReportKind.Full,
-			items: []
-		} satisfies DocumentDiagnosticReport;
+		try {
+			const document = await this.getParsedProjectDocument(params.textDocument.uri, 0, token);
+			return document?.languageServerDiagnostics() ?? {
+				kind: DocumentDiagnosticReportKind.Full,
+				items: []
+			} satisfies DocumentDiagnosticReport;
+		} catch (e) {
+			if (e instanceof Error) Services.logger.stack(e); throw e
+		}
 	}
 
 	private async onFoldingRangesAsync(params: FoldingRangeParams, token: CancellationToken): Promise<FoldingRange[]> {
 		let document: BaseProjectDocument | undefined;
 		try {
-			document = await this.getParsedDocument(params.textDocument.uri, 0, token);
+			document = await this.getParsedProjectDocument(params.textDocument.uri, 0, token);
 		} catch (error) {
 			// Swallow parser cancellations and rethrow anything else.
 			if (!!(error instanceof ParseCancellationException)) {
@@ -342,18 +349,18 @@ class WorkspaceEvents {
 	}
 
 	private onHover(params: HoverParams): Hover {
-		this.workspace.logger.debug('[event] onHover');
-		this.workspace.logger.debug(JSON.stringify(params), 1);
+		Services.logger.debug('[event] onHover');
+		Services.logger.debug(JSON.stringify(params), 1);
 		return { contents: '' };
 	}
 
 	private onInitialized(): void {
-		const connection = this.workspace.connection;
+		const connection = Services.connection;
 		// Register for client configuration notification changes.
 		connection.client.register(DidChangeConfigurationNotification.type, undefined);
 
 		// This is how we can listen for changes to workspace folders.
-		if (hasConfigurationCapability(this.configuration)) {
+		if (hasWorkspaceConfigurationCapability(Services.server)) {
 			connection.workspace.onDidChangeWorkspaceFolders(e =>
 				this.onDidChangeWorkspaceFolders(e)
 			);
@@ -361,14 +368,19 @@ class WorkspaceEvents {
 		}
 	}
 
-	private async onDocumentFormatting(params: DocumentFormattingParams): Promise<TextEdit[]> {
-		this.workspace.logger.debug('[event] onDocumentFormatting');
-		this.workspace.logger.debug(JSON.stringify(params), 1);
+	private async onDocumentFormatting(params: DocumentFormattingParams, token: CancellationToken): Promise<TextEdit[]> {
+		Services.logger.debug('[event] onDocumentFormatting');
+		Services.logger.debug(JSON.stringify(params), 1);
 		const doc = this.documents.get(params.textDocument.uri);
 		if (!doc) return [];
-		const parseResult = await this.workspace.formatParseDocument(doc);
+		try {
+			const parseResult = await Services.workspace.formatParseDocument(doc, token);
+			return parseResult ? getFormattingEdits(doc, parseResult) : [];
+		} catch {
+			Services.logger.debug('caught workspace');
+			return [];
+		}
 
-		return parseResult ? getFormattingEdits(doc, parseResult) : [];
 	}
 
 	/** Documents event handlers */
@@ -378,10 +390,10 @@ class WorkspaceEvents {
 	 * @param doc The document that changed.
 	 */
 	async onDidOpenTextDocumentAsync(params: DidOpenTextDocumentParams) {
-		this.workspace.logger.debug('[event] onDidOpenTextDocumentAsync');
-		this.workspace.logger.debug(`uri: ${params.textDocument.uri}`, 1);
-		this.workspace.logger.debug(`languageId: ${params.textDocument.languageId}`, 1);
-		this.workspace.logger.debug(`version: ${params.textDocument.version}`, 1);
+		Services.logger.debug('[event] onDidOpenTextDocumentAsync');
+		Services.logger.debug(`uri: ${params.textDocument.uri}`, 1);
+		Services.logger.debug(`languageId: ${params.textDocument.languageId}`, 1);
+		Services.logger.debug(`version: ${params.textDocument.version}`, 1);
 		await this.handleChangeOrOpenAsync(TextDocument.create(
 			params.textDocument.uri,
 			params.textDocument.languageId,
@@ -391,24 +403,25 @@ class WorkspaceEvents {
 	}
 
 	async onDidChangeContentAsync(document: TextDocument) {
-		this.workspace.logger.debug('[event] onDidChangeContentAsync');
-		this.workspace.logger.debug(`uri: ${document.uri}`, 1);
-		this.workspace.logger.debug(`languageId: ${document.languageId}`, 1);
-		this.workspace.logger.debug(`version: ${document.version}`, 1);
+		Services.logger.debug('[event] onDidChangeContentAsync');
+		Services.logger.debug(`uri: ${document.uri}`, 1);
+		Services.logger.debug(`languageId: ${document.languageId}`, 1);
+		Services.logger.debug(`version: ${document.version}`, 1);
 		await this.handleChangeOrOpenAsync(document);
 	}
 
 	protected async handleChangeOrOpenAsync(document: TextDocument) {
 		// If the event is fired for the same version of the document, don't reparse.
-		const currentDocument = this.parsedDocuments.get(document.uri);
-		if (!!currentDocument && currentDocument.textDocument.version >= document.version) {
-			this.workspace.logger.debug('Document already parsed.');
+		const existingDocument = this.projectDocuments.get(document.uri);
+		if ((existingDocument?.version ?? -1) >= document.version) {
+			Services.logger.debug('Document already parsed.');
 			return;
 		}
 
-		const doc = BaseProjectDocument.create(this.workspace, document);
-		this.parsedDocuments.set(document.uri, doc);
-		this.activeDocument = doc;
-		await this.workspace.parseActiveDocument(this.activeDocument);
+		// The document is new or a new version that we should parse.
+		const projectDocument = BaseProjectDocument.create(document);
+		this.projectDocuments.set(document.uri, projectDocument);
+		await Services.workspace.parseDocument(projectDocument);
+		setTimeout(() => Services.workspace.parseDocument(projectDocument), 0);
 	}
 }

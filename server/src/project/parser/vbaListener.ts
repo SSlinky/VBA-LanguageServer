@@ -61,6 +61,7 @@ import { ClassElement, ModuleElement, ModuleIgnoredAttributeElement } from '../e
 import { DeclarationStatementElement, EnumDeclarationElement, TypeDeclarationElement, TypeSuffixElement } from '../elements/typing';
 import { FunctionDeclarationElement, PropertyGetDeclarationElement, PropertyLetDeclarationElement, PropertySetDeclarationElement, SubDeclarationElement } from '../elements/procedure';
 import { ExtensionConfiguration } from '../workspace';
+import { Services } from '../../injection/services';
 
 export class CommonParserCapability {
     document: VbaClassDocument | VbaModuleDocument;
@@ -79,7 +80,7 @@ export class CommonParserCapability {
     }
 
     async ensureHasSettingsAsync() {
-        this._documentSettings = await this.document.workspace.extensionConfiguration;
+        this._documentSettings = await Services.server.clientConfiguration;
     }
 }
 
@@ -101,7 +102,7 @@ export class VbaListener extends vbaListener {
     }
 
     async ensureHasSettingsAsync() {
-        this.documentSettings = await this.document.workspace.extensionConfiguration;
+        this.documentSettings = await Services.server.clientConfiguration;
     }
 
     enterAnyOperator = (ctx: AnyOperatorContext) => {
@@ -208,7 +209,7 @@ export class VbaListener extends vbaListener {
     };
 
     visitErrorNode(node: ErrorNode) {
-        this.document.workspace.logger.error(`Listener error @ ${node.getPayload()?.line ?? '--'}: ${node.getPayload()?.text}`);
+        Services.logger.error(`Listener error @ ${node.getPayload()?.line ?? '--'}: ${node.getPayload()?.text}`);
     }
 }
 
@@ -286,7 +287,7 @@ export class VbaFmtListener extends vbafmtListener {
 
     visitErrorNode(node: ErrorNode): void {
         const doc = this.common.document.textDocument;
-        this.common.document.workspace.logger.error(`Couldn't parse ${node.toRange(doc)}\n${node.getText()}`)
+        Services.logger.error(`Couldn't parse ${node.toRange(doc)}\n${node.getText()}`)
     }
 
     getIndent(n: number): number {
@@ -417,7 +418,7 @@ export class VbaFmtListener extends vbafmtListener {
     enterPreBlock = (ctx: PreBlockContext) => {
         const pce = this.preCompilerElements.at(-1);
         if (!pce) {
-            this.common.document.workspace.logger.error(
+            Services.logger.error(
                 'PreBlockContext expected PreIfElseContext!');
             return;
         }
@@ -463,7 +464,7 @@ export class VbaFmtListener extends vbafmtListener {
     }
 
     private outdentCaseStatement(ctx: CaseStatementContext | CaseDefaultStatementContext): void {
-        const logger = this.common.document.workspace.logger;
+        const logger = Services.logger;
         const selectCaseElement = this.selectCaseTrackers.at(-1);
         if (!selectCaseElement) {
             logger.error(`Format parse error: got case statement while not tracking 'Select Case'`);
@@ -505,7 +506,7 @@ export class VbaFmtListener extends vbafmtListener {
         const line = this.getCtxRange(ctx).end.line;
         const shift = indent ?? -2;
         if (line > this.indentOffsets.length) {
-            this.common.document.workspace.logger.error(`Format line ${line + 1} bang out of order in document of ${this.indentOffsets.length + 1} lines.`);
+            Services.logger.error(`Format line ${line + 1} bang out of order in document of ${this.indentOffsets.length + 1} lines.`);
             return;
         }
         this.offsetIndentAt(line, shift, this.rangeText(ctx));
@@ -529,7 +530,7 @@ export class VbaFmtListener extends vbafmtListener {
         // Log the outcome.
         const num = (line + 1).toString().padStart(3, '0');
         const arrows = newIndent > 0 ? '>'.repeat(newIndent) : '<'.repeat(Math.abs(newIndent));
-        this.common.document.workspace.logger.debug(`${num}: ${arrows} ${text}`)
+        Services.logger.debug(`${num}: ${arrows} ${text}`)
     }
 
     /**
@@ -553,7 +554,7 @@ export class VbaFmtListener extends vbafmtListener {
         this.indentOffsets[line] = offset;
         const num = (line + 1).toString().padStart(3, '0');
         const arrows = '>'.repeat(offset);
-        this.common.document.workspace.logger.debug(`${num}: ${arrows} ${text}`)
+        Services.logger.debug(`${num}: ${arrows} ${text}`)
     }
 
     private rangeText(ctx: ParserRuleContext): string {

@@ -1,4 +1,7 @@
-import { Workspace } from '../project/workspace';
+import { inject, injectable } from 'tsyringe';
+import { Logger, ILanguageServer } from '../injection/interface';
+import { _Connection } from 'vscode-languageserver';
+
 
 enum LogLevel {
 	error = 1,
@@ -14,12 +17,11 @@ type LogMessage = {
 	level: number
 }
 
-export class LspLogger {
-	private readonly workspace: Workspace;
-
-	constructor(workspace: Workspace) {
-		this.workspace = workspace;
-	}
+@injectable()
+export class LspLogger implements Logger {
+	constructor(
+		@inject("_Connection") public connection: _Connection,
+		@inject("ILanguageServer") private server: ILanguageServer) { }
 
 	error = (msg: string, lvl?: number) => this.emit(LogLevel.error, msg, lvl)
 	warn = (msg: string, lvl?: number) => this.emit(LogLevel.warn, msg, lvl)
@@ -30,7 +32,7 @@ export class LspLogger {
 
 	private emit(logLevel: LogLevel, msgText: string, msgLevel?: number): void {
 		// Async get the configuration and then emit.
-		this.workspace.extensionConfiguration.then(config => {
+		this.server.clientConfiguration.then(config => {
 			try {
 				// Get the configured log level or default to debug.
 				const configLevel = !!config
@@ -56,7 +58,7 @@ export class LspLogger {
 	}
 
 	private sendMessage = (message: LogMessage) =>
-		this.workspace.connection.sendNotification(
+		this.connection.sendNotification(
 			"window/logMessage",
 			message
 		);

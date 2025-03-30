@@ -28,6 +28,9 @@ export function isOfType<T>(obj: unknown, property: keyof T, nullable: boolean =
 	)
 }
 
+export function ioEvents(): Promise<void> {
+	return new Promise(resolve => setImmediate(resolve));
+}
 
 export function sleep(ms: number): Promise<unknown> {
 	return new Promise(resolve => setTimeout(resolve, ms) );

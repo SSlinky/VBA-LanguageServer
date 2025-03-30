@@ -12,3 +12,4 @@ client/server
 sample*/**
 *.vsix
 *.tsbuildinfo
+*.log
