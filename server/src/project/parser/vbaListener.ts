@@ -263,6 +263,13 @@ type SelectCaseTracker = {
     statements: (CaseStatementContext | CaseDefaultStatementContext)[]
 }
 
+type IndentAdjustmentParams = {
+    line: number,
+    offset: number,
+    text?: string,
+    trackMinimumIndent?: boolean
+}
+
 
 export class VbaFmtListener extends vbafmtListener {
     common: CommonParserCapability;
@@ -272,6 +279,7 @@ export class VbaFmtListener extends vbafmtListener {
     private continuedElements: ParserRuleContext[] = [];
     private selectCaseTrackers: SelectCaseTracker[] = [];
     private preCompilerElements: PreIfElseBlockElement[] = [];
+    private minumumIndent: number = 0;
 
     constructor(document: VbaClassDocument | VbaModuleDocument) {
         super();
@@ -305,8 +313,17 @@ export class VbaFmtListener extends vbafmtListener {
         const offset = this.endsWithLineEnding(ctx) ? 0 : 1
 
         // Set the line after the end to what is current and then set current to zero.
-        this.setIndentAt(range.end.line + offset, this.getIndent(range.start.line), 'Shift for attribute');
-        this.setIndentAt(range.start.line, 0, `${this.rangeText(ctx)} Attribute`)
+        this.setIndentAt({
+            line: range.end.line + offset,
+            offset: this.getIndent(range.start.line),
+            text: 'Shift for attribute'
+        });
+
+        this.setIndentAt({
+            line: range.start.line,
+            offset: 0,
+            text: `${this.rangeText(ctx)} Attribute`
+        });
         this.activeElements.push(ctx);
     }
 
@@ -324,7 +341,11 @@ export class VbaFmtListener extends vbafmtListener {
 
             // Indent the next line.
             const line = this.getCtxRange(ctx).start.line;
-            this.offsetIndentAt(line + 1, 2, `${this.rangeText(ctx)} cont`);
+            this.offsetIndentAt({
+                line: line + 1,
+                offset: 2,
+                text: `${this.rangeText(ctx)} cont`
+            });
         }
     }
 
@@ -343,7 +364,11 @@ export class VbaFmtListener extends vbafmtListener {
         const doc = this.common.document.textDocument;
         const offset = this.endsWithLineEnding(node) ? 0 : 1
         const line = node.toRange(doc).end.line + offset;
-        this.offsetIndentAt(line, -2, `${this.rangeText(node)} cont`);
+        this.offsetIndentAt({
+            line: line,
+            offset: -2,
+            text: `${this.rangeText(node)} cont`
+        });
     }
 
     enterBasicStatement = (ctx: BasicStatementContext) =>
@@ -383,7 +408,11 @@ export class VbaFmtListener extends vbafmtListener {
     exitIndentAfterElement = (ctx: IndentAfterElementContext) => {
         const offset = this.endsWithLineEnding(ctx) ? 0 : 1
         const line = this.getCtxRange(ctx).end.line + offset;
-        this.offsetIndentAt(line, 2, `${this.rangeText(ctx)}`);
+        this.offsetIndentAt({
+            line: line,
+            offset: 2,
+            text: `${this.rangeText(ctx)}`
+        });
     }
 
     enterLabelStatement? = (ctx: LabelStatementContext) => {
@@ -400,19 +429,31 @@ export class VbaFmtListener extends vbafmtListener {
     enterOutdentBeforeElement = (ctx: OutdentBeforeElementContext) => {
         this.activeElements.push(ctx);
         const line = this.getCtxRange(ctx).start.line;
-        this.offsetIndentAt(line, -2, `${this.rangeText(ctx)}`);
+        this.offsetIndentAt({
+            line: line,
+            offset: -2,
+            text: `${this.rangeText(ctx)}`
+        });
     }
 
     enterOutdentOnIndentAfterElement = (ctx: OutdentOnIndentAfterElementContext) => {
         this.activeElements.push(ctx);
         const line = this.getCtxRange(ctx).start.line;
-        this.offsetIndentAt(line, -2, `${this.rangeText(ctx)}`);
+        this.offsetIndentAt({
+            line: line,
+            offset: -2,
+            text: `${this.rangeText(ctx)}`
+        });
     }
 
     exitOutdentOnIndentAfterElement = (ctx: OutdentOnIndentAfterElementContext) => {
         const offset = this.endsWithLineEnding(ctx) ? 0 : 1
         const line = this.getCtxRange(ctx).end.line + offset;
-        this.offsetIndentAt(line, 2, `${this.rangeText(ctx)}`);
+        this.offsetIndentAt({
+            line: line,
+            offset: 2,
+            text: `${this.rangeText(ctx)}`
+        });
     }
         
     enterPreBlock = (ctx: PreBlockContext) => {
@@ -423,18 +464,22 @@ export class VbaFmtListener extends vbafmtListener {
             return;
         }
         const text = pce.blocks.length === 0 ? '#If' : '#ElseIf';
-        this.indentOnEnter(ctx, 1, text);
+        this.indentOnEnter(ctx, 1, text, true);
         pce.blocks.push({
             block: ctx,
             levels: [pce.levelBeforeEnter + 1]
-        })
+        });
     }
 
     exitPreBlock = (ctx: PreBlockContext) => {
         const pce = this.preCompilerElements.at(-1);
         if (!pce) return;
         const line = this.getCtxRange(ctx).end.line;
-        this.setIndentAt(line, pce.levelBeforeEnter);
+        this.setIndentAt({
+            line: line,
+            offset: pce.levelBeforeEnter,
+            trackMinimumIndent: true
+        });
     }
 
     enterPreIfElseBlock = (ctx: PreIfElseBlockContext) => {
@@ -445,7 +490,11 @@ export class VbaFmtListener extends vbafmtListener {
     exitPreIfElseBlock = (ctx: PreIfElseBlockContext) => {
         const line = this.getCtxRange(ctx).end.line;
         const pce = this.preCompilerElements.pop();
-        this.setIndentAt(line, pce?.levelBeforeEnter ?? 0, '#End If')
+        this.setIndentAt({
+            line: line,
+            offset: pce?.levelBeforeEnter ?? 0,
+            text: '#End If'
+        });
     }
 
     enterSelectCaseOpen = (_: SelectCaseOpenContext) =>
@@ -475,7 +524,11 @@ export class VbaFmtListener extends vbafmtListener {
         const caseElement = selectCaseElement.statements.at(-1);
         if (!!caseElement && this.endsWithLineEnding(caseElement)) {
             const line = this.getCtxRange(ctx).start.line;
-            this.offsetIndentAt(line, -2, `${this.rangeText(ctx)}`);
+            this.offsetIndentAt({
+                line: line,
+                offset: -2,
+                text: `${this.rangeText(ctx)}`
+            });
         }
     }
 
@@ -490,47 +543,71 @@ export class VbaFmtListener extends vbafmtListener {
         // Only indent if the case statement ends in a new line.
         if (this.endsWithLineEnding(ctx)) {
             const line = this.getCtxRange(ctx).end.line;
-            this.offsetIndentAt(line, 2, `${this.rangeText(ctx)}`);
+            this.offsetIndentAt({
+                line: line,
+                offset: 2,
+                text: `${this.rangeText(ctx)}`
+            });
         }
     }
 
-    private indentOnEnter(ctx: ParserRuleContext, indent?: number, text?: string): void {
+    private indentOnEnter(ctx: ParserRuleContext, indent?: number, text?: string, trackMinimumIndent?: boolean): void {
         this.activeElements.push(ctx);
         const line = this.getCtxRange(ctx).start.line;
-        const shift = indent ?? 2;
+        const offset = indent ?? 2;
         const advice = text ? `${this.rangeText(ctx)} ${text}` : `${this.rangeText(ctx)}`;
-        this.offsetIndentAt(line, shift, advice);
+        const result = this.offsetIndentAt({
+            line: line,
+            offset: offset,
+            text:advice
+        });
+        if (result && trackMinimumIndent) {
+            this.minumumIndent = result;
+        }
     }
 
-    private outdentOnExit(ctx: ParserRuleContext, indent?: number): void {
+    private outdentOnExit(ctx: ParserRuleContext, indent?: number, trackMinimumIndent?: boolean): void {
         const line = this.getCtxRange(ctx).end.line;
-        const shift = indent ?? -2;
+        const offset = indent ?? -2;
         if (line > this.indentOffsets.length) {
             Services.logger.error(`Format line ${line + 1} bang out of order in document of ${this.indentOffsets.length + 1} lines.`);
             return;
         }
-        this.offsetIndentAt(line, shift, this.rangeText(ctx));
+        const result = this.offsetIndentAt({
+            line: line,
+            offset: offset,
+            text: this.rangeText(ctx)
+        });
+        if (result && trackMinimumIndent) {
+            this.minumumIndent = result;
+        }
     }
 
-    private offsetIndentAt(line: number, offset: number, text?: string): void {
+    private offsetIndentAt(params: IndentAdjustmentParams): number | undefined {
         // Do nothing if there is no change.
-        if (offset === 0)
+        if (params.offset === 0)
             return;
 
         // Get the current and new indent levels.
-        const currentIndent = this.getIndent(line);
-        const preCompAdjustment = this.getPreCompAdjustment(currentIndent, offset);
-        const newIndent = currentIndent + offset + preCompAdjustment;
+        const currentIndent = this.getIndent(params.line);
+        const preCompAdjustment = this.getPreCompAdjustment(currentIndent, params.offset);
+        const newIndent = currentIndent + params.offset + preCompAdjustment;
+
+        // Set the new minimum indent if required.
+        if (params.trackMinimumIndent) {
+            this.minumumIndent = Math.max(0, newIndent);
+        }
 
         // Ensure we have a value GE zero and register safe value.
-        const newIndentSafe = Math.max(newIndent, 0);
-        this.indentOffsets[line] = newIndentSafe;
+        const newIndentSafe = Math.max(newIndent, this.minumumIndent);
+        this.indentOffsets[params.line] = newIndentSafe;
         this.preCompilerElements.at(-1)?.blocks.at(-1)?.levels.push(newIndentSafe);
 
         // Log the outcome.
-        const num = (line + 1).toString().padStart(3, '0');
+        const num = (params.line + 1).toString().padStart(3, '0');
         const arrows = newIndent > 0 ? '>'.repeat(newIndent) : '<'.repeat(Math.abs(newIndent));
-        Services.logger.debug(`${num}: ${arrows} ${text}`)
+        Services.logger.debug(`${num}: ${arrows} ${params.text}`)
+        return newIndentSafe;
     }
 
     /**
@@ -550,11 +627,14 @@ export class VbaFmtListener extends vbafmtListener {
         return offset * offsetToggle;
     }
 
-    private setIndentAt(line: number, offset: number, text?: string): void {
-        this.indentOffsets[line] = offset;
-        const num = (line + 1).toString().padStart(3, '0');
-        const arrows = '>'.repeat(offset);
-        Services.logger.debug(`${num}: ${arrows} ${text}`)
+    private setIndentAt(params: IndentAdjustmentParams): void {
+        this.indentOffsets[params.line] = params.offset;
+        const num = (params.line + 1).toString().padStart(3, '0');
+        const arrows = '>'.repeat(params.offset);
+        Services.logger.debug(`${num}: ${arrows} ${params.text}`)
+        if (params.trackMinimumIndent) {
+            this.minumumIndent = params.offset;
+        }
     }
 
     private rangeText(ctx: ParserRuleContext): string {
