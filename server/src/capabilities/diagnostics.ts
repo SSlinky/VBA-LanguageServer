@@ -55,7 +55,7 @@ export class DuplicateAttributeDiagnostic extends BaseDiagnostic {
 }
 
 
-// test
+// test (not yet implemented)
 export class DuplicateDeclarationDiagnostic extends BaseDiagnostic {
 	message = "Duplicate declaration in current scope.";
 	severity = DiagnosticSeverity.Error;

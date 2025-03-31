@@ -9,10 +9,10 @@ import { getDocUri, activate } from './helper';
 
 suite('Should get diagnostics', () => {
 	test('diagnostics.class.missingNameAttributeError', async () => {
-		await testDiagnostics(getDocUri('MissingAttributeClass.cls'), [
+		await testDiagnostics(getDocUri('DiagnosticsMissingAttributeClass.cls'), [
 			{
 				message: 'Module missing attribute VB_NAME.',
-				range: toRange(1, 0, 1, 0),
+				range: toRange(4, 3, 4, 3),
 				severity: vscode.DiagnosticSeverity.Error,
 				source: 'ex'
 			}
@@ -20,7 +20,7 @@ suite('Should get diagnostics', () => {
 	});
 
 	test('diagnostics.module.missingNameAttributeError', async () => {
-		await testDiagnostics(getDocUri('MissingAttributeModule.bas'), [
+		await testDiagnostics(getDocUri('DiagnosticsMissingAttributeModule.bas'), [
 			{
 				message: 'Module missing attribute VB_NAME.',
 				range: toRange(1, 0, 1, 0),

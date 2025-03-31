@@ -8,6 +8,8 @@
 		"strict": true,
 		"outDir": "out",
 		"rootDir": "src",
+		"experimentalDecorators": true,
+		"emitDecoratorMetadata": true
 		// "baseUrl": ".",
 		// "paths": {
 		// 	"@antlr/*": ["src/antlr/out/*"],

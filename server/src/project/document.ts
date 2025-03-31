@@ -6,7 +6,6 @@ import { CancellationToken, Diagnostic, DocumentDiagnosticReport, DocumentDiagno
 import { ParserRuleContext } from 'antlr4ng';
 
 // Project
-import { Workspace } from './workspace';
 import { Dictionary } from '../utils/helpers';
 import { SyntaxParser } from './parser/vbaParser';
 import { FoldingRange } from '../capabilities/folding';
@@ -26,17 +25,9 @@ import { PropertyDeclarationElement,
 	PropertySetDeclarationElement
 } from './elements/procedure';
 import { VbaFmtListener } from './parser/vbaListener';
-
-
-export interface DocumentSettings {
-	maxDocumentLines: number;
-	maxNumberOfProblems: number;
-	doWarnOptionExplicitMissing: boolean;
-	environment: {
-		os: string;
-		version: string;
-	}
-}
+import { Services } from '../injection/services';
+import { IWorkspace } from '../injection/interface';
+import { VbaFmtParser } from './parser/vbaAntlr';
 
 
 // TODO ---------------------------------------------
@@ -51,11 +42,11 @@ export interface DocumentSettings {
 
 export abstract class BaseProjectDocument {
 	readonly name: string;
-	readonly workspace: Workspace;
+	readonly workspace: IWorkspace;
 	readonly textDocument: TextDocument;
+	readonly version: number;
 
 	protected diagnostics: Diagnostic[] = [];
-	protected documentConfiguration?: DocumentSettings;
 	protected documentScopeDeclarations: Map<string, Map<string, any>> = new Map();
 	protected foldableElements: FoldingRange[] = [];
 	protected hasDiagnosticElements: HasDiagnosticCapability[] = [];
@@ -64,6 +55,7 @@ export abstract class BaseProjectDocument {
 	protected semanticTokens: SemanticTokensManager = new SemanticTokensManager();
 	protected symbolInformations: SymbolInformation[] = [];
 	protected unhandledNamedElements: [] = [];
+	protected isClosed = false;
 	
 	abstract symbolKind: SymbolKind
 	
@@ -72,51 +64,53 @@ export abstract class BaseProjectDocument {
 
 	get isOversize() {
 		// Workaround for async getter.
-		return (async () =>
-			this.textDocument.lineCount > (await this.getDocumentConfiguration()).maxDocumentLines
-		)();
+		return (async () => {
+			const config = await Services.server.clientConfiguration;
+			return config && this.textDocument.lineCount > config.maxDocumentLines;
+		})();
 	}
 
 	get redactedText() {
 		return this.subtractTextFromRanges(this.redactedElements.map(x => x.context.range));
 	}
 
-	async getDocumentConfiguration(): Promise<DocumentSettings> {
-		// Get the stored configuration.
-		if (this.documentConfiguration) {
-			return this.documentConfiguration;
-		}
+	// async getDocumentConfiguration(): Promise<DocumentSettings> {
+	// 	// Get the stored configuration.
+	// 	if (this.documentConfiguration) {
+	// 		return this.documentConfiguration;
+	// 	}
 		
-		// Get the configuration from the client.
-		if (this.workspace.hasConfigurationCapability) {
-			this.documentConfiguration = await this.workspace.requestDocumentSettings(this.textDocument.uri);
-			if (this.documentConfiguration) {
-				return this.documentConfiguration;
-			}
-		}
+	// 	// Get the configuration from the client.
+	// 	if (this.workspace.hasConfigurationCapability) {
+	// 		this.documentConfiguration = await this.workspace.requestDocumentSettings(this.textDocument.uri);
+	// 		if (this.documentConfiguration) {
+	// 			return this.documentConfiguration;
+	// 		}
+	// 	}
 
-		// Use the defaults.
-		this.documentConfiguration = {
-			maxDocumentLines: 1500,
-			maxNumberOfProblems: 100,
-			doWarnOptionExplicitMissing: true,
-			environment: {
-				os: "Win64",
-				version: "Vba7"
-			}
-		};
-		return this.documentConfiguration;
-	}
+	// 	// Use the defaults.
+	// 	this.documentConfiguration = {
+	// 		maxDocumentLines: 1500,
+	// 		maxNumberOfProblems: 100,
+	// 		doWarnOptionExplicitMissing: true,
+	// 		environment: {
+	// 			os: "Win64",
+	// 			version: "Vba7"
+	// 		}
+	// 	};
+	// 	return this.documentConfiguration;
+	// }
 
-	clearDocumentConfiguration = () => this.documentConfiguration = undefined;
+	// clearDocumentConfiguration = () => this.documentConfiguration = undefined;
 
-	constructor(workspace: Workspace, name: string, document: TextDocument) {
+	constructor(name: string, document: TextDocument) {
 		this.textDocument = document;
-		this.workspace = workspace;
+		this.workspace = Services.workspace;
+		this.version = document.version;
 		this.name = name;
 	}
 
-	static create(workspace: Workspace, document: TextDocument): BaseProjectDocument {
+	static create(document: TextDocument): BaseProjectDocument {
 		const slashParts = document.uri.split('/').at(-1);
 		const dotParts = slashParts?.split('.');
 		const extension = dotParts?.at(-1);
@@ -128,14 +122,22 @@ export abstract class BaseProjectDocument {
 
 		switch (extension) {
 			case 'cls':
-				return new VbaClassDocument(workspace, filename, document, SymbolKind.Class);
+				return new VbaClassDocument(filename, document, SymbolKind.Class);
 			case 'bas':
-				return new VbaModuleDocument(workspace, filename, document, SymbolKind.Class);
+				return new VbaModuleDocument(filename, document, SymbolKind.Class);
 			case 'frm':
-				return new VbaModuleDocument(workspace, filename, document, SymbolKind.Class);
+				return new VbaModuleDocument(filename, document, SymbolKind.Class);
 			default:
 				throw new Error("Expected *.cls, *.bas, or *.frm but got *." + extension);
 		}
+	}
+
+	close(): void {
+		this.isClosed = true;
+	}
+
+	open(): void {
+		this.isClosed = false;
 	}
 
 	languageServerSemanticTokens = (range?: Range) => {
@@ -150,24 +152,40 @@ export abstract class BaseProjectDocument {
 		return this.symbolInformations;
 	}
 
-	languageServerDiagnostics(): DocumentDiagnosticReport {
+	// languageServerDiagnostics(): DocumentDiagnosticReport {
+	// 	return {
+	// 		kind: DocumentDiagnosticReportKind.Full,
+	// 		items: this.isClosed ? [] : this.diagnostics
+	// 	};
+	// }
+	languageServerDiagnostics() {
 		return {
-			kind: DocumentDiagnosticReportKind.Full,
-			items: this.diagnostics
+			uri: this.textDocument.uri,
+			version: this.version,
+			diagnostics: this.isClosed ? [] : this.diagnostics
 		};
+	}
+
+	async formatParseVisit(token: CancellationToken): Promise<VbaFmtListener> {
+		try {
+			return await (new SyntaxParser(Services.logger)).formatParseAsync(token, this);
+		} catch (e) {
+			Services.logger.debug('caught doc');
+			throw e
+		}
 	}
 
 	async parseAsync(token: CancellationToken): Promise<void> {
 		// Don't parse oversize documents.
 		if (await this.isOversize) {
-			this.workspace.logger.debug(`Document oversize: ${this.textDocument.lineCount} lines.`);
-            this.workspace.logger.warn(`Syntax parsing has been disabled to prevent crashing.`);
+			Services.logger.debug(`Document oversize: ${this.textDocument.lineCount} lines.`);
+            Services.logger.warn(`Syntax parsing has been disabled to prevent crashing.`);
 			this._isBusy = false;
 			return;
 		}
 
 		// Parse the document.
-		await (new SyntaxParser(this.workspace.logger)).parseAsync(token, this);
+		await (new SyntaxParser(Services.logger)).parseAsync(token, this);
 
 		// Evaluate the diagnostics.
 		this.diagnostics = this.hasDiagnosticElements
@@ -180,13 +198,13 @@ export abstract class BaseProjectDocument {
 	async formatParseAsync(token: CancellationToken): Promise<VbaFmtListener | undefined> {
 		// Don't parse oversize documents.
 		if (await this.isOversize) {
-			this.workspace.logger.debug(`Document oversize: ${this.textDocument.lineCount} lines.`);
-            this.workspace.logger.warn(`Syntax parsing has been disabled to prevent crashing.`);
+			Services.logger.debug(`Document oversize: ${this.textDocument.lineCount} lines.`);
+            Services.logger.warn(`Syntax parsing has been disabled to prevent crashing.`);
 			return;
 		}
 
 		// Parse the document.
-		return await (new SyntaxParser(this.workspace.logger)).formatParseAsync(token, this);
+		return await (new SyntaxParser(Services.logger)).formatParseAsync(token, this);
 	}
 
 	/**
@@ -300,8 +318,8 @@ export abstract class BaseProjectDocument {
 
 export class VbaClassDocument extends BaseProjectDocument {
 	symbolKind: SymbolKind;
-	constructor(workspace: Workspace, name: string, document: TextDocument, symbolKind: SymbolKind) {
-		super(workspace, name, document);
+	constructor(name: string, document: TextDocument, symbolKind: SymbolKind) {
+		super(name, document);
 		this.symbolKind = symbolKind;
 	}
 }
@@ -309,8 +327,8 @@ export class VbaClassDocument extends BaseProjectDocument {
 
 export class VbaModuleDocument extends BaseProjectDocument {
 	symbolKind: SymbolKind;
-	constructor(workspace: Workspace, name: string, document: TextDocument, symbolKind: SymbolKind) {
-		super(workspace, name, document);
+	constructor(name: string, document: TextDocument, symbolKind: SymbolKind) {
+		super(name, document);
 		this.symbolKind = symbolKind;
 	}
 }

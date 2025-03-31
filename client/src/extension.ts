@@ -61,7 +61,6 @@ export function activate(context: ExtensionContext) {
 
 	// Start the client. This will also launch the server
 	client.start();
-	VscodeLogger.info('VBAPro activated')
 }
 
 export function deactivate(): Thenable<void> | undefined {

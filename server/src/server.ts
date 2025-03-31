@@ -3,14 +3,16 @@
  * Licensed under the MIT License. See License.txt in the project root for license information.
  * ------------------------------------------------------------------------------------------ */
 import {
-	createConnection,
-	ProposedFeatures,
 	InitializeParams,
 	DidChangeConfigurationNotification,
 	TextDocumentSyncKind,
 	InitializeResult,
 	ServerCapabilities,
 } from 'vscode-languageserver/node';
+
+// Dependency Injection
+import 'reflect-metadata'
+import { Services } from './injection/services';
 
 // Ensures globally available type extensions.
 import './extensions/stringExtensions';
@@ -19,23 +21,22 @@ import './extensions/numberExtensions';
 import { Workspace } from './project/workspace';
 import { activateSemanticTokenProvider } from './capabilities/semanticTokens';
 import { activateWorkspaceFolderCapability } from './capabilities/workspaceFolder';
+import { ClientConfiguration, ILanguageServer, IWorkspace } from './injection/interface';
 
 
-class LanguageServer {
-	workspace?: Workspace;
+export class LanguageServer implements ILanguageServer {
 	configuration?: LanguageServerConfiguration;
+	private _clientConfiguration?: ClientConfiguration;
 	readonly connection;
+	private workspace?: IWorkspace;
 
 	constructor() {
-		this.connection = createConnection(ProposedFeatures.all);
+		this.connection = Services.connection;
 		this.connection.onInitialize((params: InitializeParams) => {
 			// Set up the workspace.
 			this.configuration = new LanguageServerConfiguration(params);
-			const workspace = new Workspace({
-				connection: this.connection,
-				capabilities: this.configuration
-			});
-			this.workspace = workspace;
+			Services.registerWorkspace(Workspace);
+			this.workspace = Services.workspace;
 			
 			// Set up the connection result.
 			// Update this to make use of the LSCapabilities data class.
@@ -44,15 +45,26 @@ class LanguageServer {
 			activateSemanticTokenProvider(result);
 			return result;
 		});
-		this.connection.onInitialized(() => {
-			// Register for client configuration notification changes.
-			this.connection.client.register(DidChangeConfigurationNotification.type, undefined);
-			
-		});
-
-		
-
+		// Register for client configuration notification changes.
+		this.connection.onInitialized(() => { this.connection.client.register(DidChangeConfigurationNotification.type, undefined); });
+		this.connection.onDidChangeConfiguration(() => this._clientConfiguration = undefined);
 		this.connection.listen();
+	}
+
+	get clientConfiguration(): Promise<ClientConfiguration> {
+		// Helper function to get the configuration from the client.
+		const getConfig = async (): Promise<ClientConfiguration> => await this.connection
+			.workspace.getConfiguration('vbaLanguageServer');
+
+		// Ensure we have configuration by getting it if we don't.
+		const ensureConfig = async (): Promise<void> => {
+			if (!this._clientConfiguration) this._clientConfiguration = await getConfig();
+		}
+
+		return (async (): Promise<ClientConfiguration> => {
+			await ensureConfig();
+			return this._clientConfiguration!;
+		})();
 	}
 }
 
@@ -64,10 +76,10 @@ export class LanguageServerConfiguration {
 		documentSymbolProvider: true,
 		foldingRangeProvider: true,
 		textDocumentSync: TextDocumentSyncKind.Incremental,
-		diagnosticProvider: {
-			interFileDependencies: false,
-			workspaceDiagnostics: false
-		},
+		// diagnosticProvider: {
+		// 	interFileDependencies: false,
+		// 	workspaceDiagnostics: false
+		// },
 		
 		// Implement soon.
 		codeActionProvider: false,
@@ -116,4 +128,6 @@ class ConnectionInitializeResult implements InitializeResult {
 }
 
 
-const languageServer = new LanguageServer();
+Services.registerServices();
+Services.registerServer(new LanguageServer());
+const languageServer = Services.server;
