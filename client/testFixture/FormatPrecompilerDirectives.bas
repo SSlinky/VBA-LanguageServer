@@ -41,3 +41,13 @@ Public Function Bar() As Long
 #End If
 Bar = 0
 End Function
+
+#If VBA7 Then
+#If Win64 Then
+Const XXX As Long = 10
+#Else
+Const XXX As Long = 20
+#End If
+#Else
+Const XXX As Long = 30
+#End If

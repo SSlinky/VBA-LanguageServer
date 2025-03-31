@@ -14,6 +14,7 @@ suite('Should get text edits', () => {
 
 	test('formatting.module.directives', async () => {
 		await testTextEdits(getDocUri('FormatPrecompilerDirectives.bas'), [
+			// Staggered (half) indentation.
 			{range: toRange(27, 0, 27, 0), newText: '  '},
 			{range: toRange(28, 0, 28, 0), newText: '    '},
 			{range: toRange(29, 0, 29, 0), newText: '  '},
@@ -21,9 +22,19 @@ suite('Should get text edits', () => {
 			{range: toRange(32, 0, 32, 0), newText: '    '},
 			{range: toRange(33, 0, 33, 0), newText: '  '},
 			{range: toRange(34, 0, 34, 0), newText: '  '},
+
+			// Different method signatures.
 			{range: toRange(38, 0, 38, 0), newText: '  '},
 			{range: toRange(40, 0, 40, 0), newText: '  '},
-			{range: toRange(42, 0, 42, 0), newText: '    '}
+			{range: toRange(42, 0, 42, 0), newText: '    '},
+
+			// Nested pre blocks.
+			{range: toRange(46, 0, 46, 0), newText: '  '},
+			{range: toRange(47, 0, 47, 0), newText: '    '},
+			{range: toRange(48, 0, 48, 0), newText: '  '},
+			{range: toRange(49, 0, 49, 0), newText: '    '},
+			{range: toRange(50, 0, 50, 0), newText: '  '},
+			{range: toRange(52, 0, 52, 0), newText: '  '}
 		]);
 	});
 });
