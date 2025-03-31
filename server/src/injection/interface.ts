@@ -39,5 +39,7 @@ export interface IWorkspace {
 	clearDocumentsConfiguration(): void
 	formatParseDocument(document: TextDocument, token: CancellationToken): Promise<VbaFmtListener | undefined>;
 	parseDocument(projectDocument: BaseProjectDocument): Promise<void>;
+	openDocument(document: TextDocument): void;
+	closeDocument(document: TextDocument): void;
 	namespaceManager: NamespaceManager;
 }

@@ -55,6 +55,7 @@ export abstract class BaseProjectDocument {
 	protected semanticTokens: SemanticTokensManager = new SemanticTokensManager();
 	protected symbolInformations: SymbolInformation[] = [];
 	protected unhandledNamedElements: [] = [];
+	protected isClosed = false;
 	
 	abstract symbolKind: SymbolKind
 	
@@ -131,6 +132,14 @@ export abstract class BaseProjectDocument {
 		}
 	}
 
+	close(): void {
+		this.isClosed = true;
+	}
+
+	open(): void {
+		this.isClosed = false;
+	}
+
 	languageServerSemanticTokens = (range?: Range) => {
 		return this.semanticTokens.getSemanticTokens(range);
 	};
@@ -143,16 +152,23 @@ export abstract class BaseProjectDocument {
 		return this.symbolInformations;
 	}
 
-	languageServerDiagnostics(): DocumentDiagnosticReport {
+	// languageServerDiagnostics(): DocumentDiagnosticReport {
+	// 	return {
+	// 		kind: DocumentDiagnosticReportKind.Full,
+	// 		items: this.isClosed ? [] : this.diagnostics
+	// 	};
+	// }
+	languageServerDiagnostics() {
 		return {
-			kind: DocumentDiagnosticReportKind.Full,
-			items: this.diagnostics
+			uri: this.textDocument.uri,
+			version: this.version,
+			diagnostics: this.isClosed ? [] : this.diagnostics
 		};
 	}
 
 	async formatParseVisit(token: CancellationToken): Promise<VbaFmtListener> {
 		try {
-			return await (new SyntaxParser(Services.logger)).formatVisit(token, this);
+			return await (new SyntaxParser(Services.logger)).formatParseAsync(token, this);
 		} catch (e) {
 			Services.logger.debug('caught doc');
 			throw e

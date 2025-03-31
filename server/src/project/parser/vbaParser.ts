@@ -7,8 +7,6 @@ import { VbaFmtListener, VbaListener, VbaPreListener } from './vbaListener';
 import { VbaClassDocument, VbaModuleDocument } from '../document';
 import { CancellationToken, Range } from 'vscode-languageserver';
 import { Logger } from '../../injection/interface';
-import { container } from 'tsyringe';
-import { VbaFormatVisitor } from './visitor';
 
 
 export class SyntaxParser {
@@ -46,35 +44,35 @@ export class SyntaxParser {
         return listener;
     }
 
-    async formatVisit(token: CancellationToken, document: VbaClassDocument | VbaModuleDocument, range?: Range): Promise<VbaFmtListener> {
-        // // Handle already cancelled.
-        if (token.isCancellationRequested) {
-            this.logger.debug(`Format visit cancelled before start.`);
-            throw new ParseCancellationException(Error('Parse operation cancelled before it started.'));
-        }
+    // async formatVisit(token: CancellationToken, document: VbaClassDocument | VbaModuleDocument, range?: Range): Promise<VbaFmtListener> {
+    //     // // Handle already cancelled.
+    //     if (token.isCancellationRequested) {
+    //         this.logger.debug(`Format visit cancelled before start.`);
+    //         throw new ParseCancellationException(Error('Parse operation cancelled before it started.'));
+    //     }
 
-        // Listen for cancellation event.
-        token.onCancellationRequested(() => {
-            this.logger.debug(`Format visit cancelled during run.`);
-            throw new ParseCancellationException(new Error('Parse operation cancelled during parse.'));
-        });
+    //     // Listen for cancellation event.
+    //     token.onCancellationRequested(() => {
+    //         this.logger.debug(`Format visit cancelled during run.`);
+    //         throw new ParseCancellationException(new Error('Parse operation cancelled during parse.'));
+    //     });
 
 
-        this.logger.debug(`Beginning format visit.`);
-        const parser = VbaFmtParser.create(document.textDocument.getText(range));
-        const tree = parser.startRule();
+    //     this.logger.debug(`Beginning format visit.`);
+    //     const parser = VbaFmtParser.create(document.textDocument.getText(range));
+    //     const tree = parser.startRule();
 
-        // const visitor = container.resolve(VbaFormatVisitor);
-        // const visitor = forceAsync(container.resolve(VbaFormatVisitor));
-        // const visitor = forceAsync(new VbaFormatVisitor(this.logger));
-        const visitor = new VbaFormatVisitor(this.logger);
-        visitor.token = token;
-        await visitor.visit(tree);
-        this.logger.debug(`Operation ${token.isCancellationRequested ? 'cancelled' : 'completed'}.`)
+    //     // const visitor = container.resolve(VbaFormatVisitor);
+    //     // const visitor = forceAsync(container.resolve(VbaFormatVisitor));
+    //     // const visitor = forceAsync(new VbaFormatVisitor(this.logger));
+    //     const visitor = new VbaFormatVisitor(this.logger);
+    //     visitor.token = token;
+    //     await visitor.visit(tree);
+    //     this.logger.debug(`Operation ${token.isCancellationRequested ? 'cancelled' : 'completed'}.`)
 
-        // Temporary call so I don't have to refactor everything just to call it.
-        return await VbaFmtListener.createAsync(document);
-    }
+    //     // Temporary call so I don't have to refactor everything just to call it.
+    //     return await VbaFmtListener.createAsync(document);
+    // }
 
     private async parseDocumentAsync(token: CancellationToken, listener: VbaListener | VbaPreListener | VbaFmtListener, parser: VbaParser | VbaPreParser | VbaFmtParser) {
         // Handle already cancelled.

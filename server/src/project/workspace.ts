@@ -7,10 +7,6 @@ import {
 	CompletionParams,
 	DidChangeConfigurationNotification,
 	DidChangeWatchedFilesParams,
-	DidOpenTextDocumentParams,
-	DocumentDiagnosticParams,
-	DocumentDiagnosticReport,
-	DocumentDiagnosticReportKind,
 	DocumentFormattingParams,
 	DocumentSymbolParams,
 	FoldingRange,
@@ -33,7 +29,7 @@ import { ParseCancellationException } from 'antlr4ng';
 import { getFormattingEdits } from './formatter';
 import { VbaFmtListener } from './parser/vbaListener';
 import { returnDefaultOnCancelClientRequest } from '../utils/wrappers';
-import { container, inject, injectable } from 'tsyringe';
+import { inject, injectable } from 'tsyringe';
 import { Logger, ILanguageServer, IWorkspace } from '../injection/interface';
 import { Services } from '../injection/services';
 
@@ -121,7 +117,8 @@ export class Workspace implements IWorkspace {
 		try {
 			await this.activeDocument.parseAsync(this.parseCancellationTokenSource.token);
 			this.logger.info(`Parsed ${this.activeDocument.name}`);
-		} catch (e) {
+			this.connection.sendDiagnostics(this.activeDocument.languageServerDiagnostics());
+	} catch (e) {
 			// Swallow cancellation exceptions. They're good. We like these.
 			if (e instanceof ParseCancellationException) { }
 			else if (e instanceof Error) { this.logger.stack(e); }
@@ -153,6 +150,25 @@ export class Workspace implements IWorkspace {
 
 		this.parseCancellationTokenSource = undefined;
 		return result;
+	}
+
+	openDocument(document: TextDocument): void {
+		const projectDocument = this.projectDocuments.get(document.uri);
+		if (document.version === projectDocument?.version) {
+			projectDocument.open();
+			this.connection.sendDiagnostics(projectDocument.languageServerDiagnostics());
+		}
+	}
+
+	closeDocument(document: TextDocument): void {
+		const projectDocument = this.projectDocuments.get(document.uri);
+		if (!projectDocument) {
+			Services.logger.warn(`Failed to get document to close: ${document.uri}`)
+			return;
+		}
+
+		projectDocument.close();
+		this.connection.sendDiagnostics(projectDocument.languageServerDiagnostics());
 	}
 
 	/**
@@ -244,25 +260,17 @@ class WorkspaceEvents {
 	private initialiseConnectionEvents(connection: _Connection) {
 		const cancellableOnDocSymbol = returnDefaultOnCancelClientRequest(
 			(p: DocumentSymbolParams, t) => this.onDocumentSymbolAsync(p, t), [], Services.logger, 'Document Symbols');
-
-		const cancellableOnDiagnostics = returnDefaultOnCancelClientRequest(
-			(p: DocumentDiagnosticParams, t) => this.onDiagnosticAsync(p, t),
-			{kind: DocumentDiagnosticReportKind.Full, items: []},
-			Services.logger,
-			'Diagnostics');
 		
 		const cancellableOnFoldingRanges = returnDefaultOnCancelClientRequest(
 			(p: FoldingRangeParams, t) => this.onFoldingRangesAsync(p, t), [], Services.logger, 'Folding Range');
 
 		connection.onInitialized(() => this.onInitialized());
-		connection.onDidOpenTextDocument(params => this.onDidOpenTextDocumentAsync(params));
 		connection.onCompletion(params => this.onCompletion(params));
 		connection.onCompletionResolve(item => this.onCompletionResolve(item));
 		connection.onDidChangeConfiguration(() => Services.workspace.clearDocumentsConfiguration());
 		connection.onDidChangeWatchedFiles(params => this.onDidChangeWatchedFiles(params));
 		connection.onDocumentSymbol(async (params, token) => await cancellableOnDocSymbol(params, token));
 		connection.onHover(params => this.onHover(params));
-		connection.languages.diagnostics.on(async (params, token) => await cancellableOnDiagnostics(params, token));
 		connection.onDocumentFormatting(async (params, token) => await this.onDocumentFormatting(params, token));
 		connection.onDidCloseTextDocument(params => {Services.logger.debug('[event] onDidCloseTextDocument'); Services.logger.debug(JSON.stringify(params), 1);});
 
@@ -287,7 +295,10 @@ class WorkspaceEvents {
 	}
 
 	private initialiseDocumentsEvents() {
-		this.documents.onDidChangeContent(async (e) => await this.onDidChangeContentAsync(e.document));
+		// These are notifications so should not be async.
+		this.documents.onDidOpen((e) => this.onDidOpen(e.document));
+		this.documents.onDidClose((e) => this.onDidClose(e.document));
+		this.documents.onDidChangeContent((e) => this.onDidChangeContent(e.document));
 	}
 
 	/** Connection event handlers */
@@ -319,18 +330,6 @@ class WorkspaceEvents {
 	private async onDocumentSymbolAsync(params: DocumentSymbolParams, token: CancellationToken): Promise<SymbolInformation[]> {
 		const document = await this.getParsedProjectDocument(params.textDocument.uri, 0, token);
 		return document?.languageServerSymbolInformation() ?? [];
-	}
-
-	private async onDiagnosticAsync(params: DocumentDiagnosticParams, token: CancellationToken): Promise<DocumentDiagnosticReport> {
-		try {
-			const document = await this.getParsedProjectDocument(params.textDocument.uri, 0, token);
-			return document?.languageServerDiagnostics() ?? {
-				kind: DocumentDiagnosticReportKind.Full,
-				items: []
-			} satisfies DocumentDiagnosticReport;
-		} catch (e) {
-			if (e instanceof Error) Services.logger.stack(e); throw e
-		}
 	}
 
 	private async onFoldingRangesAsync(params: FoldingRangeParams, token: CancellationToken): Promise<FoldingRange[]> {
@@ -386,31 +385,30 @@ class WorkspaceEvents {
 	/** Documents event handlers */
 
 	/**
-	 * This event handler is called whenever a `TextDocuments<TextDocument>` is changed.
-	 * @param doc The document that changed.
+	 * Flags a document as 'open' if it is being tracked.
+	 * @param document The document being opened.
 	 */
-	async onDidOpenTextDocumentAsync(params: DidOpenTextDocumentParams) {
-		Services.logger.debug('[event] onDidOpenTextDocumentAsync');
-		Services.logger.debug(`uri: ${params.textDocument.uri}`, 1);
-		Services.logger.debug(`languageId: ${params.textDocument.languageId}`, 1);
-		Services.logger.debug(`version: ${params.textDocument.version}`, 1);
-		await this.handleChangeOrOpenAsync(TextDocument.create(
-			params.textDocument.uri,
-			params.textDocument.languageId,
-			params.textDocument.version,
-			params.textDocument.text
-		));
+	onDidOpen(document: TextDocument) {
+		Services.logger.debug('[event] onDidOpen');
+		Services.logger.debug(`uri: ${document.uri}`, 1);
+		Services.logger.debug(`languageId: ${document.languageId}`, 1);
+		Services.logger.debug(`version: ${document.version}`, 1);
+		const projectDocument = this.projectDocuments.get(document.uri);
+		if (projectDocument) {
+			Services.workspace.openDocument(document);
+		}
 	}
 
-	async onDidChangeContentAsync(document: TextDocument) {
+	/**
+	 * Handles a document change event by parsing it.
+	 * @param document The document that was changed.
+	 */
+	onDidChangeContent(document: TextDocument): void {
 		Services.logger.debug('[event] onDidChangeContentAsync');
 		Services.logger.debug(`uri: ${document.uri}`, 1);
 		Services.logger.debug(`languageId: ${document.languageId}`, 1);
 		Services.logger.debug(`version: ${document.version}`, 1);
-		await this.handleChangeOrOpenAsync(document);
-	}
 
-	protected async handleChangeOrOpenAsync(document: TextDocument) {
 		// If the event is fired for the same version of the document, don't reparse.
 		const existingDocument = this.projectDocuments.get(document.uri);
 		if ((existingDocument?.version ?? -1) >= document.version) {
@@ -421,7 +419,21 @@ class WorkspaceEvents {
 		// The document is new or a new version that we should parse.
 		const projectDocument = BaseProjectDocument.create(document);
 		this.projectDocuments.set(document.uri, projectDocument);
-		await Services.workspace.parseDocument(projectDocument);
-		setTimeout(() => Services.workspace.parseDocument(projectDocument), 0);
+		Services.workspace.parseDocument(projectDocument);
+	}
+
+	/**
+	 * Flags a document as 'closed' if it is being tracked.
+	 * @param document The document being closed.
+	 */
+	onDidClose(document: TextDocument) {
+		Services.logger.debug('[event] onDidClose');
+		Services.logger.debug(`uri: ${document.uri}`, 1);
+		Services.logger.debug(`languageId: ${document.languageId}`, 1);
+		Services.logger.debug(`version: ${document.version}`, 1);
+		const projectDocument = this.projectDocuments.get(document.uri);
+		if (projectDocument) {
+			Services.workspace.closeDocument(document);
+		}
 	}
 }
