@@ -161,15 +161,19 @@ export class ClassElement extends BaseModuleElement<ClassModuleContext> {
 			.classModuleCode()
 			.classModuleCodeElement());
 
+		let nameContextGetter;
+		if (ctx.classModuleHeader().nameAttr().length > 0) {
+			nameContextGetter = () => ctx
+				.classModuleHeader()
+				.nameAttr()[0]
+				.STRINGLITERAL()
+		}
 		this.identifierCapability = new IdentifierCapability({
 			element: this,
 			formatName: (x: string) => x.stripQuotes(),
 			defaultName: 'Unknown Class',
 			defaultRange: () => Range.create(this.context.range.start, this.context.range.start),
-			getNameContext: () => ctx
-				.classModuleHeader()
-				.nameAttr()[0]
-				.STRINGLITERAL()
+			getNameContext: nameContextGetter
 		});
 
 		this.resolveConfiguration(

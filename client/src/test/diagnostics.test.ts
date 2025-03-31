@@ -12,7 +12,7 @@ suite('Should get diagnostics', () => {
 		await testDiagnostics(getDocUri('MissingAttributeClass.cls'), [
 			{
 				message: 'Module missing attribute VB_NAME.',
-				range: toRange(1, 0, 1, 0),
+				range: toRange(4, 3, 4, 3),
 				severity: vscode.DiagnosticSeverity.Error,
 				source: 'ex'
 			}
