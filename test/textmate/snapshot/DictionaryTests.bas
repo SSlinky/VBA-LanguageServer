@@ -21,6 +21,30 @@ Attribute VB_Name = "DictionaryTests"
 
 Option Explicit
 
+Enum CompareModeType
+'   Performs a comparison by using the setting of the Option Compare statement.
+    vbUseCompareOption = -1
+
+'   Performs a binary comparison.
+    vbBinaryCompare = 0
+
+'   Performs a textual comparison.
+    vbTextCompare = 1
+
+'   Microsoft Access only.
+'   Performs a comparison based on information in your database.
+    vbDatabaseCompare = 2
+End Enum
+
+Public Type MyFooType 'Comment
+ 'Comment
+    Length As Long 'Comment
+     'Comment
+     
+    Length As Long 'Comment
+     'Comment
+End Type 'Comment
+
 
 Private passTests As New Collection
 Private failTests As New Collection

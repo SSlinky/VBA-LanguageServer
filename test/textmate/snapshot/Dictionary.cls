@@ -58,6 +58,15 @@ Enum CompareModeType
     vbDatabaseCompare = 2
 End Enum
 
+Public Type MyFooType 'Comment
+ 'Comment
+    Length As Long 'Comment
+     'Comment
+     
+    Length As Long 'Comment
+     'Comment
+End Type 'Comment
+
 
 ' Private Backing Store
 '-------------------------------------------------------------------------------

@@ -175,6 +175,38 @@
 >End Enum
 #^^^^^^^^ source.vba meta.enum.declaration.vba storage.type.enum.vba
 >
+>Public Type MyFooType 'Comment
+#^^^^^^^^^^^ source.vba meta.struct.declaration.vba storage.type.struct.vba
+#           ^ source.vba meta.struct.declaration.vba
+#            ^^^^^^^^^ source.vba meta.struct.declaration.vba entity.name.type.struct.vba
+#                     ^^^^^^^^^ source.vba meta.struct.declaration.vba comment.line.apostrophe.vba
+> 'Comment
+#^^^^^^^^^ source.vba meta.struct.declaration.vba comment.line.apostrophe.vba
+>    Length As Long 'Comment
+#^^^^ source.vba meta.struct.declaration.vba
+#    ^^^^^^ source.vba meta.struct.declaration.vba variable.other.readwrite.vba
+#          ^ source.vba meta.struct.declaration.vba
+#           ^^ source.vba meta.struct.declaration.vba meta.variables.type.vba keyword.control.as.vba
+#             ^ source.vba meta.struct.declaration.vba meta.variables.type.vba
+#              ^^^^ source.vba meta.struct.declaration.vba meta.variables.type.vba support.type.primitive.Long.vba
+#                  ^^^^^^^^^ source.vba meta.struct.declaration.vba comment.line.apostrophe.vba
+>     'Comment
+#^^^^^^^^^^^^^ source.vba meta.struct.declaration.vba comment.line.apostrophe.vba
+>     
+>    Length As Long 'Comment
+#^^^^ source.vba meta.struct.declaration.vba
+#    ^^^^^^ source.vba meta.struct.declaration.vba variable.other.readwrite.vba
+#          ^ source.vba meta.struct.declaration.vba
+#           ^^ source.vba meta.struct.declaration.vba meta.variables.type.vba keyword.control.as.vba
+#             ^ source.vba meta.struct.declaration.vba meta.variables.type.vba
+#              ^^^^ source.vba meta.struct.declaration.vba meta.variables.type.vba support.type.primitive.Long.vba
+#                  ^^^^^^^^^ source.vba meta.struct.declaration.vba comment.line.apostrophe.vba
+>     'Comment
+#^^^^^^^^^^^^^ source.vba meta.struct.declaration.vba comment.line.apostrophe.vba
+>End Type 'Comment
+#^^^^^^^^ source.vba meta.struct.declaration.vba storage.type.struct.vba
+#        ^^^^^^^^^ source.vba meta.struct.declaration.vba comment.line.apostrophe.vba
+>
 >
 >' Private Backing Store
 #^^^^^^^^^^^^^^^^^^^^^^^ source.vba comment.line.apostrophe.vba

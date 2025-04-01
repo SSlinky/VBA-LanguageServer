@@ -48,6 +48,86 @@
 >Option Explicit
 #^^^^^^^^^^^^^^^ source.vba keyword.control.vba
 >
+>Enum CompareModeType
+#^^^^ source.vba meta.enum.declaration.vba storage.type.enum.vba
+#    ^ source.vba meta.enum.declaration.vba
+#     ^^^^^^^^^^^^^^^ source.vba meta.enum.declaration.vba entity.name.type.enum.vba
+>'   Performs a comparison by using the setting of the Option Compare statement.
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.vba meta.enum.declaration.vba comment.line.apostrophe.vba
+>    vbUseCompareOption = -1
+#^^^^ source.vba meta.enum.declaration.vba
+#    ^^^^^^^^^^^^^^^^^^ source.vba meta.enum.declaration.vba variable.other.enummember.vba
+#                      ^ source.vba meta.enum.declaration.vba
+#                       ^ source.vba meta.enum.declaration.vba keyword.operator.assignment.vba
+#                        ^ source.vba meta.enum.declaration.vba
+#                         ^^ source.vba meta.enum.declaration.vba constant.numeric.vba
+>
+>'   Performs a binary comparison.
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.vba meta.enum.declaration.vba comment.line.apostrophe.vba
+>    vbBinaryCompare = 0
+#^^^^ source.vba meta.enum.declaration.vba
+#    ^^^^^^^^^^^^^^^ source.vba meta.enum.declaration.vba variable.other.enummember.vba
+#                   ^ source.vba meta.enum.declaration.vba
+#                    ^ source.vba meta.enum.declaration.vba keyword.operator.assignment.vba
+#                     ^ source.vba meta.enum.declaration.vba
+#                      ^ source.vba meta.enum.declaration.vba constant.numeric.vba
+>
+>'   Performs a textual comparison.
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.vba meta.enum.declaration.vba comment.line.apostrophe.vba
+>    vbTextCompare = 1
+#^^^^ source.vba meta.enum.declaration.vba
+#    ^^^^^^^^^^^^^ source.vba meta.enum.declaration.vba variable.other.enummember.vba
+#                 ^ source.vba meta.enum.declaration.vba
+#                  ^ source.vba meta.enum.declaration.vba keyword.operator.assignment.vba
+#                   ^ source.vba meta.enum.declaration.vba
+#                    ^ source.vba meta.enum.declaration.vba constant.numeric.vba
+>
+>'   Microsoft Access only.
+#^^^^^^^^^^^^^^^^^^^^^^^^^^ source.vba meta.enum.declaration.vba comment.line.apostrophe.vba
+>'   Performs a comparison based on information in your database.
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.vba meta.enum.declaration.vba comment.line.apostrophe.vba
+>    vbDatabaseCompare = 2
+#^^^^ source.vba meta.enum.declaration.vba
+#    ^^^^^^^^^^^^^^^^^ source.vba meta.enum.declaration.vba variable.other.enummember.vba
+#                     ^ source.vba meta.enum.declaration.vba
+#                      ^ source.vba meta.enum.declaration.vba keyword.operator.assignment.vba
+#                       ^ source.vba meta.enum.declaration.vba
+#                        ^ source.vba meta.enum.declaration.vba constant.numeric.vba
+>End Enum
+#^^^^^^^^ source.vba meta.enum.declaration.vba storage.type.enum.vba
+>
+>Public Type MyFooType 'Comment
+#^^^^^^^^^^^ source.vba meta.struct.declaration.vba storage.type.struct.vba
+#           ^ source.vba meta.struct.declaration.vba
+#            ^^^^^^^^^ source.vba meta.struct.declaration.vba entity.name.type.struct.vba
+#                     ^^^^^^^^^ source.vba meta.struct.declaration.vba comment.line.apostrophe.vba
+> 'Comment
+#^^^^^^^^^ source.vba meta.struct.declaration.vba comment.line.apostrophe.vba
+>    Length As Long 'Comment
+#^^^^ source.vba meta.struct.declaration.vba
+#    ^^^^^^ source.vba meta.struct.declaration.vba variable.other.readwrite.vba
+#          ^ source.vba meta.struct.declaration.vba
+#           ^^ source.vba meta.struct.declaration.vba meta.variables.type.vba keyword.control.as.vba
+#             ^ source.vba meta.struct.declaration.vba meta.variables.type.vba
+#              ^^^^ source.vba meta.struct.declaration.vba meta.variables.type.vba support.type.primitive.Long.vba
+#                  ^^^^^^^^^ source.vba meta.struct.declaration.vba comment.line.apostrophe.vba
+>     'Comment
+#^^^^^^^^^^^^^ source.vba meta.struct.declaration.vba comment.line.apostrophe.vba
+>     
+>    Length As Long 'Comment
+#^^^^ source.vba meta.struct.declaration.vba
+#    ^^^^^^ source.vba meta.struct.declaration.vba variable.other.readwrite.vba
+#          ^ source.vba meta.struct.declaration.vba
+#           ^^ source.vba meta.struct.declaration.vba meta.variables.type.vba keyword.control.as.vba
+#             ^ source.vba meta.struct.declaration.vba meta.variables.type.vba
+#              ^^^^ source.vba meta.struct.declaration.vba meta.variables.type.vba support.type.primitive.Long.vba
+#                  ^^^^^^^^^ source.vba meta.struct.declaration.vba comment.line.apostrophe.vba
+>     'Comment
+#^^^^^^^^^^^^^ source.vba meta.struct.declaration.vba comment.line.apostrophe.vba
+>End Type 'Comment
+#^^^^^^^^ source.vba meta.struct.declaration.vba storage.type.struct.vba
+#        ^^^^^^^^^ source.vba meta.struct.declaration.vba comment.line.apostrophe.vba
+>
 >
 >Private passTests As New Collection
 #^^^^^^^ source.vba meta.declare.Private.vba storage.modifier.visibility.vba
