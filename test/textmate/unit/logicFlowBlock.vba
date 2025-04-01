@@ -121,6 +121,17 @@ Public Sub Foo()
 '                      ^    keyword.control.line-separator.vba
             Foo
 '           ^^^             meta.sub-call.vba
+            Set foo = bar
+'           ^^^^^^^^^^^^^   meta.variable-assignment.vba
+'           ^^^             keyword.control.vba
+'               ^^^   ^^^   variable.other.readwrite.vba
+'                   ^       keyword.operator.assignment.vba
+            Set foo = New bar
+'           ^^^^^^^^^^^^^^^^^   meta.variable-assignment.vba
+'           ^^^                 keyword.control.vba
+'               ^^^       ^^^   variable.other.readwrite.vba
+'                   ^           keyword.operator.assignment.vba
+'                     ^^^       keyword.operator.new.vba
         Case Else:
 '       ^^^^ ^^^^           keyword.control.flow.switch.vba
 '                ^          keyword.control.line-separator.vba

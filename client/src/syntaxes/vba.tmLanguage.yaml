@@ -136,6 +136,7 @@ repository:
 
   operators:
     patterns:
+      - include: "#opsNew"
       - include: "#opsArithmetic"
       - include: "#opsComparison"
       - include: "#opsConcatenation"
@@ -143,6 +144,9 @@ repository:
       - include: "#opsLogical"
       - include: "#opsOther"
     repository:
+      opsNew:
+        name: keyword.operator.new.vba
+        match: (?i)(\bNew\b)
       opsArithmetic:
         name: keyword.operator.arithmetic.vba
         match: (?i)([*&\/\^\+\-]|\^|\bMod\b)
@@ -402,7 +406,7 @@ repository:
                 name: keyword.control.flow.switch.vba
             patterns:
               - include: "#flowCase"
-              - include: "#language"
+              - include: "#block"
 
       kw-array:
         name: keyword.array.vba
