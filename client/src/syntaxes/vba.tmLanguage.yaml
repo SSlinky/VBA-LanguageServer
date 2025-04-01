@@ -98,7 +98,6 @@ repository:
       - include: "#literals"
       - include: "#operators"
       - include: "#keywords"
-      - include: "#kw-storageMe"
       - include: "#functionCall"
       - include: "#subCall"
       - include: "#subCallNoArgs"
@@ -1045,7 +1044,7 @@ repository:
     captures:
       1:
         patterns:
-          - include: "#kw-storageMe"
+          - include: "#keywords"
       2:
         patterns:
           - name: variable.other.constant
@@ -1063,7 +1062,7 @@ repository:
     beginCaptures:
       1:
         patterns:
-          - include: "#kw-storageMe"
+          - include: "#keywords"
           - include: "#variable"
       2:
         patterns:
@@ -1099,7 +1098,7 @@ repository:
     captures:
       1:
         patterns:
-          - include: "#kw-storageMe"
+          - include: "#keywords"
           - include: "#variable"
       2:
         patterns:
