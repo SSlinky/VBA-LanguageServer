@@ -525,7 +525,8 @@ repository:
       1:
         name: keyword.control.as.vba
       2:
-        name: keyword.storage.new.vba
+        patterns:
+          - include: "#operators"
       3:
         patterns:
           - include: "#AsTypePrimative"
@@ -975,7 +976,8 @@ repository:
         end: (?=[,):'\n])
         beginCaptures:
           0:
-            name: keyword.storage.new.vba
+            patterns:
+              - include: "#operators"
         patterns:
           - include: "#lineContinuation"
           - include: "#argumentSignatureFromTypeName"
