@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <style>
+    text { font: bold 60px "Segoe UI", sans-serif; }
+  </style>
+  <!-- File shape with dog ear -->
+  <path d="M24 16 H80 L104 40 V50  M104 105 V112 H24 V105 M24 50 V16 H80 M80 16 V40 H104" stroke="#D3D3D3" stroke-width="4"/>
+  <!-- VBA text in front -->
+  <text x="50%" y="65%" dominant-baseline="middle" text-anchor="middle" fill="#4EA72E">VBA</text>
+</svg>

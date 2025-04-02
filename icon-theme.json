@@ -1,0 +1,18 @@
+{
+	"fileExtensions": {
+		"cls": "_class",
+		"bas": "_module",
+		"frm": "_userform"
+	},
+	"iconDefinitions": {
+		"_class": {
+			"iconPath": "icons/vba_blue.svg"
+		},
+		"_module": {
+			"iconPath": "icons/vba_orange.svg"
+		},
+		"_userform": {
+			"iconPath": "icons/vba_green.svg"
+		}
+	}
+}
