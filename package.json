@@ -16,7 +16,8 @@
 		"Programming Languages",
 		"Snippets",
 		"Linters",
-		"Formatters"
+		"Formatters",
+		"Themes"
 	],
 	"keywords": [
 		"multi-root ready"
@@ -39,6 +40,13 @@
 					".frm"
 				],
 				"configuration": "./vba.language-configuration.json"
+			}
+		],
+		"iconThemes": [
+			{
+				"id": "vba-lsp",
+				"label": "VBA Icons",
+				"path": "icon-theme.json"
 			}
 		],
 		"configurationDefaults": {
