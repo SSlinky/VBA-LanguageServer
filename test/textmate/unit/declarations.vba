@@ -39,7 +39,7 @@ Dim     x As New Object, y as New Object ' Comment
 '<---                                               storage.type.vba
 '       ^                ^                          variable.other.readwrite.vba
 '         ^^               ^^                       keyword.control.as.vba
-'            ^^^              ^^^                   keyword.storage.new.vba
+'            ^^^              ^^^                   keyword.operator.new.vba
 '                ^^^^^^           ^^^^^^            support.type.object.Object.vba
 '                      ^                            punctuation.separator.vba
 '                                        ^^^^^^^^^  comment.line.apostrophe.vba - meta.declare.variable.vba
@@ -162,7 +162,7 @@ Dim foo(1 To 5) As Long, bar(2 To 7)
     As _
 '   ^^              keyword.control.as.vba
     New _
-'   ^^^             keyword.storage.new.vba
+'   ^^^             keyword.operator.new.vba
     Dictionary _
 '   ^^^^^^^^^^      meta.declare.constant.vba support.type.object.Dictionary.vba
     = _

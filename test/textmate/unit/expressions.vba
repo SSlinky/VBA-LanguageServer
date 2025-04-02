@@ -46,4 +46,7 @@ Sub Test()
 '            ^^^ ^^^                    keyword.operator.logical.vba
 '                        ^^^^^          meta.expression.vba meta.expression.vba variable.other.readwrite.vba
     End If
+
+    Set foo = bar
+    Set foo = New bar
 End Sub

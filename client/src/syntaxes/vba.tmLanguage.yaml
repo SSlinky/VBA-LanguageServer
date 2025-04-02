@@ -59,12 +59,7 @@ repository:
   fileStructure:
     patterns:
       - include: "#moduleHeader"
-      - include: "#comments"        # Handle comments here so they aren't broken by other stuff.
-      - include: "#strings"         # Handle strings here so they aren't broken by other stuff.
-      - include: "#labels"          # Handle labels first so they aren't handled by lines.
-      - include: "#methodSignature"
-      - include: "#enum"
-      - include: "#struct"
+      - include: "#labels"
       - include: "#main"
 
   continuations:
@@ -88,6 +83,8 @@ repository:
 
   main:
     patterns:
+      - include: "#enum"
+      - include: "#struct"
       - include: "#methodSignature"
       - include: "#declaration"
       - include: "#block"
@@ -101,9 +98,7 @@ repository:
       - include: "#literals"
       - include: "#operators"
       - include: "#keywords"
-      - include: "#kw-storageMe"
       - include: "#functionCall"
-      # - include: "#objectModel"
       - include: "#subCall"
       - include: "#subCallNoArgs"
       - name: keyword.control.line-separator.vba
@@ -136,6 +131,7 @@ repository:
 
   operators:
     patterns:
+      - include: "#opsNew"
       - include: "#opsArithmetic"
       - include: "#opsComparison"
       - include: "#opsConcatenation"
@@ -143,6 +139,9 @@ repository:
       - include: "#opsLogical"
       - include: "#opsOther"
     repository:
+      opsNew:
+        name: keyword.operator.new.vba
+        match: (?i)(\bNew\b)
       opsArithmetic:
         name: keyword.operator.arithmetic.vba
         match: (?i)([*&\/\^\+\-]|\^|\bMod\b)
@@ -211,7 +210,7 @@ repository:
 
           blockIfOpen:
             name: meta.block-if.condition.vba
-            begin:
+            begin: ""
             end: (?i)(?=if)
             patterns:
               - include: "#lineContinuation"
@@ -402,7 +401,7 @@ repository:
                 name: keyword.control.flow.switch.vba
             patterns:
               - include: "#flowCase"
-              - include: "#language"
+              - include: "#block"
 
       kw-array:
         name: keyword.array.vba
@@ -461,58 +460,6 @@ repository:
         match: (?i)(vbNewLine|vbCr|vbLf|vbCrLf)
         name: constant.numeric.enum.vba
 
-  # objectModel:
-  #   patterns:
-  #     - include: "#application"
-  #     - include: "#objects"
-  #   repository:
-  #     application:
-  #       patterns:
-  #         - include: "#objectModelApplicationMethods"
-  #         - include: "#objectModelApplicationProperties"
-  #         - include: "#objectModelApplicationUnknown"
-  #       repository:
-  #         objectModelApplicationMethods:
-  #           match: "(?i)\\b(application)(\\.(ActivateMicrosoftApp|AddCustomList|Calculate|CalculateFull|CalculateFullRebuild|CalculateUntilAsyncQueriesDone|CentimetersToPoints|CheckAbort|CheckSpelling|ConvertFormula|DDEExecute|DDEInitiate|DDEPoke|DDERequest|DDETerminate|DeleteCustomList|DisplayXMLSourcePane|DoubleClick|Evaluate|ExecuteExcel4Macro|FindFile|GetCustomListContents|GetCustomListNum|GetOpenFilename|GetPhonetic|GetSaveAsFilename|Goto|Help|InchesToPoints|InputBox|Intersect|MacroOptions|MailLogoff|MailLogon|NextLetter|OnKey|OnRepeat|OnTime|OnUndo|Quit|RecordMacro|RegisterXLL|Repeat|Run|SendKeys|SharePointVersion|Undo|Union|Volatile|Wait)\\b)"
-  #           captures:
-  #             1:
-  #               name: entity.name.type.vba
-  #             3:
-  #               name: entity.name.function.vba
-                
-  #         objectModelApplicationProperties:
-  #           match: "(?i)\\b(application)(\\.(ActiveCell|ActiveChart|ActiveEncryptionSession|ActivePrinter|ActiveProtectedViewWindow|ActiveSheet|ActiveWindow|ActiveWorkbook|AddIns|AddIns2|AlertBeforeOverwriting|AltStartupPath|AlwaysUseClearType|Application|ArbitraryXMLSupportAvailable|AskToUpdateLinks|Assistance|AutoCorrect|AutoFormatAsYouTypeReplaceHyperlinks|AutomationSecurity|AutoPercentEntry|AutoRecover|Build|CalculateBeforeSave|Calculation|CalculationInterruptKey|CalculationState|CalculationVersion|Caller|CanPlaySounds|CanRecordSounds|Caption|CellDragAndDrop|Cells|ChartDataPointTrack|Charts|ClipboardFormats|ClusterConnector|Columns|COMAddIns|CommandBars|CommandUnderlines|ConstrainNumeric|ControlCharacters|CopyObjectsWithCells|Creator|Cursor|CursorMovement|CustomListCount|CutCopyMode|DataEntryMode|DDEAppReturnCode|DecimalSeparator|DefaultFilePath|DefaultSaveFormat|DefaultSheetDirection|DefaultWebOptions|DeferAsyncQueries|Dialogs|DisplayAlerts|DisplayClipboardWindow|DisplayCommentIndicator|DisplayDocumentActionTaskPane|DisplayDocumentInformationPanel|DisplayExcel4Menus|DisplayFormulaAutoComplete|DisplayFormulaBar|DisplayFullScreen|DisplayFunctionToolTips|DisplayInsertOptions|DisplayNoteIndicator|DisplayPasteOptions|DisplayRecentFiles|DisplayScrollBars|DisplayStatusBar|EditDirectlyInCell|EnableAnimations|EnableAutoComplete|EnableCancelKey|EnableCheckFileExtensions|EnableEvents|EnableLargeOperationAlert|EnableLivePreview|EnableMacroAnimations|EnableSound|ErrorCheckingOptions|Excel4IntlMacroSheets|Excel4MacroSheets|ExtendList|FeatureInstall|FileConverters|FileDialog|FileExportConverters|FileValidation|FileValidationPivot|FindFormat|FixedDecimal|FixedDecimalPlaces|FlashFill|FlashFillMode|FormulaBarHeight|GenerateGetPivotData|GenerateTableRefs|Height|HighQualityModeForGraphics|Hinstance|HinstancePtr|Hwnd|IgnoreRemoteRequests|Interactive|International|IsSandboxed|Iteration|LanguageSettings|LargeOperationCellThousandCount|Left|LibraryPath|MailSession|MailSystem|MapPaperSize|MathCoprocessorAvailable|MaxChange|MaxIterations|MeasurementUnit|MergeInstances|MouseAvailable|MoveAfterReturn|MoveAfterReturnDirection|MultiThreadedCalculation|Name|Names|NetworkTemplatesPath|NewWorkbook|ODBCErrors|ODBCTimeout|OLEDBErrors|OnWindow|OperatingSystem|OrganizationName|Parent|Path|PathSeparator|PivotTableSelection|PreviousSelections|PrintCommunication|ProductCode|PromptForSummaryInfo|ProtectedViewWindows|QuickAnalysis|Range|Ready|RecentFiles|RecordRelative|ReferenceStyle|RegisteredFunctions|ReplaceFormat|RollZoom|Rows|RTD|ScreenUpdating|Selection|SensitivityLabelPolicy|Sheets|SheetsInNewWorkbook|ShowChartTipNames|ShowChartTipValues|ShowDevTools|ShowMenuFloaties|ShowQuickAnalysis|ShowSelectionFloaties|ShowStartupDialog|ShowToolTips|SmartArtColors|SmartArtLayouts|SmartArtQuickStyles|Speech|SpellingOptions|StandardFont|StandardFontSize|StartupPath|StatusBar|TemplatesPath|ThisCell|ThisWorkbook|ThousandsSeparator|Top|TransitionMenuKey|TransitionMenuKeyAction|TransitionNavigKeys|UsableHeight|UsableWidth|UseClusterConnector|UsedObjects|UserControl|UserLibraryPath|UserName|UseSystemSeparators|Value|VBE|Version|Visible|WarnOnFunctionNameConflict|Watches|Width|Windows|WindowsForPens|WindowState|Workbooks|WorksheetFunction|Worksheets)\\b)"
-  #           captures:
-  #             1:
-  #               name: entity.name.type.vba
-  #             3:
-  #               name: support.type.property-name.vba
-
-  #         objectModelApplicationUnknown:
-  #           name: invalid.unimplemented.vba
-  #           match: "(?i)\\b(application)(\\.([a-z][a-z0-9_]*))"
-
-  #     objects:
-  #       patterns:
-        #   - include: "#objectModelDebug"
-        # repository:
-        #   objectModelDebug:
-        #     patterns:
-        #       - include: "#objectModelDebugValid"
-        #       - include: "#objectModelDebugInvalid"
-        #     repository:
-        #       objectModelDebugValid:
-        #         match: (?i)\b(debug)(\.(print|assert))
-        #         captures:
-        #           1:
-        #             name: entity.name.type.vba
-        #           3:
-        #             name: entity.name.function
-
-        #       objectModelDebugInvalid:
-        #         name: invalid.unimplemented.vba
-        #         match: (?i)\b(debug)(\.([a-z][a-z0-9_]*))
-
   types:
     name: meta.variables.type.vba
     #          As     New?       Type
@@ -521,7 +468,8 @@ repository:
       1:
         name: keyword.control.as.vba
       2:
-        name: keyword.storage.new.vba
+        patterns:
+          - include: "#operators"
       3:
         patterns:
           - include: "#AsTypePrimative"
@@ -732,7 +680,6 @@ repository:
         patterns:
           - include: "#comments"
     patterns:
-      - include: "#comment"
       - include: "#enumMember"
       - include: "#language"
     end: (?i)^\s*(End\s+Enum)(\s+'.*)?
@@ -769,7 +716,6 @@ repository:
         patterns:
           - include: "#comments"
     patterns:
-      - include: "#comment"
       - include: "#structProperty"
       - include: "#language"
 
@@ -834,7 +780,7 @@ repository:
     match: (?i)End\s+(Sub|Function|Property)(?=$|\s)
 
   expressionList:
-    begin:
+    begin: ""
     end: (?=\n|\sThen|\)|'|:)
     patterns:
       - include: "#separator"
@@ -971,7 +917,8 @@ repository:
         end: (?=[,):'\n])
         beginCaptures:
           0:
-            name: keyword.storage.new.vba
+            patterns:
+              - include: "#operators"
         patterns:
           - include: "#lineContinuation"
           - include: "#argumentSignatureFromTypeName"
@@ -1097,7 +1044,7 @@ repository:
     captures:
       1:
         patterns:
-          - include: "#kw-storageMe"
+          - include: "#keywords"
       2:
         patterns:
           - name: variable.other.constant
@@ -1115,7 +1062,7 @@ repository:
     beginCaptures:
       1:
         patterns:
-          - include: "#kw-storageMe"
+          - include: "#keywords"
           - include: "#variable"
       2:
         patterns:
@@ -1151,7 +1098,7 @@ repository:
     captures:
       1:
         patterns:
-          - include: "#kw-storageMe"
+          - include: "#keywords"
           - include: "#variable"
       2:
         patterns:
