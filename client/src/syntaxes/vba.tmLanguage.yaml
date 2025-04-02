@@ -210,7 +210,7 @@ repository:
 
           blockIfOpen:
             name: meta.block-if.condition.vba
-            begin:
+            begin: ""
             end: (?i)(?=if)
             patterns:
               - include: "#lineContinuation"
@@ -780,7 +780,7 @@ repository:
     match: (?i)End\s+(Sub|Function|Property)(?=$|\s)
 
   expressionList:
-    begin:
+    begin: ""
     end: (?=\n|\sThen|\)|'|:)
     patterns:
       - include: "#separator"
