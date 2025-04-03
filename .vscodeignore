@@ -9,6 +9,7 @@ scripts/**
 **/tsconfig.json
 **/tsconfig.base.json
 contributing.md
+template*
 
 # Development
 **/src
@@ -24,6 +25,7 @@ contributing.md
 *.tokens
 *.vsix
 *.tsbuildinfo
+*.log
 
 # Samples and testing
 sample*/**
