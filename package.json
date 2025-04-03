@@ -30,32 +30,32 @@
 		"languages": [
 			{
 				"id": "vba-class",
-				"aliases": ["VBA"],
+				"aliases": ["VBA Class"],
 				"extensions": [".cls"],
 				"configuration": "./vba.language-configuration.json",
 				"icon": {
-					"dark": "icons/vba_blue.svg",
-					"light": "icons/vba_blue.svg"
+					"dark": "icons/vba_90sGreen_dark.svg",
+					"light": "icons/vba_90sGreen_light.svg"
 				}
 			},
 			{
 				"id": "vba-module",
-				"aliases": ["VBA"],
+				"aliases": ["VBA Module"],
 				"extensions": [".bas"],
 				"configuration": "./vba.language-configuration.json",
 				"icon": {
-					"dark": "icons/vba_orange.svg",
-					"light": "icons/vba_orange.svg"
+					"dark": "icons/vba_90sPurple_dark.svg",
+					"light": "icons/vba_90sPurple_light.svg"
 				}
 			},
 			{
 				"id": "vba-form",
-				"aliases": ["VBA"],
+				"aliases": ["VBA Form"],
 				"extensions": [".frm"],
 				"configuration": "./vba.language-configuration.json",
 				"icon": {
-					"dark": "icons/vba_green.svg",
-					"light": "icons/vba_green.svg"
+					"dark": "icons/vba_90sYellow_dark.svg",
+					"light": "icons/vba_90sYellow_light.svg"
 				}
 			}
 		],
