@@ -6,7 +6,7 @@
 	"icon": "images/vba-lsp-icon.png",
 	"author": "SSlinky",
 	"license": "MIT",
-	"version": "1.5.4",
+	"version": "1.5.5",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/SSlinky/VBA-LanguageServer"
@@ -16,8 +16,7 @@
 		"Programming Languages",
 		"Snippets",
 		"Linters",
-		"Formatters",
-		"Themes"
+		"Formatters"
 	],
 	"keywords": [
 		"multi-root ready"
@@ -30,23 +29,34 @@
 	"contributes": {
 		"languages": [
 			{
-				"id": "vba",
-				"aliases": [
-					"VBA"
-				],
-				"extensions": [
-					".bas",
-					".cls",
-					".frm"
-				],
-				"configuration": "./vba.language-configuration.json"
-			}
-		],
-		"iconThemes": [
+				"id": "vba-class",
+				"aliases": ["VBA Class"],
+				"extensions": [".cls"],
+				"configuration": "./vba.language-configuration.json",
+				"icon": {
+					"dark": "icons/vba_90sGreen_dark.svg",
+					"light": "icons/vba_90sGreen_light.svg"
+				}
+			},
 			{
-				"id": "vba-lsp",
-				"label": "VBA Icons",
-				"path": "icon-theme.json"
+				"id": "vba-module",
+				"aliases": ["VBA Module"],
+				"extensions": [".bas"],
+				"configuration": "./vba.language-configuration.json",
+				"icon": {
+					"dark": "icons/vba_90sPurple_dark.svg",
+					"light": "icons/vba_90sPurple_light.svg"
+				}
+			},
+			{
+				"id": "vba-form",
+				"aliases": ["VBA Form"],
+				"extensions": [".frm"],
+				"configuration": "./vba.language-configuration.json",
+				"icon": {
+					"dark": "icons/vba_90sYellow_dark.svg",
+					"light": "icons/vba_90sYellow_light.svg"
+				}
 			}
 		],
 		"configurationDefaults": {
@@ -125,14 +135,32 @@
 		},
 		"grammars": [
 			{
-				"language": "vba",
+				"language": "vba-class",
+				"scopeName": "source.vba",
+				"path": "./client/out/vba.tmLanguage.json"
+			},
+			{
+				"language": "vba-module",
+				"scopeName": "source.vba",
+				"path": "./client/out/vba.tmLanguage.json"
+			},
+			{
+				"language": "vba-form",
 				"scopeName": "source.vba",
 				"path": "./client/out/vba.tmLanguage.json"
 			}
 		],
 		"snippets": [
 			{
-				"language": "vba",
+				"language": "vba-class",
+				"path": "./snippets/vba.json"
+			},
+			{
+				"language": "vba-module",
+				"path": "./snippets/vba.json"
+			},
+			{
+				"language": "vba-form",
 				"path": "./snippets/vba.json"
 			}
 		]

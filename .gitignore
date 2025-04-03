@@ -8,6 +8,7 @@ client/src/syntaxes/dev*
 .antlr
 node_modules
 client/server
+template*
 .vscode-test
 sample*/**
 *.vsix
