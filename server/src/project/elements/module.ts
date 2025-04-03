@@ -32,13 +32,13 @@ abstract class BaseModuleElement<T extends ParserRuleContext> extends BaseIdenti
 	abstract hasOptionExplicit: boolean;
 	
 	settings: DocumentSettings;
-	foldingRangeCapability: FoldingRangeCapability;
+	// foldingRangeCapability: FoldingRangeCapability;
 	symbolInformationCapability: SymbolInformationCapability;
 
 	constructor(ctx: T, doc: TextDocument, documentSettings: DocumentSettings, symbolKind: SymbolKind) {
 		super(ctx, doc);
 		this.settings = documentSettings;
-		this.foldingRangeCapability = new FoldingRangeCapability(this);
+		// this.foldingRangeCapability = new FoldingRangeCapability(this);
 		this.symbolInformationCapability = new SymbolInformationCapability(this, symbolKind);
 	}
 
