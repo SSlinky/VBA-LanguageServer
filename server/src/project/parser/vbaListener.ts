@@ -107,7 +107,7 @@ export class VbaListener extends vbaListener {
 
     enterAnyOperator = (ctx: AnyOperatorContext) => {
         const element = new DuplicateOperatorElement(ctx, this.document.textDocument);
-        this.document.registerDiagnosticElement(element);
+        this.document.registerElement(element);
     }
 
     enterEnumDeclaration = (ctx: EnumDeclarationContext) => {
@@ -131,7 +131,7 @@ export class VbaListener extends vbaListener {
     enterIgnoredClassAttr = (ctx: IgnoredClassAttrContext) => this.registerIgnoredAttribute(ctx);
     enterIgnoredProceduralAttr = (ctx: IgnoredProceduralAttrContext) => this.registerIgnoredAttribute(ctx);
     private registerIgnoredAttribute(ctx: IgnoredClassAttrContext | IgnoredProceduralAttrContext) {
-        this.document.registerDiagnosticElement(new ModuleIgnoredAttributeElement(ctx, this.document.textDocument))
+        this.document.registerElement(new ModuleIgnoredAttributeElement(ctx, this.document.textDocument))
     }
 
     enterProceduralModule = (ctx: ProceduralModuleContext) => {
@@ -205,7 +205,7 @@ export class VbaListener extends vbaListener {
 
     enterWhileStatement = (ctx: WhileStatementContext) => {
         const element = new WhileLoopElement(ctx, this.document.textDocument)
-        this.document.registerDiagnosticElement(element);
+        this.document.registerElement(element);
     };
 
     visitErrorNode(node: ErrorNode) {
