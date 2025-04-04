@@ -64,9 +64,6 @@ async function buildTests() {
   if (testFiles.length === 0) {
     console.warn('No tests found.')
     return;
-  } else {
-    console.info('Building tests...')
-    console.info(testFiles);
   }
 
   const buildOptions = {
