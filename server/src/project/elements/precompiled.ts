@@ -5,7 +5,7 @@ import { TextDocument } from 'vscode-languageserver-textdocument';
 import { CompilerConditionalBlockContext, CompilerDefaultBlockContext, CompilerIfBlockContext } from '../../antlr/out/vbapreParser';
 
 // Project
-import { DiagnosticCapability } from '../../capabilities/capabilities';
+import { DiagnosticCapability, FoldingRangeCapability } from '../../capabilities/capabilities';
 import { BaseContextSyntaxElement } from '../elements/base';
 import { UnreachableCodeDiagnostic } from '../../capabilities/diagnostics';
 
@@ -16,6 +16,9 @@ export class CompilerLogicalBlock extends BaseContextSyntaxElement<CompilerIfBlo
 
 	constructor(ctx: CompilerIfBlockContext, doc: TextDocument, env: {environment: { os: string, version: string }}) {
 		super(ctx, doc);
+		this.foldingRangeCapability = new FoldingRangeCapability(this);
+		this.foldingRangeCapability.openWord = '#If'
+		this.foldingRangeCapability.closeWord = '#End If'
 
 		// Create the block elements
 		const blocks = [ctx.compilerConditionalBlock(), ctx.compilerDefaultBlock()].flat();
