@@ -74,9 +74,9 @@
 			"runtimeExecutable": "${execPath}",
 			"args": [
 			  "--extensionDevelopmentPath=${workspaceFolder}",
-			  "--extensionTestsPath=${workspaceFolder}/client/out/test/index"
+			  "--extensionTestsPath=${workspaceFolder}/dist/client/out/test/index"
 			],
-			"outFiles": ["${workspaceFolder}/client/out/test/**/*.test.js"]
+			"outFiles": ["${workspaceFolder}/dist/client/out/test/**/*.test.js"]
 		}
 	],
 	"compounds": [
