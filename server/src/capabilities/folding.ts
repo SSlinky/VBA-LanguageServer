@@ -24,33 +24,44 @@ export class FoldingRange implements VscFoldingRange {
 	/**
 	 * The zero-based line number from where the folded range starts.
 	 */
-	startLine: number;
-
-	/**
-	 * The zero-based character offset from where the folded range starts. If not defined, defaults to the length of the start line.
-	 */
-	startCharacter?: number;
+	get startLine(): number {
+		return this._range.start.line;
+	}
 
 	/**
 	 * The zero-based line number where the folded range ends.
 	 */
-	endLine: number;
-
-	/**
-	 * The zero-based character offset before the folded range ends. If not defined, defaults to the length of the end line.
-	 */
-	endCharacter?: number;
+	get endLine(): number {
+		return this._range.end.line;
+	}
 
 	/**
 	 * Describes the kind of the folding range such as 'comment' or 'region'. The kind
 	 * is used to categorize folding ranges and used by commands like 'Fold all comments'. See
 	 * [FoldingRangeKind](#FoldingRangeKind) for an enumeration of standardized kinds.
 	 */
-	kind?: string;
-
-	constructor(range: Range, foldingRangeKind?: FoldingRangeKind) {
-		this.startLine = range.start.line;
-		this.endLine = range.end.line;
-		this.kind = foldingRangeKind;
+	get kind(): string | undefined {
+		return this._foldingRangeKind
 	}
+
+	get openWord(): string {
+		return this._openWord ?? '';
+	}
+
+	get closeWord(): string {
+		return this._closeWord ?? '';
+	}
+
+	get range() {
+		return {
+			startLine: this.startLine,
+			endLine: this.endLine
+		}
+	}
+
+	constructor(
+		private _range: Range,
+		private _foldingRangeKind?: FoldingRangeKind,
+		private _openWord?: string,
+		private _closeWord?: string) { }
 }

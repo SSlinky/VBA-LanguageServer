@@ -345,9 +345,9 @@ class WorkspaceEvents {
 		}
 		const result = document?.languageServerFoldingRanges();
 		for (const foldingRange of result ?? []) {
-			Services.logger.debug(`${JSON.stringify(foldingRange)}`, 1);
+			Services.logger.debug(`${JSON.stringify(foldingRange.range)} '${foldingRange.openWord}..${foldingRange.closeWord}'`, 1);
 		}
-		return result ?? [];
+		return result?.map(x => x.range) ?? [];
 	}
 
 	private onHover(params: HoverParams): Hover {
