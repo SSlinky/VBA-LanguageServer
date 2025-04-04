@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as assert from 'assert';
 import { getDocUri, activate } from './helper';
 
-suite('Should get text edits', () => {
+suite('Should get folding ranges', () => {
 	test('formatting.class.template', async () => {
 		const subFoo = {start: 23, end: 42};
 		const subBar = {start: 44, end: 58};

@@ -4,6 +4,7 @@
 ## Setup
 
 1. Fork this repo
+1. Install VSCode Extension [esBuild Problem Matchers](https://marketplace.visualstudio.com/items?itemName=connor4312.esbuild-problem-matchers).
 2. Install [Java](https://www.oracle.com/au/java/technologies/downloads/) >= 11
 3. Install [NPM](https://github.com/coreybutler/nvm-windows)
 4. `npm install` to install dependencies.
