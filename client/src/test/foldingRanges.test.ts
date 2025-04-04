@@ -12,6 +12,8 @@ suite('Should get text edits', () => {
 
 		await testFoldingRanges(getDocUri('FormatTemplateClass.cls'), [
 			subFoo,
+			ifBlockOuter,
+			ifBlockInner,
 			subBar,
 			whileWend
 		]);

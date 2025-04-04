@@ -13,6 +13,7 @@ import {
 	EnumDeclarationContext,
 	FunctionDeclarationContext,
 	GlobalVariableDeclarationContext,
+	IfStatementContext,
 	IgnoredClassAttrContext,
 	IgnoredProceduralAttrContext,
 	PrivateConstDeclarationContext,
@@ -55,7 +56,7 @@ import {
 // Project
 import { CompilerLogicalBlock } from '../elements/precompiled';
 import { UnexpectedEndOfLineElement } from '../elements/utils';
-import { DuplicateOperatorElement, WhileLoopElement } from '../elements/flow';
+import { DuplicateOperatorElement, IfElseBlock as IfStatementElement, WhileLoopElement } from '../elements/flow';
 import { VbaClassDocument, VbaModuleDocument } from '../document';
 import { ClassElement, ModuleElement, ModuleIgnoredAttributeElement } from '../elements/module';
 import { DeclarationStatementElement, EnumDeclarationElement, TypeDeclarationElement, TypeSuffixElement } from '../elements/typing';
@@ -127,6 +128,9 @@ export class VbaListener extends vbaListener {
 
     exitClassModule = (_: ClassModuleContext) =>
         this.document.deregisterNamespaceElement();
+
+    enterIfStatement = (ctx: IfStatementContext) =>
+        this.document.registerElement(new IfStatementElement(ctx, this.document.textDocument));
 
     enterIgnoredClassAttr = (ctx: IgnoredClassAttrContext) => this.registerIgnoredAttribute(ctx);
     enterIgnoredProceduralAttr = (ctx: IgnoredProceduralAttrContext) => this.registerIgnoredAttribute(ctx);
