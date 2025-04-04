@@ -59,9 +59,6 @@ Attribute Bar.VB_Description = "Tests more folding ranges."
 End Sub
 
 
-#If VBA7 Then
-	Public Function FooBar() As LongPtr
-#Else
-	Public Function FooBar() As Long
-#End If
-	End Function
+Public Function FooBar() As Long
+
+End Function

@@ -9,13 +9,15 @@ suite('Should get text edits', () => {
 		const ifBlockOuter = {start: 33, end: 41};
 		const ifBlockInner = {start: 34, end: 36};
 		const whileWend = {start: 54, end: 57};
+		const propFoobar = {start: 61, end: 63};
 
-		await testFoldingRanges(getDocUri('FormatTemplateClass.cls'), [
+		await testFoldingRanges(getDocUri('FoldingRanges.bas'), [
 			subFoo,
 			ifBlockOuter,
 			ifBlockInner,
 			subBar,
-			whileWend
+			whileWend,
+			propFoobar
 		]);
 	});
 });
@@ -23,9 +25,8 @@ suite('Should get text edits', () => {
 async function testFoldingRanges(docUri: vscode.Uri, expectedFoldingRanges: vscode.FoldingRange[]) {
 	await activate(docUri);
 	const actualFoldingRanges = await vscode.commands.executeCommand<vscode.FoldingRange[]>(
-		'vscode.executeFormatDocumentProvider',
-		docUri,
-		{ tabSize: 4, insertSpaces: true }
+		'vscode.executeFoldingRangeProvider',
+		docUri
 	)
 
 	assert.equal(actualFoldingRanges.length ?? 0, expectedFoldingRanges.length, "Count");
