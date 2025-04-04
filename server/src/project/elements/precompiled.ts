@@ -59,7 +59,7 @@ class CompilerConditionBlock extends BaseContextSyntaxElement<CompilerConditiona
 		const tsExpression = this.transpileVbaToTypescript(vbaExpression);
 
 		// Evaluate the expression and return the result.
-		const result = eval(tsExpression);
+		const result: boolean = Function('"use strict"; return (' + tsExpression + ')')();
 		if (!(typeof result === "boolean")) {
 			// TODO: Return false here instead of throwing
 			// and return an error diagnostic for the expression.
