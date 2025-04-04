@@ -30,6 +30,13 @@ export class FoldingRangeCapability extends BaseCapability {
 	foldingRangeKind?: FoldingRangeKind;
 	
 	get foldingRange(): FoldingRange {
+		const trailingLineCount = this.element.context.rule.countTrailingLineEndings();
+		const start = this.element.context.range.start;
+		const end = {
+			line: this.element.context.range.end.line - trailingLineCount,
+			character: this.element.context.range.end.character
+		}
+		const range = Range.create(start, end);
 		return new FoldingRange(this.element.context.range, this.foldingRangeKind);
 	}
 

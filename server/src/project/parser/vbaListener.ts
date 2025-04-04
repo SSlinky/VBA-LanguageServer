@@ -324,7 +324,7 @@ export class VbaFmtListener extends vbafmtListener {
     // Attributes are always zero indented.
     enterAttributeStatement = (ctx: AttributeStatementContext) => {
         const range = this.getCtxRange(ctx);
-        const offset = this.endsWithLineEnding(ctx) ? 0 : 1
+        const offset = ctx.endsWithLineEnding ? 0 : 1
 
         // Set the line after the end to what is current and then set current to zero.
         this.setIndentAt({
@@ -376,7 +376,7 @@ export class VbaFmtListener extends vbafmtListener {
         // Remove from continued and outdent next line.
         this.continuedElements.pop();
         const doc = this.common.document.textDocument;
-        const offset = this.endsWithLineEnding(node) ? 0 : 1
+        const offset = node.endsWithLineEnding ? 0 : 1
         const line = node.toRange(doc).end.line + offset;
         this.modifyIndentAt({
             line: line,
@@ -417,7 +417,7 @@ export class VbaFmtListener extends vbafmtListener {
         this.activeElements.push(ctx);
     
     exitIndentAfterElement = (ctx: IndentAfterElementContext) => {
-        const offset = this.endsWithLineEnding(ctx) ? 0 : 1
+        const offset = ctx.endsWithLineEnding ? 0 : 1
         const line = this.getCtxRange(ctx).end.line + offset;
         this.modifyIndentAt({
             line: line,
@@ -460,7 +460,7 @@ export class VbaFmtListener extends vbafmtListener {
     // Exit outdent on enter / indent after exit element.
     exitOutdentOnIndentAfterElement = (ctx: OutdentOnIndentAfterElementContext) => {
         // Offset the line to indent based on whether the element ends with a new line character.
-        const offset = this.endsWithLineEnding(ctx) ? 0 : 1
+        const offset = ctx.endsWithLineEnding ? 0 : 1
         const line = this.getCtxRange(ctx).end.line + offset;
         this.modifyIndentAt({
             line: line,
@@ -522,7 +522,7 @@ export class VbaFmtListener extends vbafmtListener {
 
         // Get the previous case statement and outdent if it had a line ending.
         const caseElement = selectCaseElement.statements.at(-1);
-        if (!!caseElement && this.endsWithLineEnding(caseElement)) {
+        if (!!caseElement && caseElement.endsWithLineEnding) {
             this.outdentAfterExit({context: ctx});
         }
     }
@@ -540,7 +540,7 @@ export class VbaFmtListener extends vbafmtListener {
 
         // Get the previous case statement and outdent if it had a line ending.
         const caseElement = selectCaseElement.statements.at(-1);
-        if (!!caseElement && this.endsWithLineEnding(caseElement)) {
+        if (!!caseElement && caseElement.endsWithLineEnding) {
             this.modifyIndentAt({
                 line: this.getCtxRange(ctx).start.line,
                 offset: -2,
@@ -562,7 +562,7 @@ export class VbaFmtListener extends vbafmtListener {
 
         // Only indent if the case statement ends in a new line.
         // A new line indicates the case is a block type, not single line.
-        if (this.endsWithLineEnding(ctx)) {
+        if (ctx.endsWithLineEnding) {
             this.modifyIndentAt({
                 line: this.getCtxRange(ctx).end.line,
                 offset: 2,
@@ -712,33 +712,5 @@ export class VbaFmtListener extends vbafmtListener {
 
     private getCtxRange(ctx: ParserRuleContext): Range {
         return ctx.toRange(this.common.document.textDocument);
-    }
-
-    /**
-     * Checks if the context spills over into the next line.
-     * This is useful to prevent indentation of the wrong line.
-     * @param ctx A ParserRuleContext hopefully.
-     * @returns True if the last child is a LineEndingContext.
-     */
-    private endsWithLineEnding(ctx: ParserRuleContext): boolean {
-        // Ensure we have a context.
-        if (!(ctx instanceof ParserRuleContext))
-            return false;
-
-        // Check last child is a line ending.
-        const child = ctx.children.at(-1);
-        if (!child)
-            return false;
-
-        // Line endings don't have structures so no need to check children.
-        if (child instanceof LineEndingContext)
-            return true;
-
-        // Run it again!
-        if (child.getChildCount() > 0)
-            return this.endsWithLineEnding(child as ParserRuleContext);
-
-        // Not a line ending and no more children.
-        return false;
     }
 }
