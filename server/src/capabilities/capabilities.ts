@@ -28,9 +28,18 @@ abstract class BaseCapability {
 
 export class FoldingRangeCapability extends BaseCapability {
 	foldingRangeKind?: FoldingRangeKind;
+	openWord?: string;
+	closeWord?: string;
 	
 	get foldingRange(): FoldingRange {
-		return new FoldingRange(this.element.context.range, this.foldingRangeKind);
+		const trailingLineCount = this.element.context.rule.countTrailingLineEndings();
+		const start = this.element.context.range.start;
+		const end = {
+			line: this.element.context.range.end.line - trailingLineCount,
+			character: this.element.context.range.end.character
+		}
+		const range = Range.create(start, end);
+		return new FoldingRange(range, this.foldingRangeKind, this.openWord, this.closeWord);
 	}
 
 	constructor(element: BaseContextSyntaxElement<ParserRuleContext>, foldingRangeKind?: FoldingRangeKind) {

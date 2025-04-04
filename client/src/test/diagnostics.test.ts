@@ -6,6 +6,7 @@
 import * as vscode from 'vscode';
 import * as assert from 'assert';
 import { getDocUri, activate } from './helper';
+import { toRange } from './util';
 
 suite('Should get diagnostics', () => {
 	test('diagnostics.class.missingNameAttributeError', async () => {
@@ -142,12 +143,6 @@ suite('Should get diagnostics', () => {
 		]);
 	});
 });
-
-function toRange(sLine: number, sChar: number, eLine: number, eChar: number) {
-	const start = new vscode.Position(sLine - 1, sChar);
-	const end = new vscode.Position(eLine - 1, eChar);
-	return new vscode.Range(start, end);
-}
 
 async function testDiagnostics(docUri: vscode.Uri, expectedDiagnostics: vscode.Diagnostic[]) {
 	await activate(docUri);

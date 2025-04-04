@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as assert from 'assert';
 import { getDocUri, activate } from './helper';
+import { toRange } from './util';
 
 suite('Should get text edits', () => {
 	test('formatting.class.template', async () => {
@@ -38,12 +39,6 @@ suite('Should get text edits', () => {
 		]);
 	});
 });
-
-function toRange(sLine: number, sChar: number, eLine: number, eChar: number) {
-	const start = new vscode.Position(sLine - 1, sChar);
-	const end = new vscode.Position(eLine - 1, eChar);
-	return new vscode.Range(start, end);
-}
 
 async function testTextEdits(docUri: vscode.Uri, expectedTextEdits: vscode.TextEdit[]) {
 	await activate(docUri);

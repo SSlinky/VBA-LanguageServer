@@ -14,17 +14,19 @@ import {
 
 // Project
 import { BaseContextSyntaxElement, HasDiagnosticCapability, HasSymbolInformationCapability } from './base';
-import { DiagnosticCapability, IdentifierCapability, SymbolInformationCapability } from '../../capabilities/capabilities';
+import { DiagnosticCapability, FoldingRangeCapability, IdentifierCapability, SymbolInformationCapability } from '../../capabilities/capabilities';
 
 
 abstract class BaseProcedureElement<T extends ParserRuleContext> extends BaseContextSyntaxElement<T> implements HasDiagnosticCapability, HasSymbolInformationCapability {
 	diagnosticCapability: DiagnosticCapability;
+	foldingRangeCapability: FoldingRangeCapability;
 	symbolInformationCapability: SymbolInformationCapability;
 	abstract identifierCapability: IdentifierCapability;
 
 	constructor(ctx: T, doc: TextDocument, symbolKind: SymbolKind) {
 		super(ctx, doc);
 		this.diagnosticCapability = new DiagnosticCapability(this);
+		this.foldingRangeCapability = new FoldingRangeCapability(this);
 		this.symbolInformationCapability = new SymbolInformationCapability(this, symbolKind);
 	}
 }
@@ -39,6 +41,9 @@ export class SubDeclarationElement extends BaseProcedureElement<SubroutineDeclar
 			element: this,
 			getNameContext: () => ctx.subroutineName()?.ambiguousIdentifier(),
 		});
+		this.foldingRangeCapability.openWord = `Sub ${this.identifierCapability.name}`;
+		this.foldingRangeCapability.closeWord = 'End Sub';
+
 	}
 }
 
@@ -52,6 +57,8 @@ export class FunctionDeclarationElement extends BaseProcedureElement<FunctionDec
 			element: this,
 			getNameContext: () => ctx.functionName()?.ambiguousIdentifier(),
 		});
+		this.foldingRangeCapability.openWord = `Function ${this.identifierCapability.name}`;
+		this.foldingRangeCapability.closeWord = 'End Function';
 	}
 }
 
@@ -100,6 +107,8 @@ abstract class BasePropertyDeclarationElement<T extends ParserRuleContext> exten
 export class PropertyGetDeclarationElement extends BasePropertyDeclarationElement<PropertyGetDeclarationContext> {
 	constructor(ctx: PropertyGetDeclarationContext, doc: TextDocument) {
 		super(ctx, doc, 'Get', ctx.functionName()?.ambiguousIdentifier() ?? undefined);
+		this.foldingRangeCapability.openWord = `Get Property ${this.identifierCapability.name}`;
+		this.foldingRangeCapability.closeWord = 'End Property';
 	}
 }
 
@@ -107,6 +116,8 @@ export class PropertyGetDeclarationElement extends BasePropertyDeclarationElemen
 export class PropertySetDeclarationElement extends BasePropertyDeclarationElement<PropertySetDeclarationContext> {
 	constructor(ctx: PropertySetDeclarationContext, doc: TextDocument) {
 		super(ctx, doc, 'Set', ctx.subroutineName()?.ambiguousIdentifier() ?? undefined);
+		this.foldingRangeCapability.openWord = `Set Property ${this.identifierCapability.name}`;
+		this.foldingRangeCapability.closeWord = 'End Property';
 	}
 }
 
@@ -114,5 +125,7 @@ export class PropertySetDeclarationElement extends BasePropertyDeclarationElemen
 export class PropertyLetDeclarationElement extends BasePropertyDeclarationElement<PropertySetDeclarationContext> {
 	constructor(ctx: PropertySetDeclarationContext, doc: TextDocument) {
 		super(ctx, doc, 'Let', ctx.subroutineName()?.ambiguousIdentifier() ?? undefined);
+		this.foldingRangeCapability.openWord = `Let Property ${this.identifierCapability.name}`;
+		this.foldingRangeCapability.closeWord = 'End Property';
 	}
 }

@@ -333,6 +333,7 @@ class WorkspaceEvents {
 	}
 
 	private async onFoldingRangesAsync(params: FoldingRangeParams, token: CancellationToken): Promise<FoldingRange[]> {
+		Services.logger.debug('[Event] onFoldingRanges')
 		let document: BaseProjectDocument | undefined;
 		try {
 			document = await this.getParsedProjectDocument(params.textDocument.uri, 0, token);
@@ -341,10 +342,12 @@ class WorkspaceEvents {
 			if (!!(error instanceof ParseCancellationException)) {
 				throw error;
 			}
-			// this.workspace.connection.window.showInformationMessage(`Parser error: ${error}`);
 		}
 		const result = document?.languageServerFoldingRanges();
-		return result ?? [];
+		for (const foldingRange of result ?? []) {
+			Services.logger.debug(`${JSON.stringify(foldingRange.range)} '${foldingRange.openWord}..${foldingRange.closeWord}'`, 1);
+		}
+		return result?.map(x => x.range) ?? [];
 	}
 
 	private onHover(params: HoverParams): Hover {
