@@ -1,6 +1,6 @@
 {
 	"name": "vba-lsp",
-	"type": "module",
+	"type": "commonjs",
 	"displayName": "VBA Pro",
 	"description": "A VBA extension for VSCode with Language Server support",
 	"icon": "images/vba-lsp-icon.png",
@@ -24,14 +24,18 @@
 	"engines": {
 		"vscode": "^1.63.0"
 	},
-	"main": "./client/out/extension",
+	"main": "dist/client/out/extension",
 	"activationEvents": [],
 	"contributes": {
 		"languages": [
 			{
 				"id": "vba-class",
-				"aliases": ["VBA Class"],
-				"extensions": [".cls"],
+				"aliases": [
+					"VBA Class"
+				],
+				"extensions": [
+					".cls"
+				],
 				"configuration": "./vba.language-configuration.json",
 				"icon": {
 					"dark": "icons/vba_90sGreen_dark.svg",
@@ -40,8 +44,12 @@
 			},
 			{
 				"id": "vba-module",
-				"aliases": ["VBA Module"],
-				"extensions": [".bas"],
+				"aliases": [
+					"VBA Module"
+				],
+				"extensions": [
+					".bas"
+				],
 				"configuration": "./vba.language-configuration.json",
 				"icon": {
 					"dark": "icons/vba_90sPurple_dark.svg",
@@ -50,8 +58,12 @@
 			},
 			{
 				"id": "vba-form",
-				"aliases": ["VBA Form"],
-				"extensions": [".frm"],
+				"aliases": [
+					"VBA Form"
+				],
+				"extensions": [
+					".frm"
+				],
 				"configuration": "./vba.language-configuration.json",
 				"icon": {
 					"dark": "icons/vba_90sYellow_dark.svg",
@@ -77,7 +89,7 @@
 						"Warn",
 						"Error"
 					],
-					"default": "Info",
+					"default": "Warn",
 					"description": "Sets the logging level for the output channel."
 				},
 				"vbaLanguageServer.maxDocumentLines": {
@@ -137,17 +149,17 @@
 			{
 				"language": "vba-class",
 				"scopeName": "source.vba",
-				"path": "./client/out/vba.tmLanguage.json"
+				"path": "./client/syntaxes/vba.tmLanguage.json"
 			},
 			{
 				"language": "vba-module",
 				"scopeName": "source.vba",
-				"path": "./client/out/vba.tmLanguage.json"
+				"path": "./client/syntaxes/vba.tmLanguage.json"
 			},
 			{
 				"language": "vba-form",
 				"scopeName": "source.vba",
-				"path": "./client/out/vba.tmLanguage.json"
+				"path": "./client/syntaxes/vba.tmLanguage.json"
 			}
 		],
 		"snippets": [
@@ -166,17 +178,20 @@
 		]
 	},
 	"scripts": {
-		"vscode:prepublish": "npm run textMate && npm run antlr",
-		"compile": "tsc -b",
-		"watch": "tsc -b -w",
+		"vscode:prepublish": "npm run package",
+		"compile": "npm run check-types && node esbuild.js",
+		"check-types": "tsc --noEmit",
+		"watch": "npm-run-all -p watch:*",
+		"watch:esbuild": "node esbuild.js --watch",
+		"watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
+		"package": "npm run textMate && npm run antlr && npm run check-types && node esbuild.js --production",
 		"lint": "eslint ./client/src ./server/src --ext .ts,.tsx",
 		"postinstall": "cd client && npm install && cd ../server && npm install && cd ..",
-		"textMate": "npx js-yaml client/src/syntaxes/vba.tmLanguage.yaml > client/out/vba.tmLanguage.json && npm run tmSnapTest",
-		"devMate": "npx js-yaml client/src/syntaxes/dev.tmLanguage.yaml > client/out/vba.tmLanguage.json",
+		"textMate": "npx js-yaml client/syntaxes/vba.tmLanguage.yaml > client/syntaxes/vba.tmLanguage.json && npm run tmSnapTest",
 		"antlr": "npm run antlr4ngPre && npm run antlr4ng && npm run antlr4ngFmt && npm run compile",
 		"antlr4ng": "antlr4ng -Dlanguage=TypeScript -visitor -Xlog ./server/src/antlr/vba.g4 -o ./server/src/antlr/out/",
-		"antlr4ngPre": "antlr4ng -Dlanguage=TypeScript -visitor -Xlog ./server/src/antlr/vbapre.g4 -o ./server/src/antlr/out/",
-		"antlr4ngFmt": "antlr4ng -Dlanguage=TypeScript -visitor -Xlog ./server/src/antlr/vbafmt.g4 -o ./server/src/antlr/out/",
+		"antlr4ngPre": "antlr4ng -Dlanguage=TypeScript -visitor ./server/src/antlr/vbapre.g4 -o ./server/src/antlr/out/",
+		"antlr4ngFmt": "antlr4ng -Dlanguage=TypeScript -visitor ./server/src/antlr/vbafmt.g4 -o ./server/src/antlr/out/",
 		"test": "npm run tmSnapTest && npm run tmUnitTest && npm run vsctest",
 		"testsh": "sh ./scripts/e2e.sh",
 		"testps": "powershell ./scripts/e2e.ps1",
@@ -186,22 +201,24 @@
 		"vsctest": "vscode-test"
 	},
 	"dependencies": {
-		"antlr4ng": "^3.0.14",
+		"antlr4ng": "^3.0.16",
 		"reflect-metadata": "^0.2.2",
-		"tsyringe": "^4.8.0"
+		"tsyringe": "^4.9.1"
 	},
 	"devDependencies": {
 		"@types/mocha": "^10.0.10",
-		"@types/node": "^22.10.6",
-		"@typescript-eslint/eslint-plugin": "^8.20.0",
-		"@typescript-eslint/parser": "^8.20.0",
+		"@types/node": "^22.14.0",
+		"@typescript-eslint/eslint-plugin": "^8.29.0",
+		"@typescript-eslint/parser": "^8.29.0",
 		"@vscode/test-cli": "^0.0.10",
 		"@vscode/test-electron": "^2.4.1",
 		"antlr4ng-cli": "^2.0.0",
-		"eslint": "^9.18.0",
+		"esbuild": "^0.25.2",
+		"eslint": "^9.23.0",
 		"js-yaml": "^4.1.0",
-		"mocha": "^10.8.2",
-		"typescript": "^5.7.3",
+		"mocha": "^11.1.0",
+		"npm-run-all": "^4.1.5",
+		"typescript": "^5.8.2",
 		"vscode-tmgrammar-test": "^0.1.3"
 	}
 }

@@ -1,0 +1,2349 @@
+{
+  "name": "vba",
+  "scopeName": "source.vba",
+  "fileTypes": [
+    ".bas",
+    ".cls",
+    ".frm"
+  ],
+  "patterns": [
+    {
+      "include": "#fileStructure"
+    }
+  ],
+  "repository": {
+    "fileStructure": {
+      "patterns": [
+        {
+          "include": "#moduleHeader"
+        },
+        {
+          "include": "#labels"
+        },
+        {
+          "include": "#main"
+        }
+      ]
+    },
+    "continuations": {
+      "name": "meta.has-continuation.vba",
+      "begin": "(?i)(.*)(\\s_\\s*)",
+      "end": "\\n",
+      "patterns": [
+        {
+          "include": "#lineContinuation"
+        },
+        {
+          "include": "#fileStructure"
+        }
+      ],
+      "beginCaptures": {
+        "1": {
+          "patterns": [
+            {
+              "include": "#fileStructure"
+            }
+          ]
+        },
+        "2": {
+          "patterns": [
+            {
+              "include": "#lineContinuation"
+            }
+          ]
+        }
+      }
+    },
+    "lineContinuation": {
+      "name": "keyword.control.line-continuation.vba",
+      "match": "(?<=\\s)_\\s*\\n"
+    },
+    "main": {
+      "patterns": [
+        {
+          "include": "#enum"
+        },
+        {
+          "include": "#struct"
+        },
+        {
+          "include": "#methodSignature"
+        },
+        {
+          "include": "#declaration"
+        },
+        {
+          "include": "#block"
+        }
+      ]
+    },
+    "language": {
+      "name": "source.language.vba",
+      "patterns": [
+        {
+          "include": "#comments"
+        },
+        {
+          "include": "#vbaBuiltIns"
+        },
+        {
+          "include": "#literals"
+        },
+        {
+          "include": "#operators"
+        },
+        {
+          "include": "#keywords"
+        },
+        {
+          "include": "#functionCall"
+        },
+        {
+          "include": "#subCall"
+        },
+        {
+          "include": "#subCallNoArgs"
+        },
+        {
+          "name": "keyword.control.line-separator.vba",
+          "match": ":"
+        }
+      ]
+    },
+    "literals": {
+      "patterns": [
+        {
+          "include": "#string"
+        },
+        {
+          "include": "#boolean"
+        },
+        {
+          "include": "#nothing"
+        },
+        {
+          "include": "#number"
+        },
+        {
+          "include": "#hexadecimal"
+        }
+      ],
+      "repository": {
+        "string": {
+          "name": "string.quoted.double.vba",
+          "match": "\"(\"\")*([^\"\\n]*)((?:\"\")[^\"\\n]+)?\"(\"\")*"
+        },
+        "boolean": {
+          "name": "constant.language.boolean.vba",
+          "match": "(?i)(true|false)"
+        },
+        "nothing": {
+          "name": "constant.language.null.vba",
+          "match": "(?i)\\bnothing\\b"
+        },
+        "number": {
+          "name": "constant.numeric.vba",
+          "match": "-?\\d+\\.?\\d*[%&@!#]?"
+        },
+        "hexadecimal": {
+          "name": "constant.numeric.hex.vba",
+          "match": "(?i)&H[0-9a-f]+(&)?"
+        }
+      }
+    },
+    "operators": {
+      "patterns": [
+        {
+          "include": "#opsNew"
+        },
+        {
+          "include": "#opsArithmetic"
+        },
+        {
+          "include": "#opsComparison"
+        },
+        {
+          "include": "#opsConcatenation"
+        },
+        {
+          "include": "#opsRange"
+        },
+        {
+          "include": "#opsLogical"
+        },
+        {
+          "include": "#opsOther"
+        }
+      ],
+      "repository": {
+        "opsNew": {
+          "name": "keyword.operator.new.vba",
+          "match": "(?i)(\\bNew\\b)"
+        },
+        "opsArithmetic": {
+          "name": "keyword.operator.arithmetic.vba",
+          "match": "(?i)([*&\\/\\^\\+\\-]|\\^|\\bMod\\b)"
+        },
+        "opsComparison": {
+          "name": "keyword.operator.comparison.vba",
+          "match": "(?i)([<>=]|\\b(is|like)\\b)"
+        },
+        "opsRange": {
+          "name": "keyword.operator.range.vba",
+          "match": "(?i)\\bto\\b"
+        },
+        "opsConcatenation": {
+          "name": "keyword.operator.concatenation.vba",
+          "match": "(?i)[&+]"
+        },
+        "opsLogical": {
+          "name": "keyword.operator.logical.vba",
+          "match": "(?i)\\b(and|eqv|imp|not|or|xor)\\b"
+        },
+        "opsOther": {
+          "name": "keyword.operator.other.vba",
+          "match": "(?i)\\b(addressof|typeof)\\b"
+        }
+      }
+    },
+    "keywords": {
+      "patterns": [
+        {
+          "include": "#kw-controlAs"
+        },
+        {
+          "include": "#kw-controlAs"
+        },
+        {
+          "include": "#kw-storageMe"
+        },
+        {
+          "include": "#kw-flow"
+        },
+        {
+          "include": "#kw-array"
+        },
+        {
+          "include": "#kw-directives"
+        }
+      ],
+      "repository": {
+        "kw-controlAs": {
+          "name": "keyword.control.as.vba",
+          "match": "(?i)\\bas\\b"
+        },
+        "kw-controlTo": {
+          "name": "keyword.control.to.vba",
+          "match": "(?i)\\bto\\b"
+        },
+        "kw-storageMe": {
+          "name": "variable.language.me.vba",
+          "match": "(?i)\\bme\\b"
+        },
+        "kw-flow": {
+          "patterns": [
+            {
+              "include": "#inlineIfElse"
+            },
+            {
+              "include": "#inlineIf"
+            },
+            {
+              "include": "#blockIf"
+            },
+            {
+              "include": "#forEachLoop"
+            },
+            {
+              "include": "#flowLoop"
+            },
+            {
+              "include": "#flowCall"
+            },
+            {
+              "include": "#methodClose"
+            },
+            {
+              "include": "#flowPauseExit"
+            },
+            {
+              "include": "#flowBranch"
+            },
+            {
+              "include": "#flowSwitch"
+            }
+          ],
+          "repository": {
+            "blockIf": {
+              "name": "meta.block-if-else.vba",
+              "begin": "(?i)(#?if)\\s+(?=[^'\\n])",
+              "end": "(?i)#?if",
+              "beginCaptures": {
+                "1": {
+                  "name": "keyword.control.block-if.open.vba"
+                }
+              },
+              "endCaptures": {
+                "0": {
+                  "name": "keyword.control.block-if.close.vba"
+                }
+              },
+              "patterns": [
+                {
+                  "include": "#blockIfOpen"
+                }
+              ]
+            },
+            "blockIfOpen": {
+              "name": "meta.block-if.condition.vba",
+              "begin": "",
+              "end": "(?i)(?=if)",
+              "patterns": [
+                {
+                  "include": "#lineContinuation"
+                },
+                {
+                  "include": "#blockIfThen"
+                },
+                {
+                  "include": "#expression"
+                }
+              ]
+            },
+            "blockIfThen": {
+              "name": "meta.block-if.then.vba",
+              "begin": "(?i)then",
+              "end": "(?i)(?=if(?:\\s*)['\\n])",
+              "beginCaptures": {
+                "0": {
+                  "name": "keyword.control.block-if.open.vba"
+                }
+              },
+              "patterns": [
+                {
+                  "include": "#lineContinuation"
+                },
+                {
+                  "include": "#blockElseIfOpen"
+                },
+                {
+                  "include": "#blockEndIf"
+                },
+                {
+                  "include": "#blockElse"
+                },
+                {
+                  "include": "#main"
+                }
+              ]
+            },
+            "blockElseIfOpen": {
+              "name": "meta.block-if-else-if.vba",
+              "begin": "(?i)(#?else)\\s+(?=(if|_))",
+              "end": "(?i)(?=if(?:\\s*)['\\n])",
+              "beginCaptures": {
+                "1": {
+                  "name": "keyword.control.block-if.open.vba"
+                }
+              },
+              "patterns": [
+                {
+                  "include": "#lineContinuation"
+                },
+                {
+                  "include": "#blockElseIf"
+                }
+              ]
+            },
+            "blockElseIf": {
+              "begin": "(?i)(if)\\s+(?=[^'\\n])",
+              "end": "(?i)(?=if(?:\\s*)['\\n])",
+              "beginCaptures": {
+                "1": {
+                  "name": "keyword.control.block-if.open.vba"
+                }
+              },
+              "patterns": [
+                {
+                  "include": "#blockIfOpen"
+                }
+              ]
+            },
+            "blockElse": {
+              "name": "keyword.control.block-if.else.vba",
+              "match": "(?i)#?else"
+            },
+            "blockEndIf": {
+              "begin": "(?i)(#?end)\\s+(?=(if|_))",
+              "end": "(?i)(?=if(?:\\s*)['\\n])",
+              "beginCaptures": {
+                "1": {
+                  "name": "keyword.control.block-if.close.vba"
+                }
+              },
+              "patterns": [
+                {
+                  "include": "#lineContinuation"
+                }
+              ]
+            },
+            "flowLoop": {
+              "name": "keyword.control.flow.loop.vba",
+              "match": "(?i)\\b(do|exit\\s+do|while|wend|until|loop|for|each|in|to|exit\\s+for|next|with)\\b"
+            },
+            "forEachLoop": {
+              "name": "meta.flow.foreach.vba",
+              "match": "(?i)\\b(for\\s+each)\\s+(.+?)\\s+(in)",
+              "captures": {
+                "1": {
+                  "name": "keyword.control.flow.loop.vba"
+                },
+                "2": {
+                  "patterns": [
+                    {
+                      "include": "#expression"
+                    },
+                    {
+                      "include": "#functionCall"
+                    }
+                  ]
+                },
+                "3": {
+                  "name": "keyword.control.flow.loop.vba"
+                }
+              }
+            },
+            "inlineIfElse": {
+              "name": "meta.flow.inline-if-else.vba",
+              "match": "(?i)\\s*((?:else\\s+)?if)\\s+(.*?)\\s+(then)\\s+(.*)\\s+(else)\\s+([^'\\n]*)",
+              "captures": {
+                "1": {
+                  "name": "keyword.control.flow.decision.vba"
+                },
+                "2": {
+                  "patterns": [
+                    {
+                      "include": "#expression"
+                    },
+                    {
+                      "include": "#functionCall"
+                    }
+                  ]
+                },
+                "3": {
+                  "name": "keyword.control.flow.decision.vba"
+                },
+                "4": {
+                  "patterns": [
+                    {
+                      "include": "#inlineIfElse"
+                    },
+                    {
+                      "include": "#inlineIf"
+                    },
+                    {
+                      "include": "#valueAssignment"
+                    },
+                    {
+                      "include": "#language"
+                    },
+                    {
+                      "include": "#expression"
+                    },
+                    {
+                      "include": "#functionCall"
+                    }
+                  ]
+                },
+                "5": {
+                  "name": "keyword.control.flow.decision.vba"
+                },
+                "6": {
+                  "patterns": [
+                    {
+                      "include": "#valueAssignment"
+                    },
+                    {
+                      "include": "#language"
+                    }
+                  ]
+                }
+              }
+            },
+            "inlineIf": {
+              "name": "meta.flow.inline-if.vba",
+              "match": "(?i)\\s*((?:else\\s+)?if)\\s+(.*?)\\s+(then)\\s+([^'\\n]+)",
+              "captures": {
+                "1": {
+                  "name": "keyword.control.flow.decision.vba"
+                },
+                "2": {
+                  "patterns": [
+                    {
+                      "include": "#expression"
+                    },
+                    {
+                      "include": "#functionCall"
+                    }
+                  ]
+                },
+                "3": {
+                  "name": "keyword.control.flow.decision.vba"
+                },
+                "4": {
+                  "patterns": [
+                    {
+                      "include": "#inlineIfElse"
+                    },
+                    {
+                      "include": "#inlineIf"
+                    },
+                    {
+                      "include": "#valueAssignment"
+                    },
+                    {
+                      "include": "#language"
+                    }
+                  ]
+                }
+              }
+            },
+            "flowCall": {
+              "name": "keyword.control.flow.call.vba",
+              "match": "(?i)\\bcall\\b"
+            },
+            "flowPauseExit": {
+              "name": "keyword.control.flow.other.vba",
+              "match": "(?i)\\b(doevents|end(?! (sub|property|function))|exit\\s+sub|exit\\s+function|exit\\s+property|stop)\\b"
+            },
+            "flowBranch": {
+              "patterns": [
+                {
+                  "include": "#onErrorStatement"
+                },
+                {
+                  "include": "#onExpressionGoStatement"
+                },
+                {
+                  "include": "#goToGoSubReturnStatement"
+                }
+              ],
+              "repository": {
+                "onErrorStatement": {
+                  "name": "meta.onErrorStatement.vba",
+                  "match": "(?i)\\b(on\\s+error)\\s+(?:(resume\\s+next)|(goto)\\s+([a-z0-9]+))",
+                  "captures": {
+                    "1": {
+                      "name": "keyword.control.flow.jump.vba"
+                    },
+                    "2": {
+                      "name": "keyword.control.flow.jump.vba"
+                    },
+                    "3": {
+                      "name": "keyword.control.flow.jump.vba"
+                    },
+                    "4": {
+                      "patterns": [
+                        {
+                          "include": "#literals"
+                        },
+                        {
+                          "match": ".*",
+                          "name": "variable.other.constant.label.vba"
+                        }
+                      ]
+                    }
+                  }
+                },
+                "onExpressionGoStatement": {
+                  "name": "meta.onExpressionGoStatement.vba",
+                  "begin": "(?i)\\b(on)\\s+(.*?)(go(?:to|sub))",
+                  "end": "([\\n':])",
+                  "beginCaptures": {
+                    "1": {
+                      "name": "keyword.control.flow.jump.vba"
+                    },
+                    "2": {
+                      "patterns": [
+                        {
+                          "include": "#expression"
+                        }
+                      ]
+                    },
+                    "3": {
+                      "name": "keyword.control.flow.jump.vba"
+                    }
+                  },
+                  "patterns": [
+                    {
+                      "include": "#separator"
+                    },
+                    {
+                      "include": "#literals"
+                    },
+                    {
+                      "match": "(?i)([a-z][a-z0-9]*)",
+                      "name": "variable.other.constant.label.vba"
+                    }
+                  ]
+                },
+                "goToGoSubReturnStatement": {
+                  "name": "meta.goToGoSubReturnStatement.vba",
+                  "match": "(?i)\\b(gosub|return|goto)(?:\\s+([a-z][a-z0-9_]*|\\d+))?\\b",
+                  "captures": {
+                    "1": {
+                      "name": "keyword.control.jump.vba"
+                    },
+                    "2": {
+                      "patterns": [
+                        {
+                          "include": "#literals"
+                        },
+                        {
+                          "match": ".*",
+                          "name": "variable.other.constant.label.vba"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            },
+            "flowSwitch": {
+              "name": "meta.flow.switch.vba",
+              "begin": "(?i)(select\\s+case\\b)(.*)",
+              "end": "(?i)end\\s+select\\b",
+              "beginCaptures": {
+                "1": {
+                  "name": "keyword.control.flow.switch.vba"
+                },
+                "2": {
+                  "patterns": [
+                    {
+                      "include": "#expression"
+                    }
+                  ]
+                }
+              },
+              "endCaptures": {
+                "0": {
+                  "name": "keyword.control.flow.switch.vba"
+                }
+              },
+              "patterns": [
+                {
+                  "include": "#flowCase"
+                },
+                {
+                  "include": "#block"
+                }
+              ]
+            }
+          }
+        },
+        "kw-array": {
+          "name": "keyword.array.vba",
+          "match": "(?i)\\b(redim|erase)(\\s+preserve)?\\b"
+        },
+        "kw-directives": {
+          "patterns": [
+            {
+              "include": "#directiveIf"
+            },
+            {
+              "include": "#directiveConst"
+            },
+            {
+              "include": "#directiveIllegal"
+            }
+          ],
+          "repository": {
+            "directiveIf": {
+              "name": "keyword.directive.vba",
+              "match": "(?i)^(#if|#then|#elseif|#else)\\b"
+            },
+            "directiveConst": {
+              "match": "(?i)^\\s*(#const)\\s+([a-z][a-z0-9_]*)(\\s+=.*)",
+              "captures": {
+                "1": {
+                  "name": "constant.language.vba"
+                },
+                "2": {
+                  "name": "variable.other.constant.property"
+                },
+                "3": {
+                  "patterns": [
+                    {
+                      "include": "#language"
+                    }
+                  ]
+                }
+              }
+            },
+            "directiveIllegal": {
+              "name": "invalid.illegal.vba",
+              "match": "^#.*"
+            }
+          }
+        }
+      }
+    },
+    "flowCase": {
+      "begin": "(?i)case(\\s+else)?",
+      "end": "(?=[\\n:'])",
+      "beginCaptures": {
+        "0": {
+          "name": "keyword.control.flow.switch.vba"
+        }
+      },
+      "patterns": [
+        {
+          "include": "#expressionList"
+        }
+      ]
+    },
+    "labels": {
+      "match": "(?i)^(\\s*[a-z][a-z0-9_]*|\\d+):",
+      "captures": {
+        "1": {
+          "name": "variable.other.constant.label.vba"
+        }
+      }
+    },
+    "vbaBuiltIns": {
+      "patterns": [
+        {
+          "include": "#vbaEnum"
+        },
+        {
+          "include": "#vbaConstant"
+        }
+      ],
+      "repository": {
+        "vbaEnum": {
+          "match": "(?i)(vba7|win64)",
+          "name": "constant.numeric.enum.vba"
+        },
+        "vbaConstant": {
+          "match": "(?i)(vbNewLine|vbCr|vbLf|vbCrLf)",
+          "name": "constant.numeric.enum.vba"
+        }
+      }
+    },
+    "types": {
+      "name": "meta.variables.type.vba",
+      "match": "(?i)(As)\\s+(New\\s)?\\s*([A-Z][a-z0-9_.]*)",
+      "captures": {
+        "1": {
+          "name": "keyword.control.as.vba"
+        },
+        "2": {
+          "patterns": [
+            {
+              "include": "#operators"
+            }
+          ]
+        },
+        "3": {
+          "patterns": [
+            {
+              "include": "#AsTypePrimative"
+            },
+            {
+              "include": "#AsTypeObject"
+            },
+            {
+              "name": "punctuation.accessor.vba",
+              "match": "\\."
+            }
+          ]
+        }
+      }
+    },
+    "AsTypePrimative": {
+      "name": "support.type.primitive.$1.vba",
+      "match": "(?i)(boolean|byte|currency|date|decimal|double|integer|long(long|ptr)?|single|string|variant)\\b"
+    },
+    "AsTypeObject": {
+      "name": "support.type.object.$1.vba",
+      "match": "(?i)([a-z][a-z0-9._]*)"
+    },
+    "argumentsSignature": {
+      "name": "meta.arguments.signature.vba",
+      "begin": "(?=[^ ():_])",
+      "end": "(?=\\))",
+      "patterns": [
+        {
+          "include": "#separator"
+        },
+        {
+          "include": "#lineContinuation"
+        },
+        {
+          "include": "#argumentSignatureFromParamArray"
+        },
+        {
+          "include": "#argumentSignatureFromOptional"
+        },
+        {
+          "include": "#argumentSignatureFromBy"
+        },
+        {
+          "include": "#argumentSignatureFromParam"
+        }
+      ]
+    },
+    "argumentSignatureFromParamArray": {
+      "name": "meta.argument-signature.paramarray.vba",
+      "begin": "(?i)paramarray",
+      "end": "(?=[,):'\\n])",
+      "beginCaptures": {
+        "0": {
+          "name": "storage.type.modifier.vba"
+        }
+      },
+      "patterns": [
+        {
+          "include": "#argumentSignatureFromParam"
+        },
+        {
+          "include": "#lineContinuation"
+        }
+      ]
+    },
+    "argumentSignatureFromOptional": {
+      "name": "meta.argument-signature.optional.vba",
+      "begin": "(?i)optional",
+      "end": "(?=[,):'\\n])",
+      "beginCaptures": {
+        "0": {
+          "name": "storage.type.modifier.vba"
+        }
+      },
+      "patterns": [
+        {
+          "include": "#argumentSignatureFromBy"
+        },
+        {
+          "include": "#argumentSignatureFromParam"
+        },
+        {
+          "include": "#lineContinuation"
+        }
+      ]
+    },
+    "argumentSignatureFromBy": {
+      "name": "meta.argument-signature.by.vba",
+      "begin": "(?i)(byref|byval)",
+      "end": "(?=[,):'\\n])",
+      "beginCaptures": {
+        "0": {
+          "name": "storage.modifier.$1.vba"
+        }
+      },
+      "patterns": [
+        {
+          "include": "#argumentSignatureFromParam"
+        },
+        {
+          "include": "#lineContinuation"
+        }
+      ]
+    },
+    "argumentSignatureFromParam": {
+      "name": "meta.argument-signature.param.vba",
+      "begin": "(?i)[a-z][a-z0-9]*(\\(\\))?",
+      "end": "(?=[,):'\\n])",
+      "beginCaptures": {
+        "0": {
+          "name": "variable.parameter.vba"
+        }
+      },
+      "patterns": [
+        {
+          "include": "#argumentSignatureFromTypeAs"
+        },
+        {
+          "include": "#lineContinuation"
+        }
+      ]
+    },
+    "argumentSignatureFromTypeAs": {
+      "name": "meta.argument-signature.as.vba",
+      "begin": "(?i)\\bas\\b",
+      "end": "(?=[,):'\\n])",
+      "beginCaptures": {
+        "0": {
+          "patterns": [
+            {
+              "include": "#keywords"
+            }
+          ]
+        }
+      },
+      "patterns": [
+        {
+          "include": "#argumentSignatureFromTypeName"
+        },
+        {
+          "include": "#lineContinuation"
+        }
+      ]
+    },
+    "argumentSignatureFromTypeName": {
+      "name": "meta.argument-signature.type.vba",
+      "begin": "(?i)([a-z][a-z0-9._]*)",
+      "end": "(?=[,):'\\n])",
+      "beginCaptures": {
+        "0": {
+          "patterns": [
+            {
+              "include": "#AsTypePrimative"
+            },
+            {
+              "include": "#AsTypeObject"
+            },
+            {
+              "name": "punctuation.accessor.vba",
+              "match": "\\."
+            }
+          ]
+        }
+      },
+      "patterns": [
+        {
+          "include": "#valueAssignment"
+        },
+        {
+          "include": "#lineContinuation"
+        }
+      ]
+    },
+    "arguments": {
+      "name": "meta.arguments.vba",
+      "begin": "(\\s+|\\(\\s*)",
+      "end": "(?=[:)'\\n])",
+      "patterns": [
+        {
+          "include": "#lineContinuation"
+        },
+        {
+          "include": "#separator"
+        },
+        {
+          "include": "#expression"
+        }
+      ]
+    },
+    "argumentName": {
+      "name": "meta.arg-name.vba",
+      "match": "(?i)([a-z][a-z0-9_]*)?(:=)",
+      "captures": {
+        "1": {
+          "name": "variable.parameter.name.vba"
+        },
+        "2": {
+          "name": "punctuation.assignment.parameter.vba"
+        }
+      }
+    },
+    "comments": {
+      "patterns": [
+        {
+          "include": "#blockComments"
+        },
+        {
+          "include": "#apostropheComments"
+        },
+        {
+          "include": "#remarkComments"
+        }
+      ],
+      "repository": {
+        "blockComments": {
+          "name": "comment.block.vba",
+          "begin": "(?i)(\\s*'|(?<=^\\d*?|:)\\s*Rem\\b).*\\s_\\s*",
+          "end": "(?=\\n)",
+          "patterns": [
+            {
+              "include": "#lineContinuation"
+            }
+          ]
+        },
+        "apostropheComments": {
+          "name": "comment.line.apostrophe.vba",
+          "match": "(?i)\\s*'[^\\n]*"
+        },
+        "remarkComments": {
+          "name": "comment.line.remark.vba",
+          "match": "(?i)(?<=^\\d*?|:)\\s*Rem\\b.*"
+        }
+      }
+    },
+    "attribute": {
+      "name": "meta.attribute.vba",
+      "match": "(?i)^\\s*(Attribute VB_\\w+)\\s+(.*)$",
+      "captures": {
+        "1": {
+          "name": "entity.other.attribute-name.vba"
+        },
+        "2": {
+          "patterns": [
+            {
+              "include": "#language"
+            }
+          ]
+        }
+      }
+    },
+    "moduleHeader": {
+      "patterns": [
+        {
+          "include": "#moduleVersion"
+        },
+        {
+          "include": "#moduleAttributeBlock"
+        },
+        {
+          "include": "#moduleAttribute"
+        },
+        {
+          "include": "#moduleOption"
+        }
+      ],
+      "repository": {
+        "moduleVersion": {
+          "name": "entity.other.attribute-name.block.vba",
+          "match": "(?i)^VERSION\\s+([.\\d]+)\\s+CLASS",
+          "captures": {
+            "1": {
+              "patterns": [
+                {
+                  "include": "#literals"
+                }
+              ]
+            }
+          }
+        },
+        "moduleAttribute": {
+          "name": "meta.attribute.vba",
+          "match": "(?i)^\\s*(Attribute)\\s+(VB_\\w+)\\s+(=)\\s+(.*)$",
+          "captures": {
+            "1": {
+              "name": "keyword.attribute.vba"
+            },
+            "2": {
+              "name": "support.variable.property.vba"
+            },
+            "3": {
+              "name": "keyword.operator.assignment.vba"
+            },
+            "4": {
+              "patterns": [
+                {
+                  "include": "#literals"
+                }
+              ]
+            }
+          }
+        },
+        "moduleAttributeBlock": {
+          "name": "entity.other.attribute-name.block.vba",
+          "begin": "(?i)^BEGIN",
+          "end": "(?i)^END",
+          "patterns": [
+            {
+              "include": "#comments"
+            },
+            {
+              "include": "#attributeAssignment"
+            }
+          ]
+        },
+        "moduleOption": {
+          "name": "keyword.control.vba",
+          "match": "(?i)^\\s*Option\\s+(Explicit|Base|Private\\s+Module)\\b"
+        }
+      }
+    },
+    "attributeAssignment": {
+      "name": "meta.attribute-assignment.vba",
+      "match": "(?i)([a-z.][a-z0-9._]*)(\\s*=\\s*)(.*)",
+      "captures": {
+        "1": {
+          "name": "support.variable.property.vba"
+        },
+        "2": {
+          "name": "keyword.operator.assignment.vba"
+        },
+        "3": {
+          "patterns": [
+            {
+              "include": "#literals"
+            },
+            {
+              "include": "#comments"
+            }
+          ]
+        }
+      }
+    },
+    "enum": {
+      "name": "meta.enum.declaration.vba",
+      "begin": "(?i)^\\s*((?:(?:Public|Private)\\s+)?\\s*Enum)\\s+([a-z][a-z0-9_]+)(\\s+(?:'|Rem).*)?",
+      "beginCaptures": {
+        "1": {
+          "name": "storage.type.enum.vba"
+        },
+        "2": {
+          "name": "entity.name.type.enum.vba"
+        },
+        "3": {
+          "patterns": [
+            {
+              "include": "#comments"
+            }
+          ]
+        }
+      },
+      "patterns": [
+        {
+          "include": "#enumMember"
+        },
+        {
+          "include": "#language"
+        }
+      ],
+      "end": "(?i)^\\s*(End\\s+Enum)(\\s+'.*)?",
+      "endCaptures": {
+        "1": {
+          "name": "storage.type.enum.vba"
+        },
+        "2": {
+          "patterns": [
+            {
+              "include": "#comments"
+            }
+          ]
+        }
+      }
+    },
+    "enumMember": {
+      "match": "(?i)^\\s*([a-z][a-z0-9_]*)(?:\\s*(=)\\s*([^\\n']*))?(\\s*(?:'|Rem).*)?",
+      "captures": {
+        "1": {
+          "name": "variable.other.enummember.vba"
+        },
+        "2": {
+          "name": "keyword.operator.assignment.vba"
+        },
+        "3": {
+          "patterns": [
+            {
+              "include": "#language"
+            }
+          ]
+        },
+        "4": {
+          "patterns": [
+            {
+              "include": "#comments"
+            }
+          ]
+        }
+      }
+    },
+    "struct": {
+      "name": "meta.struct.declaration.vba",
+      "begin": "(?i)^\\s*((?:(?:Public|Private)\\s+)?Type)\\s+([a-z][a-z0-9_]*)?(\\s+(?:'|Rem).*)?",
+      "beginCaptures": {
+        "1": {
+          "name": "storage.type.struct.vba"
+        },
+        "2": {
+          "name": "entity.name.type.struct.vba"
+        },
+        "3": {
+          "patterns": [
+            {
+              "include": "#comments"
+            }
+          ]
+        }
+      },
+      "patterns": [
+        {
+          "include": "#structProperty"
+        },
+        {
+          "include": "#language"
+        }
+      ],
+      "end": "(?i)^\\s*(End\\s+Type)(\\s+'.*)?",
+      "endCaptures": {
+        "1": {
+          "name": "storage.type.struct.vba"
+        },
+        "2": {
+          "patterns": [
+            {
+              "include": "#comments"
+            }
+          ]
+        }
+      }
+    },
+    "structProperty": {
+      "match": "(?i)^\\s*([a-z][a-z0-9_]*)(\\(.*\\))?(\\s+As\\s+[a-z][a-z0-9_]*)?(\\s+(?:'|Rem).*)?",
+      "captures": {
+        "1": {
+          "name": "variable.other.readwrite.vba"
+        },
+        "2": {
+          "patterns": [
+            {
+              "include": "#language"
+            }
+          ]
+        },
+        "3": {
+          "patterns": [
+            {
+              "include": "#types"
+            }
+          ]
+        },
+        "4": {
+          "patterns": [
+            {
+              "include": "#comments"
+            }
+          ]
+        }
+      }
+    },
+    "methodSignature": {
+      "name": "source.method.signature.vba",
+      "begin": "(?i)^\\s*((?:Public|Private)?\\b\\s*(?:(?:Sub|Function)|Property\\s+(?:Let|Get|Set)))\\s+([a-z][a-z0-9_]*)\\s*(\\()",
+      "end": "(?i)(?<=\\))(\\s+as\\s+[a-z][a-z0-9_]*)?",
+      "beginCaptures": {
+        "1": {
+          "name": "storage.type.method.vba"
+        },
+        "2": {
+          "name": "entity.name.function.vba"
+        }
+      },
+      "endCaptures": {
+        "1": {
+          "patterns": [
+            {
+              "include": "#types"
+            }
+          ]
+        }
+      },
+      "patterns": [
+        {
+          "include": "#argumentsSignature"
+        },
+        {
+          "include": "#lineContinuation"
+        }
+      ]
+    },
+    "methodAttribute": {
+      "name": "source.method.attribute.vba",
+      "match": "(?i)^\\s*(Attribute)\\s+([a-z][a-z0-9_]*)(\\.VB_(?:Description|UserMemId))\\s+(=)\\s+(.*)",
+      "captures": {
+        "1": {
+          "name": "keyword.attribute.vba"
+        },
+        "2": {
+          "name": "entity.name.function.vba"
+        },
+        "3": {
+          "name": "support.variable.property.vba"
+        },
+        "4": {
+          "name": "keyword.operator.assignment.vba"
+        },
+        "5": {
+          "patterns": [
+            {
+              "include": "#literals"
+            }
+          ]
+        }
+      }
+    },
+    "methodClose": {
+      "name": "storage.type.method.close.vba",
+      "match": "(?i)End\\s+(Sub|Function|Property)(?=$|\\s)"
+    },
+    "expressionList": {
+      "begin": "",
+      "end": "(?=\\n|\\sThen|\\)|'|:)",
+      "patterns": [
+        {
+          "include": "#separator"
+        },
+        {
+          "include": "#expression"
+        }
+      ]
+    },
+    "expression": {
+      "name": "meta.expression.vba",
+      "begin": "(?i)(?!=\\n|\\sThen|\\)|'|,|:|\\s)",
+      "end": "(?i)(?=\\n|\\sThen|\\)|'|,|:)",
+      "patterns": [
+        {
+          "include": "#literals"
+        },
+        {
+          "include": "#argumentName"
+        },
+        {
+          "include": "#operators"
+        },
+        {
+          "include": "#functionCall"
+        },
+        {
+          "include": "#variable"
+        },
+        {
+          "include": "#lineContinuation"
+        }
+      ]
+    },
+    "block": {
+      "patterns": [
+        {
+          "include": "#testing"
+        },
+        {
+          "include": "#declaration"
+        },
+        {
+          "include": "#valueAssignment"
+        },
+        {
+          "include": "#methodAttribute"
+        },
+        {
+          "include": "#methodClose"
+        },
+        {
+          "include": "#language"
+        }
+      ],
+      "repository": {
+        "blockLines": {
+          "name": "source.methodlines.vba",
+          "match": "(?:(^(?:\\s*[a-z0-9]*?:\\s*)(?:\\s+'.*)?$)|(.*):)",
+          "captures": {
+            "1": {
+              "name": "source.methodlines.label.vba"
+            },
+            "2": {
+              "patterns": [
+                {
+                  "include": "#block"
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    "separator": {
+      "name": "punctuation.separator.vba",
+      "match": ","
+    },
+    "declaration": {
+      "patterns": [
+        {
+          "include": "#variableDeclarationVisbility"
+        },
+        {
+          "include": "#variableDeclarationDim"
+        },
+        {
+          "include": "#variableDeclarationConst"
+        },
+        {
+          "include": "#methodDeclarationDeclare"
+        }
+      ],
+      "repository": {
+        "variableDeclarationVisbility": {
+          "name": "meta.declare.$1.vba",
+          "begin": "(?i)(global|public|private)",
+          "end": "(?=[':\\n])",
+          "beginCaptures": {
+            "0": {
+              "name": "storage.modifier.visibility.vba"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#separator"
+            },
+            {
+              "include": "#lineContinuation"
+            },
+            {
+              "include": "#variableDeclarationConst"
+            },
+            {
+              "include": "#methodDeclarationDeclare"
+            },
+            {
+              "include": "#variableDeclarationVarName"
+            }
+          ]
+        },
+        "variableDeclarationDim": {
+          "name": "meta.declare.variable.vba",
+          "begin": "(?i)dim(?=\\s)",
+          "end": "(?=[':\\n])",
+          "beginCaptures": {
+            "0": {
+              "name": "storage.type.vba"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#separator"
+            },
+            {
+              "include": "#lineContinuation"
+            },
+            {
+              "include": "#variableDeclarationVarName"
+            }
+          ]
+        },
+        "variableDeclarationConst": {
+          "name": "meta.declare.constant.vba",
+          "begin": "(?i)const(?=\\s)",
+          "end": "(?=[':\\n])",
+          "beginCaptures": {
+            "0": {
+              "name": "storage.type.vba"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#separator"
+            },
+            {
+              "include": "#lineContinuation"
+            },
+            {
+              "include": "#variableDeclarationConstName"
+            }
+          ]
+        },
+        "variableDeclarationVarName": {
+          "begin": "(?i)[a-z][a-z0-9_]*",
+          "end": "(?=[':\\n,])",
+          "beginCaptures": {
+            "0": {
+              "patterns": [
+                {
+                  "include": "#variable"
+                }
+              ]
+            }
+          },
+          "patterns": [
+            {
+              "include": "#lineContinuation"
+            },
+            {
+              "include": "#variableDeclarationTypeAs"
+            },
+            {
+              "include": "#variableDeclarationArrayBounds"
+            }
+          ]
+        },
+        "variableDeclarationArrayBounds": {
+          "name": "meta.declare.array-bounds.vba",
+          "begin": "\\(",
+          "end": "\\)",
+          "patterns": [
+            {
+              "include": "#separator"
+            },
+            {
+              "include": "#expression"
+            }
+          ]
+        },
+        "variableDeclarationConstName": {
+          "begin": "(?i)[a-z][a-z0-9_]*",
+          "end": "(?=[':\\n,])",
+          "beginCaptures": {
+            "0": {
+              "patterns": [
+                {
+                  "include": "#variable"
+                }
+              ]
+            }
+          },
+          "patterns": [
+            {
+              "include": "#lineContinuation"
+            },
+            {
+              "include": "#variableDeclarationTypeAs"
+            },
+            {
+              "include": "#valueAssignment"
+            }
+          ]
+        },
+        "variableDeclarationTypeAs": {
+          "begin": "(?i)\\bas\\b",
+          "end": "(?=[,):'\\n])",
+          "beginCaptures": {
+            "0": {
+              "patterns": [
+                {
+                  "include": "#keywords"
+                }
+              ]
+            }
+          },
+          "patterns": [
+            {
+              "include": "#lineContinuation"
+            },
+            {
+              "include": "#variableDeclarationTypeNew"
+            },
+            {
+              "include": "#argumentSignatureFromTypeName"
+            }
+          ]
+        },
+        "variableDeclarationTypeNew": {
+          "begin": "(?i)\\bnew\\b",
+          "end": "(?=[,):'\\n])",
+          "beginCaptures": {
+            "0": {
+              "patterns": [
+                {
+                  "include": "#operators"
+                }
+              ]
+            }
+          },
+          "patterns": [
+            {
+              "include": "#lineContinuation"
+            },
+            {
+              "include": "#argumentSignatureFromTypeName"
+            }
+          ]
+        },
+        "methodDeclarationDeclare": {
+          "name": "meta.declare.function.vba",
+          "begin": "(?i)declare",
+          "end": "(?=[':\\n])",
+          "beginCaptures": {
+            "0": {
+              "name": "storage.type.vba"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#lineContinuation"
+            },
+            {
+              "include": "#methodDeclarationPtrsafe"
+            },
+            {
+              "include": "#methodDeclarationMethod"
+            },
+            {
+              "include": "#argumentSignatureFromTypeAs"
+            }
+          ]
+        },
+        "methodDeclarationPtrsafe": {
+          "begin": "(?i)ptrsafe",
+          "end": "(?=[)':\\n])",
+          "beginCaptures": {
+            "0": {
+              "name": "storage.modifier.ptrsafe.vba"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#lineContinuation"
+            },
+            {
+              "include": "#methodDeclarationMethod"
+            }
+          ]
+        },
+        "methodDeclarationMethod": {
+          "begin": "(?i)sub|function",
+          "end": "(?=[)':\\n])",
+          "beginCaptures": {
+            "0": {
+              "name": "storage.type.$0.vba"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#lineContinuation"
+            },
+            {
+              "include": "#methodDeclarationIdentifier"
+            }
+          ]
+        },
+        "methodDeclarationIdentifier": {
+          "begin": "(?i)[a-z][a-z0-9_]*",
+          "end": "(?=[)':\\n])",
+          "beginCaptures": {
+            "0": {
+              "name": "entity.name.function.vba"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#lineContinuation"
+            },
+            {
+              "include": "#methodDeclarationLib"
+            }
+          ]
+        },
+        "methodDeclarationLib": {
+          "begin": "(?i)lib",
+          "end": "(?=[)':\\n])",
+          "beginCaptures": {
+            "0": {
+              "name": "storage.type.dll.vba"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#lineContinuation"
+            },
+            {
+              "include": "#methodDeclarationLibIdentifier"
+            }
+          ]
+        },
+        "methodDeclarationLibIdentifier": {
+          "begin": "(?i)\"[a-z][a-z0-9._]*\"(\\s+\\()?",
+          "end": "(?=[)':\\n])",
+          "beginCaptures": {
+            "0": {
+              "patterns": [
+                {
+                  "include": "#literals"
+                }
+              ]
+            }
+          },
+          "patterns": [
+            {
+              "include": "#separator"
+            },
+            {
+              "include": "#lineContinuation"
+            },
+            {
+              "include": "#methodDeclarationAlias"
+            },
+            {
+              "include": "#argumentsSignature"
+            }
+          ]
+        },
+        "methodDeclarationAlias": {
+          "begin": "(?i)alias",
+          "end": "(?=[)':\\n])",
+          "beginCaptures": {
+            "0": {
+              "name": "storage.type.dll.vba"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#lineContinuation"
+            },
+            {
+              "include": "#methodDeclarationAliasIdentifier"
+            }
+          ]
+        },
+        "methodDeclarationAliasIdentifier": {
+          "begin": "(?i)\"[a-z][a-z0-9._]*\"",
+          "end": "(?=[)':\\n])",
+          "beginCaptures": {
+            "0": {
+              "patterns": [
+                {
+                  "include": "#literals"
+                }
+              ]
+            }
+          },
+          "patterns": [
+            {
+              "include": "#separator"
+            },
+            {
+              "include": "#lineContinuation"
+            },
+            {
+              "include": "#argumentsSignature"
+            }
+          ]
+        }
+      }
+    },
+    "valueAssignment": {
+      "name": "meta.variable-assignment.vba",
+      "begin": "(?i)(?:(Let|Set)\\s+)?((?:[a-z][a-z0-9_]*)?(?:\\.(?:(?:[a-z][a-z0-9_]*)?\\.)*)?(?:[a-z][a-z0-9_]*)?)(\\s*=\\s*)",
+      "end": "(?=[',:)\\n])",
+      "beginCaptures": {
+        "1": {
+          "name": "keyword.control.vba"
+        },
+        "2": {
+          "patterns": [
+            {
+              "include": "#variable"
+            }
+          ]
+        },
+        "3": {
+          "name": "keyword.operator.assignment.vba"
+        }
+      },
+      "patterns": [
+        {
+          "include": "#expression"
+        },
+        {
+          "include": "#functionCall"
+        },
+        {
+          "include": "#variable"
+        },
+        {
+          "include": "#language"
+        },
+        {
+          "include": "#lineContinuation"
+        }
+      ]
+    },
+    "propertyChain": {
+      "match": "(?i)(\\.)([a-z][a-z0-9_]*)*",
+      "captures": {
+        "1": {
+          "name": "punctuation.accessor.vba"
+        },
+        "2": {
+          "name": "support.variable.property.vba"
+        }
+      }
+    },
+    "variable": {
+      "name": "meta.variable-or-property.vba",
+      "match": "(?i)(?:(?:(\\bMe\\b)|([a-z][a-z0-9_]*)))((?:\\.(?:[a-z][a-z0-9_]*))+)?",
+      "captures": {
+        "1": {
+          "patterns": [
+            {
+              "include": "#keywords"
+            }
+          ]
+        },
+        "2": {
+          "patterns": [
+            {
+              "name": "variable.other.constant",
+              "match": "([A-Z][A-Z0-9_]*)\\b"
+            },
+            {
+              "name": "variable.other.readwrite.vba",
+              "match": "(?i)([a-z][a-z0-9_]*)"
+            }
+          ]
+        },
+        "3": {
+          "patterns": [
+            {
+              "include": "#propertyChain"
+            }
+          ]
+        }
+      }
+    },
+    "functionCall": {
+      "name": "meta.function.call.vba",
+      "begin": "(?i)(?:([a-z][a-z0-9_]*)(?=\\.))?(\\.(?:(?:[a-z][a-z0-9_]*)?\\.)*)?([a-z][a-z0-9_]*)([&%#!@$^])?(?=\\()",
+      "end": "(\\)|(?='))",
+      "beginCaptures": {
+        "1": {
+          "patterns": [
+            {
+              "include": "#keywords"
+            },
+            {
+              "include": "#variable"
+            }
+          ]
+        },
+        "2": {
+          "patterns": [
+            {
+              "include": "#propertyChain"
+            }
+          ]
+        },
+        "3": {
+          "name": "entity.name.function.call.vba"
+        },
+        "4": {
+          "name": "support.type.primitive.vba"
+        }
+      },
+      "patterns": [
+        {
+          "include": "#arguments"
+        }
+      ]
+    },
+    "subCall": {
+      "name": "meta.sub-call.vba",
+      "begin": "(?i)(?:([a-z][a-z0-9_]*)(?=\\.))?(\\.(?:(?:[a-z][a-z0-9_]*)?\\.)*)?([a-z][a-z0-9_]*)\\s*(?=\\s[^,'\\n])",
+      "end": "(?=[:'\\n])",
+      "beginCaptures": {
+        "1": {
+          "patterns": [
+            {
+              "include": "#variable"
+            }
+          ]
+        },
+        "2": {
+          "patterns": [
+            {
+              "include": "#propertyChain"
+            }
+          ]
+        },
+        "3": {
+          "name": "entity.name.function.call.vba"
+        }
+      },
+      "patterns": [
+        {
+          "include": "#arguments"
+        }
+      ]
+    },
+    "subCallNoArgs": {
+      "name": "meta.sub-call.vba",
+      "match": "(?i)(?:([a-z][a-z0-9_]*)(?=\\.))?(\\.(?:(?:[a-z][a-z0-9_]*)?\\.)*)?([a-z][a-z0-9_]*)",
+      "captures": {
+        "1": {
+          "patterns": [
+            {
+              "include": "#keywords"
+            },
+            {
+              "include": "#variable"
+            }
+          ]
+        },
+        "2": {
+          "patterns": [
+            {
+              "include": "#propertyChain"
+            }
+          ]
+        },
+        "3": {
+          "name": "entity.name.function.call.vba"
+        }
+      }
+    },
+    "testing": {
+      "patterns": [
+        {
+          "name": "keyword.control",
+          "match": "^keyword.control$"
+        },
+        {
+          "name": "keyword.control.flow",
+          "match": "^keyword.control.flow$"
+        },
+        {
+          "name": "constant.numeric",
+          "match": "^constant.numeric$"
+        },
+        {
+          "name": "comment",
+          "match": "^comment$"
+        },
+        {
+          "name": "punctuation.definition.comment",
+          "match": "^punctuation.definition.comment$"
+        },
+        {
+          "name": "string.comment",
+          "match": "^string.comment$"
+        },
+        {
+          "name": "support.type.property-name.json.comments",
+          "match": "^support.type.property-name.json.comments$"
+        },
+        {
+          "name": "support.type.property-name.json",
+          "match": "^support.type.property-name.json$"
+        },
+        {
+          "name": "support.type.primitive",
+          "match": "^support.type.primitive$"
+        },
+        {
+          "name": "punctuation.definition.heading.markdown",
+          "match": "^punctuation.definition.heading.markdown$"
+        },
+        {
+          "name": "entity.name.section.markdown",
+          "match": "^entity.name.section.markdown$"
+        },
+        {
+          "name": "constant",
+          "match": "^constant$"
+        },
+        {
+          "name": "variable.other.constant",
+          "match": "^variable.other.constant$"
+        },
+        {
+          "name": "variable.language",
+          "match": "^variable.language$"
+        },
+        {
+          "name": "constant.language",
+          "match": "^constant.language$"
+        },
+        {
+          "name": "variable.language.this",
+          "match": "^variable.language.this$"
+        },
+        {
+          "name": "entity",
+          "match": "^entity$"
+        },
+        {
+          "name": "entity.name",
+          "match": "^entity.name$"
+        },
+        {
+          "name": "entity.other.attribute-name",
+          "match": "^entity.other.attribute-name$"
+        },
+        {
+          "name": "entity.name.function",
+          "match": "^entity.name.function$"
+        },
+        {
+          "name": "entity.name.function.member",
+          "match": "^entity.name.function.member$"
+        },
+        {
+          "name": "entity.name.tag",
+          "match": "^entity.name.tag$"
+        },
+        {
+          "name": "entity.name.import",
+          "match": "^entity.name.import$"
+        },
+        {
+          "name": "keyword",
+          "match": "^keyword$"
+        },
+        {
+          "name": "keyword.operator.assignment",
+          "match": "^keyword.operator.assignment$"
+        },
+        {
+          "name": "keyword.operator.relational",
+          "match": "^keyword.operator.relational$"
+        },
+        {
+          "name": "keyword.operator.comparison",
+          "match": "^keyword.operator.comparison$"
+        },
+        {
+          "name": "storage.type.function.arrow",
+          "match": "^storage.type.function.arrow$"
+        },
+        {
+          "name": "storage",
+          "match": "^storage$"
+        },
+        {
+          "name": "storage.type",
+          "match": "^storage.type$"
+        },
+        {
+          "name": "storage.modifier.package",
+          "match": "^storage.modifier.package$"
+        },
+        {
+          "name": "storage.modifier.import",
+          "match": "^storage.modifier.import$"
+        },
+        {
+          "name": "storage.type.java",
+          "match": "^storage.type.java$"
+        },
+        {
+          "name": "string",
+          "match": "^string$"
+        },
+        {
+          "name": "punctuation.definition.string",
+          "match": "^punctuation.definition.string$"
+        },
+        {
+          "name": "string punctuation.section.embedded source",
+          "match": "^string punctuation.section.embedded source$"
+        },
+        {
+          "name": "support",
+          "match": "^support$"
+        },
+        {
+          "name": "meta.property-name",
+          "match": "^meta.property-name$"
+        },
+        {
+          "name": "variable",
+          "match": "^variable$"
+        },
+        {
+          "name": "variable.parameter.function",
+          "match": "^variable.parameter.function$"
+        },
+        {
+          "name": "variable.other",
+          "match": "^variable.other$"
+        },
+        {
+          "name": "variable.other.readwrite",
+          "match": "^variable.other.readwrite$"
+        },
+        {
+          "name": "variable.other.assignment",
+          "match": "^variable.other.assignment$"
+        },
+        {
+          "name": "variable.other.constant.property",
+          "match": "^variable.other.constant.property$"
+        },
+        {
+          "name": "invalid.broken",
+          "match": "^invalid.broken$"
+        },
+        {
+          "name": "invalid.deprecated",
+          "match": "^invalid.deprecated$"
+        },
+        {
+          "name": "invalid.illegal",
+          "match": "^invalid.illegal$"
+        },
+        {
+          "name": "invalid.unimplemented",
+          "match": "^invalid.unimplemented$"
+        },
+        {
+          "name": "carriage-return",
+          "match": "^carriage-return$"
+        },
+        {
+          "name": "message.error",
+          "match": "^message.error$"
+        },
+        {
+          "name": "string source",
+          "match": "^string source$"
+        },
+        {
+          "name": "string variable",
+          "match": "^string variable$"
+        },
+        {
+          "name": "source.regexp",
+          "match": "^source.regexp$"
+        },
+        {
+          "name": "string.regexp",
+          "match": "^string.regexp$"
+        },
+        {
+          "name": "string.regexp.character-class",
+          "match": "^string.regexp.character-class$"
+        },
+        {
+          "name": "string.regexp constant.character.escape",
+          "match": "^string.regexp constant.character.escape$"
+        },
+        {
+          "name": "string.regexp source.ruby.embedded",
+          "match": "^string.regexp source.ruby.embedded$"
+        },
+        {
+          "name": "string.regexp string.regexp.arbitrary-repitition",
+          "match": "^string.regexp string.regexp.arbitrary-repitition$"
+        },
+        {
+          "name": "string.regexp constant.character.escape",
+          "match": "^string.regexp constant.character.escape$"
+        },
+        {
+          "name": "support.constant",
+          "match": "^support.constant$"
+        },
+        {
+          "name": "support.constant.property",
+          "match": "^support.constant.property$"
+        },
+        {
+          "name": "support.variable",
+          "match": "^support.variable$"
+        },
+        {
+          "name": "support.variable.property",
+          "match": "^support.variable.property$"
+        },
+        {
+          "name": "support.class",
+          "match": "^support.class$"
+        },
+        {
+          "name": "support.class.component",
+          "match": "^support.class.component$"
+        },
+        {
+          "name": "support.type.builtin",
+          "match": "^support.type.builtin$"
+        },
+        {
+          "name": "meta.module-reference",
+          "match": "^meta.module-reference$"
+        },
+        {
+          "name": "punctuation.definition.list.begin.markdown",
+          "match": "^punctuation.definition.list.begin.markdown$"
+        },
+        {
+          "name": "punctuation.definition.italic.markdown",
+          "match": "^punctuation.definition.italic.markdown$"
+        },
+        {
+          "name": "punctuation.definition.bold.markdown",
+          "match": "^punctuation.definition.bold.markdown$"
+        },
+        {
+          "name": "markup.heading",
+          "match": "^markup.heading$"
+        },
+        {
+          "name": "markup.heading entity.name",
+          "match": "^markup.heading entity.name$"
+        },
+        {
+          "name": "markup.quote",
+          "match": "^markup.quote$"
+        },
+        {
+          "name": "markup.italic",
+          "match": "^markup.italic$"
+        },
+        {
+          "name": "markup.bold",
+          "match": "^markup.bold$"
+        },
+        {
+          "name": "markup.raw",
+          "match": "^markup.raw$"
+        },
+        {
+          "name": "markup.deleted",
+          "match": "^markup.deleted$"
+        },
+        {
+          "name": "meta.diff.header.from-file",
+          "match": "^meta.diff.header.from-file$"
+        },
+        {
+          "name": "punctuation.definition.deleted",
+          "match": "^punctuation.definition.deleted$"
+        },
+        {
+          "name": "markup.inserted",
+          "match": "^markup.inserted$"
+        },
+        {
+          "name": "meta.diff.header.to-file",
+          "match": "^meta.diff.header.to-file$"
+        },
+        {
+          "name": "punctuation.definition.inserted",
+          "match": "^punctuation.definition.inserted$"
+        },
+        {
+          "name": "markup.changed",
+          "match": "^markup.changed$"
+        },
+        {
+          "name": "punctuation.definition.changed",
+          "match": "^punctuation.definition.changed$"
+        },
+        {
+          "name": "markup.ignored",
+          "match": "^markup.ignored$"
+        },
+        {
+          "name": "markup.untracked",
+          "match": "^markup.untracked$"
+        },
+        {
+          "name": "meta.diff.range",
+          "match": "^meta.diff.range$"
+        },
+        {
+          "name": "meta.diff.header",
+          "match": "^meta.diff.header$"
+        },
+        {
+          "name": "meta.separator",
+          "match": "^meta.separator$"
+        },
+        {
+          "name": "meta.output",
+          "match": "^meta.output$"
+        },
+        {
+          "name": "brackethighlighter.tag",
+          "match": "^brackethighlighter.tag$"
+        },
+        {
+          "name": "brackethighlighter.curly",
+          "match": "^brackethighlighter.curly$"
+        },
+        {
+          "name": "brackethighlighter.round",
+          "match": "^brackethighlighter.round$"
+        },
+        {
+          "name": "brackethighlighter.square",
+          "match": "^brackethighlighter.square$"
+        },
+        {
+          "name": "brackethighlighter.angle",
+          "match": "^brackethighlighter.angle$"
+        },
+        {
+          "name": "brackethighlighter.quote",
+          "match": "^brackethighlighter.quote$"
+        },
+        {
+          "name": "brackethighlighter.unmatched",
+          "match": "^brackethighlighter.unmatched$"
+        },
+        {
+          "name": "constant.other.reference.link",
+          "match": "^constant.other.reference.link$"
+        },
+        {
+          "name": "constant.other.identifier.vba",
+          "match": "^constant.other.identifier.vba$"
+        },
+        {
+          "name": "string.other.link",
+          "match": "^string.other.link$"
+        },
+        {
+          "name": "entity.name.tag.yaml",
+          "match": "^entity.name.tag.yaml$"
+        },
+        {
+          "name": "constant.numeric.float.yaml",
+          "match": "^constant.numeric.float.yaml$"
+        },
+        {
+          "name": "constant.numeric.integer.yaml",
+          "match": "^constant.numeric.integer.yaml$"
+        },
+        {
+          "name": "constant.numeric.hex.yaml",
+          "match": "^constant.numeric.hex.yaml$"
+        },
+        {
+          "name": "constant.numeric.octal.yaml",
+          "match": "^constant.numeric.octal.yaml$"
+        },
+        {
+          "name": "constant.numeric.binary.yaml",
+          "match": "^constant.numeric.binary.yaml$"
+        },
+        {
+          "name": "constant.numeric.decimal.yaml",
+          "match": "^constant.numeric.decimal.yaml$"
+        },
+        {
+          "name": "string.unquoted.plain.out.yaml",
+          "match": "^string.unquoted.plain.out.yaml$"
+        },
+        {
+          "name": "string.unquoted.plain.in.yaml",
+          "match": "^string.unquoted.plain.in.yaml$"
+        },
+        {
+          "name": "string.unquoted.block.yaml",
+          "match": "^string.unquoted.block.yaml$"
+        },
+        {
+          "name": "string.quoted.block.yaml",
+          "match": "^string.quoted.block.yaml$"
+        },
+        {
+          "name": "string.quoted.single.block.yaml",
+          "match": "^string.quoted.single.block.yaml$"
+        },
+        {
+          "name": "constant.language.null.yaml",
+          "match": "^constant.language.null.yaml$"
+        },
+        {
+          "name": "constant.language.boolean.yaml",
+          "match": "^constant.language.boolean.yaml$"
+        }
+      ]
+    }
+  }
+}
