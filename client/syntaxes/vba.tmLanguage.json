@@ -25,35 +25,6 @@
         }
       ]
     },
-    "continuations": {
-      "name": "meta.has-continuation.vba",
-      "begin": "(?i)(.*)(\\s_\\s*)",
-      "end": "\\n",
-      "patterns": [
-        {
-          "include": "#lineContinuation"
-        },
-        {
-          "include": "#fileStructure"
-        }
-      ],
-      "beginCaptures": {
-        "1": {
-          "patterns": [
-            {
-              "include": "#fileStructure"
-            }
-          ]
-        },
-        "2": {
-          "patterns": [
-            {
-              "include": "#lineContinuation"
-            }
-          ]
-        }
-      }
-    },
     "lineContinuation": {
       "name": "keyword.control.line-continuation.vba",
       "match": "(?<=\\s)_\\s*\\n"
@@ -231,10 +202,6 @@
         "kw-controlAs": {
           "name": "keyword.control.as.vba",
           "match": "(?i)\\bas\\b"
-        },
-        "kw-controlTo": {
-          "name": "keyword.control.to.vba",
-          "match": "(?i)\\bto\\b"
         },
         "kw-storageMe": {
           "name": "variable.language.me.vba",
@@ -980,22 +947,6 @@
         }
       }
     },
-    "attribute": {
-      "name": "meta.attribute.vba",
-      "match": "(?i)^\\s*(Attribute VB_\\w+)\\s+(.*)$",
-      "captures": {
-        "1": {
-          "name": "entity.other.attribute-name.vba"
-        },
-        "2": {
-          "patterns": [
-            {
-              "include": "#language"
-            }
-          ]
-        }
-      }
-    },
     "moduleHeader": {
       "patterns": [
         {
@@ -1338,25 +1289,7 @@
         {
           "include": "#language"
         }
-      ],
-      "repository": {
-        "blockLines": {
-          "name": "source.methodlines.vba",
-          "match": "(?:(^(?:\\s*[a-z0-9]*?:\\s*)(?:\\s+'.*)?$)|(.*):)",
-          "captures": {
-            "1": {
-              "name": "source.methodlines.label.vba"
-            },
-            "2": {
-              "patterns": [
-                {
-                  "include": "#block"
-                }
-              ]
-            }
-          }
-        }
-      }
+      ]
     },
     "separator": {
       "name": "punctuation.separator.vba",

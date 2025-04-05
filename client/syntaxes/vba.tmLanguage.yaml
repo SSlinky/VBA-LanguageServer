@@ -62,21 +62,6 @@ repository:
       - include: "#labels"
       - include: "#main"
 
-  continuations:
-    name: meta.has-continuation.vba
-    begin: (?i)(.*)(\s_\s*)
-    end: \n
-    patterns:
-      - include: "#lineContinuation"
-      - include: "#fileStructure"
-    beginCaptures:
-      1:
-        patterns:
-          - include: "#fileStructure"
-      2:
-        patterns:
-          - include: "#lineContinuation"
-
   lineContinuation:
     name: keyword.control.line-continuation.vba
     match: (?<=\s)_\s*\n
@@ -173,10 +158,6 @@ repository:
       kw-controlAs:
         name: keyword.control.as.vba
         match: (?i)\bas\b
-
-      kw-controlTo:
-        name: keyword.control.to.vba
-        match: (?i)\bto\b
 
       kw-storageMe:
         name: variable.language.me.vba
@@ -606,16 +587,6 @@ repository:
         name: comment.line.remark.vba
         match: (?i)(?<=^\d*?|:)\s*Rem\b.*
 
-  attribute:
-    name: meta.attribute.vba
-    match: (?i)^\s*(Attribute VB_\w+)\s+(.*)$
-    captures:
-      1:
-        name: entity.other.attribute-name.vba
-      2:
-        patterns:
-          - include: "#language"
-
   moduleHeader:
     patterns:
       - include: "#moduleVersion"
@@ -807,17 +778,6 @@ repository:
       - include: "#methodAttribute"
       - include: "#methodClose"
       - include: "#language"
-
-    repository:
-      blockLines:
-        name: source.methodlines.vba
-        match: (?:(^(?:\s*[a-z0-9]*?:\s*)(?:\s+'.*)?$)|(.*):)
-        captures:
-          1: # label
-            name: source.methodlines.label.vba
-          2: # colon separated line
-            patterns:
-              - include: "#block"
 
   separator:
     name: punctuation.separator.vba
