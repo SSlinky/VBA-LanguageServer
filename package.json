@@ -89,7 +89,7 @@
 						"Warn",
 						"Error"
 					],
-					"default": "Info",
+					"default": "Warn",
 					"description": "Sets the logging level for the output channel."
 				},
 				"vbaLanguageServer.maxDocumentLines": {

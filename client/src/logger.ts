@@ -16,12 +16,17 @@ export interface LogMessage {
 
 export class VscodeLogger {
 	private static _outputChannel: vscode.OutputChannel;
-	static get outputChannel(): vscode.OutputChannel {
+	private static get outputChannel(): vscode.OutputChannel {
 		if (!VscodeLogger._outputChannel) {
 			VscodeLogger._outputChannel = vscode.window.createOutputChannel('VBAPro Output');
 			VscodeLogger._outputChannel.show();
 		}
 		return VscodeLogger._outputChannel;
+	}
+	private static get configuredLevel(): LogLevel {
+		const config = vscode.workspace.getConfiguration('vbaLanguageServer');
+		const levelString = config.get<string>('logLevel.outputChannel', 'warning');
+		return LogLevel[levelString as keyof typeof LogLevel];
 	}
 
 	static info = (msg: string, lvl?: number) => this.log(LogLevel.info, msg, lvl)
@@ -32,6 +37,8 @@ export class VscodeLogger {
 	}
 
 	private static log(type: LogLevel, msg: string, lvl?: number): void {
+		if (type > this.configuredLevel) return;
+
 		const i = '> '.repeat(lvl ?? 0);
 		const t = `${this.getFormattedTimestamp()}`;
 		VscodeLogger.outputChannel.appendLine(`${t} [${LogLevel[type]}] ${i}${msg}`);
