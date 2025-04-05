@@ -11,7 +11,6 @@
 				"--extensionDevelopmentPath=${workspaceRoot}",
 				"${workspaceFolder}/sample"
 			],
-			"outFiles": ["${workspaceRoot}/client/out/**/*.js"],
 			"preLaunchTask": {
 				"type": "npm",
 				"script": "compile"
@@ -23,7 +22,6 @@
 			"name": "Attach to Server",
 			"port": 6009,
 			"restart": true,
-			"outFiles": ["${workspaceRoot}/server/out/**/*.js"]
 		},
 		{
 			"name": "Language Server E2E Test",
