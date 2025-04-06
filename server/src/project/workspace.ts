@@ -259,10 +259,10 @@ class WorkspaceEvents {
 
 	private initialiseConnectionEvents(connection: _Connection) {
 		const cancellableOnDocSymbol = returnDefaultOnCancelClientRequest(
-			(p: DocumentSymbolParams, t) => this.onDocumentSymbolAsync(p, t), [], Services.logger, 'Document Symbols');
+			(p: DocumentSymbolParams, t) => this.onDocumentSymbolAsync(p, t), [], 'Document Symbols');
 		
 		const cancellableOnFoldingRanges = returnDefaultOnCancelClientRequest(
-			(p: FoldingRangeParams, t) => this.onFoldingRangesAsync(p, t), [], Services.logger, 'Folding Range');
+			(p: FoldingRangeParams, t) => this.onFoldingRangesAsync(p, t), [], 'Folding Range');
 
 		connection.onInitialized(() => this.onInitialized());
 		connection.onCompletion(params => this.onCompletion(params));

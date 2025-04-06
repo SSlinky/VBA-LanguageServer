@@ -1,6 +1,7 @@
 import { CancellationToken } from 'vscode-languageserver';
 import { LspLogger } from './logger';
 import { Logger } from '../injection/interface';
+import { Services } from '../injection/services';
 
 type signature<T,A extends any[]> = (token: CancellationToken, ...args: A) => Promise<T|void>;
 type paramsSignature<T,P> = (params: P, token: CancellationToken) => Promise<T>;
@@ -35,25 +36,24 @@ function returnDefaultOnCancel<T, A extends any[]>(fn: signature<T,A>, logger?: 
  * @param fn An async function that requires cancellation token handling.
  * @param defaultValue The value to return when cancelled.
  */
-export function returnDefaultOnCancelClientRequest<T, P>(fn: paramsSignature<T,P>, defaultValue: T, logger: Logger | undefined, name: string): paramsSignature<T,P> {
+export function returnDefaultOnCancelClientRequest<T, P>(fn: paramsSignature<T,P>, defaultValue: T, name: string): paramsSignature<T,P> {
 	return async (params: P, token: CancellationToken): Promise<T> => {
         if (token.isCancellationRequested) {
-            // The logger has started dereferencing since I added the parseTokenSource.dispose() to parseDocumentAsync.
             const msg = `Cancellation requested before start for ${name}. Returning default.`;
-            if (logger) logger.debug(msg);
-            else console.debug(msg);
+            Services.logger.debug(msg);
             return defaultValue;
         }
 
         return new Promise<T>((resolve) => {
             const onCancel = () =>{
 				const msg = `Cancellation requested during processing for ${name}. Returning default.`;
-                if (logger) logger.debug(msg);
-                else console.debug(msg);
+                Services.logger.debug(msg);
 				resolve(defaultValue);
 			}
             token.onCancellationRequested(onCancel);
             fn(params, token).then(resolve).catch(() => resolve(defaultValue));
+            token.onCancellationRequested(() => undefined);
+            Services.logger.debug(`Finished processing ${name}`);
         });
     };
 }
