@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as assert from 'assert';
-import { getDocUri, activate } from './helper';
+import { getDocUri, activate, runOnActivate } from './helper';
 
 suite('Should get folding ranges', () => {
 	test('formatting.class.template', async () => {
@@ -24,10 +24,16 @@ suite('Should get folding ranges', () => {
 
 async function testFoldingRanges(docUri: vscode.Uri, expectedFoldingRanges: vscode.FoldingRange[]) {
 	await activate(docUri);
-	const actualFoldingRanges = await vscode.commands.executeCommand<vscode.FoldingRange[]>(
+	const action = () => vscode.commands.executeCommand<vscode.FoldingRange[]>(
 		'vscode.executeFoldingRangeProvider',
 		docUri
 	)
+	
+	// Use this method first to ensure the extension is activated.
+	const actualFoldingRanges = await runOnActivate(
+		action,
+		(result) => Array.isArray(result) && result.length > 0
+	);
 
 	assert.equal(actualFoldingRanges.length ?? 0, expectedFoldingRanges.length, "Count");
 

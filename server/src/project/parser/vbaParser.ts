@@ -1,6 +1,6 @@
 // Antlr
 import { ParseCancellationException, ParseTreeWalker } from 'antlr4ng';
-import { VbaFmtParser, VbaParser, VbaPreParser } from './vbaAntlr';
+import { VbaErrorHandler, VbaFmtParser, VbaParser, VbaPreParser } from './vbaAntlr';
 import { VbaFmtListener, VbaListener, VbaPreListener } from './vbaListener';
 
 // Project

@@ -68,7 +68,7 @@ export class DuplicateDeclarationDiagnostic extends BaseDiagnostic {
 // test
 export class ShadowDeclarationDiagnostic extends BaseDiagnostic {
 	message = "Declaration is shadowed in the local scope.";
-	severity = DiagnosticSeverity.Error;
+	severity = DiagnosticSeverity.Warning;
 	constructor(range: Range) {
 		super(range);
 	}
@@ -123,5 +123,12 @@ export class LegacyFunctionalityDiagnostic extends BaseDiagnostic {
 	severity = DiagnosticSeverity.Warning;
 	constructor(range: Range, functionalityType: string) {
 		super(range, `${functionalityType} are legacy functionality and should be avoided.`);
+	}
+}
+
+export class ParserErrorDiagnostic extends BaseDiagnostic {
+	severity = DiagnosticSeverity.Error;
+	constructor(range: Range, msg: string) {
+		super(range, msg);
 	}
 }

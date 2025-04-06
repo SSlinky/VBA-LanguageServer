@@ -43,7 +43,6 @@ import {
     DocumentElementContext,
     IndentAfterElementContext,
     LabelStatementContext,
-    LineEndingContext,
     MethodParametersContext,
     OutdentBeforeElementContext,
     OutdentOnIndentAfterElementContext,
@@ -63,6 +62,7 @@ import { DeclarationStatementElement, EnumDeclarationElement, TypeDeclarationEle
 import { FunctionDeclarationElement, PropertyGetDeclarationElement, PropertyLetDeclarationElement, PropertySetDeclarationElement, SubDeclarationElement } from '../elements/procedure';
 import { ExtensionConfiguration } from '../workspace';
 import { Services } from '../../injection/services';
+import { ErrorRuleElement } from '../elements/generic';
 
 export class CommonParserCapability {
     document: VbaClassDocument | VbaModuleDocument;
@@ -213,7 +213,7 @@ export class VbaListener extends vbaListener {
     };
 
     visitErrorNode(node: ErrorNode) {
-        Services.logger.error(`Listener error @ ${node.getPayload()?.line ?? '--'}: ${node.getPayload()?.text}`);
+        this.document.registerElement(new ErrorRuleElement(node, this.document.textDocument));
     }
 }
 

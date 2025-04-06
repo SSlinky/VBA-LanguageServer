@@ -11,7 +11,6 @@
 				"--extensionDevelopmentPath=${workspaceRoot}",
 				"${workspaceFolder}/sample"
 			],
-			"outFiles": ["${workspaceRoot}/client/out/**/*.js"],
 			"preLaunchTask": {
 				"type": "npm",
 				"script": "compile"
@@ -23,7 +22,6 @@
 			"name": "Attach to Server",
 			"port": 6009,
 			"restart": true,
-			"outFiles": ["${workspaceRoot}/server/out/**/*.js"]
 		},
 		{
 			"name": "Language Server E2E Test",
@@ -32,10 +30,10 @@
 			"runtimeExecutable": "${execPath}",
 			"args": [
 				"--extensionDevelopmentPath=${workspaceRoot}",
-				"--extensionTestsPath=${workspaceRoot}/client/out/test/index",
-				"${workspaceRoot}/client/testFixture"
+				"--extensionTestsPath=${workspaceRoot}/dist/client/out/test/index",
+				"${workspaceRoot}/test/fixtures"
 			],
-			"outFiles": ["${workspaceRoot}/client/out/test/**/*.js"]
+			"outFiles": ["${workspaceRoot}/dist/client/out/test/**/*.js"]
 		},
 		{
 			"name": "Debug ANTLR4 grammar",

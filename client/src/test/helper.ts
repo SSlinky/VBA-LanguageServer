@@ -10,6 +10,7 @@ export let doc: vscode.TextDocument;
 export let editor: vscode.TextEditor;
 export let documentEol: string;
 export let platformEol: string;
+const TIMEOUTMS = 5000;
 
 /**
  * Activates the vscode.lsp-sample extension
@@ -21,14 +22,29 @@ export async function activate(docUri: vscode.Uri) {
 	try {
 		doc = await vscode.workspace.openTextDocument(docUri);
 		editor = await vscode.window.showTextDocument(doc);
-		await sleep(500); // Wait for server activation
 	} catch (e) {
 		console.error(e);
 	}
 }
 
+export function getTimeout() {
+	return Date.now() + TIMEOUTMS;
+}
+
 async function sleep(ms: number) {
 	return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+export async function runOnActivate<T>(action: () => T|Thenable<T>, test: (result: T) => boolean): Promise<T> {
+	const timeout = getTimeout();
+	while (Date.now() < timeout) {
+		const result = await action(); 
+		if (test(result)) {
+			return result;
+		}
+		await sleep(100);
+	}
+	throw new Error(`Timed out after ${TIMEOUTMS}`);
 }
 
 export const getDocPath = (p: string) => {

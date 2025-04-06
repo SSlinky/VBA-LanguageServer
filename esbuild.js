@@ -3,6 +3,7 @@ const esbuild = require('esbuild');
 
 const production = process.argv.includes('--production');
 const watch = process.argv.includes('--watch');
+const test = process.argv.includes('--test');
 
 /**
  * @type {import('esbuild').Plugin}
@@ -77,11 +78,11 @@ async function buildTests() {
 }
 
 async function main() {
-  const buildTasks = [
-    buildClient(),
-    buildServer(),
-    buildTests()
-  ]
+  const buildTasks = test ? [] : [
+      buildClient(),
+      buildServer(),
+    ];
+  buildTasks.push(buildTests());
   const buildContexts = await Promise.all(buildTasks);
   
   if (watch) {

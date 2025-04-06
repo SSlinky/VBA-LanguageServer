@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as assert from 'assert';
-import { getDocUri, activate } from './helper';
+import { getDocUri, activate, runOnActivate } from './helper';
 import { toRange } from './util';
 
 suite('Should get text edits', () => {
@@ -42,11 +42,18 @@ suite('Should get text edits', () => {
 
 async function testTextEdits(docUri: vscode.Uri, expectedTextEdits: vscode.TextEdit[]) {
 	await activate(docUri);
-	const actualEdits = await vscode.commands.executeCommand<vscode.TextEdit[]>(
+	await vscode.window.showTextDocument(docUri);
+	const action = () => vscode.commands.executeCommand<vscode.TextEdit[]>(
 		'vscode.executeFormatDocumentProvider',
 		docUri,
 		{ tabSize: 4, insertSpaces: true }
-	)
+	);
+
+	// Use this method first to ensure the extension is activated.
+	const actualEdits = await runOnActivate(
+		action,
+		(result) => Array.isArray(result) && result.length > 0
+	);
 
 	assert.equal(actualEdits.length ?? 0, expectedTextEdits.length, "Count");
 

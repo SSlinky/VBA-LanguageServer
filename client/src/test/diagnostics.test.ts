@@ -5,7 +5,7 @@
 
 import * as vscode from 'vscode';
 import * as assert from 'assert';
-import { getDocUri, activate } from './helper';
+import { getDocUri, activate, runOnActivate } from './helper';
 import { toRange } from './util';
 
 suite('Should get diagnostics', () => {
@@ -147,8 +147,11 @@ suite('Should get diagnostics', () => {
 async function testDiagnostics(docUri: vscode.Uri, expectedDiagnostics: vscode.Diagnostic[]) {
 	await activate(docUri);
 
-	const actualDiagnostics = vscode.languages.getDiagnostics(docUri);
-
+	// Use this method first to ensure the extension is activated.
+	const actualDiagnostics = await runOnActivate(
+		() => vscode.languages.getDiagnostics(docUri),
+		(result) => result.length > 0
+	);
 	assert.equal(actualDiagnostics.length, expectedDiagnostics.length, "Count");
 
 	expectedDiagnostics.forEach((expectedDiagnostic, i) => {
