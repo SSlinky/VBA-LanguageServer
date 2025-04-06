@@ -68,7 +68,7 @@ export class DuplicateDeclarationDiagnostic extends BaseDiagnostic {
 // test
 export class ShadowDeclarationDiagnostic extends BaseDiagnostic {
 	message = "Declaration is shadowed in the local scope.";
-	severity = DiagnosticSeverity.Error;
+	severity = DiagnosticSeverity.Warning;
 	constructor(range: Range) {
 		super(range);
 	}
