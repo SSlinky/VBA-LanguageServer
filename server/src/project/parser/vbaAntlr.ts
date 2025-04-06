@@ -1,5 +1,5 @@
 // Antlr
-import { CharStream, CommonTokenStream, TokenStream } from 'antlr4ng';
+import { CharStream, CommonTokenStream, Token, TokenStream } from 'antlr4ng';
 import { DefaultErrorStrategy, Parser, RecognitionException } from 'antlr4ng';
 import { vbaLexer } from '../../antlr/out/vbaLexer';
 import { vbaParser } from '../../antlr/out/vbaParser';
@@ -23,7 +23,6 @@ export class VbaLexer extends vbaLexer {
 export class VbaParser extends vbaParser {
 	constructor(input: TokenStream) {
 		super(input);
-		
 	}
 
 	static create(document: string): VbaParser {
@@ -91,10 +90,11 @@ export class VbaFmtParser extends vbafmtParser {
 
 export class VbaErrorHandler extends DefaultErrorStrategy {
     recover(recognizer: Parser, e: RecognitionException): void {
+        // Consume the error token if look-ahead is not EOF.
         const inputStream = recognizer.inputStream;
-        // if (!recognizer.isMatchedEOF) {
+        if (inputStream.LA(1) === Token.EOF) {
             inputStream.consume();
-        // }
+        }
         this.endErrorCondition(recognizer);
     }
 }
