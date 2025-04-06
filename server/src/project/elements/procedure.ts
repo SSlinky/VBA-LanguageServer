@@ -40,10 +40,12 @@ export class SubDeclarationElement extends BaseProcedureElement<SubroutineDeclar
 		this.identifierCapability = new IdentifierCapability({
 			element: this,
 			getNameContext: () => ctx.subroutineName()?.ambiguousIdentifier(),
+			// For some reason the IdentifierCapability throws if no default is given
+			// despite it not actually ever needing it. Most unusual.
+			defaultRange: () => this.context.range
 		});
 		this.foldingRangeCapability.openWord = `Sub ${this.identifierCapability.name}`;
 		this.foldingRangeCapability.closeWord = 'End Sub';
-
 	}
 }
 
