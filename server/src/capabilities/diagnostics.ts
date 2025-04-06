@@ -125,3 +125,10 @@ export class LegacyFunctionalityDiagnostic extends BaseDiagnostic {
 		super(range, `${functionalityType} are legacy functionality and should be avoided.`);
 	}
 }
+
+export class ParserErrorDiagnostic extends BaseDiagnostic {
+	severity = DiagnosticSeverity.Error;
+	constructor(range: Range, msg: string) {
+		super(range, msg);
+	}
+}

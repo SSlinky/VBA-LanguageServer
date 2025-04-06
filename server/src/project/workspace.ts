@@ -118,11 +118,11 @@ export class Workspace implements IWorkspace {
 			await this.activeDocument.parseAsync(this.parseCancellationTokenSource.token);
 			this.logger.info(`Parsed ${this.activeDocument.name}`);
 			this.connection.sendDiagnostics(this.activeDocument.languageServerDiagnostics());
-	} catch (e) {
+		} catch (e) {
 			// Swallow cancellation exceptions. They're good. We like these.
 			if (e instanceof ParseCancellationException) { }
 			else if (e instanceof Error) { this.logger.stack(e); }
-			else { this.logger.error('Something went wrong.')}
+			else { this.logger.error('Something went wrong.') }
 		}
 
 		this.parseCancellationTokenSource = undefined;
@@ -328,6 +328,7 @@ class WorkspaceEvents {
 	}
 
 	private async onDocumentSymbolAsync(params: DocumentSymbolParams, token: CancellationToken): Promise<SymbolInformation[]> {
+		Services.logger.debug('[event] onDocumentSymbol');
 		const document = await this.getParsedProjectDocument(params.textDocument.uri, 0, token);
 		return document?.languageServerSymbolInformation() ?? [];
 	}
