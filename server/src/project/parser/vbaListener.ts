@@ -43,7 +43,6 @@ import {
     DocumentElementContext,
     IndentAfterElementContext,
     LabelStatementContext,
-    LineEndingContext,
     MethodParametersContext,
     OutdentBeforeElementContext,
     OutdentOnIndentAfterElementContext,
