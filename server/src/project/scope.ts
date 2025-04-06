@@ -30,7 +30,7 @@ export class NamespaceManager {
 		// Check higher scopes for shadowed declarations
 		checkItem = this.names.get(item.identifierCapability.name)
 		if (!!checkItem && !checkItem.equals(item)) {
-			pushDiagnostic(new ShadowDeclarationDiagnostic(item.context.range));
+			pushDiagnostic(new ShadowDeclarationDiagnostic(item.identifierCapability.range));
 			return;
 		}
 		this.names.set(item.identifierCapability.name, item);
