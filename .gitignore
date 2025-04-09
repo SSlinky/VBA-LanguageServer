@@ -1,16 +1,15 @@
-#Out file is required by command
-#`npm run textMate`, so a placeholder is included in client/out to ensure `out`
-#folder is available
-**/out/*
-!client/out/*.tmp
-client/src/syntaxes/dev*
-
-.antlr
-node_modules
-client/server
-template*
-.vscode-test
-sample*/**
+# Generated files.
+dist/*
+**/antlr/*/
 *.vsix
 *.tsbuildinfo
 *.log
+
+# Resources
+node_modules
+sample*/**
+template*
+
+# Workspace settings
+.vscode-test
+.vscode/settings.json
