@@ -2,7 +2,11 @@
 import { CodeDescription, Diagnostic, DiagnosticRelatedInformation, DiagnosticSeverity, DiagnosticTag, Position, Range } from 'vscode-languageserver';
 
 
-abstract class BaseDiagnostic implements Diagnostic {
+export type DiagnosticConstructor<T extends BaseDiagnostic> =
+	(new (range: Range) => T) | (new (range: Range, message: string) => T);
+
+
+export abstract class BaseDiagnostic implements Diagnostic {
 	range: Range;
 	message: string
 	severity?: DiagnosticSeverity | undefined;
@@ -18,6 +22,13 @@ abstract class BaseDiagnostic implements Diagnostic {
 	constructor(range: Range, message?: string) {
 		this.range = range;
 		this.message = message ?? 'Generic diagnostic.';
+	}
+
+	addRelatedInformation(information: DiagnosticRelatedInformation): void {
+		if (!this.relatedInformation) {
+			this.relatedInformation = [];
+		}
+		this.relatedInformation.push(information);
 	}
 }
 
@@ -55,12 +66,12 @@ export class DuplicateAttributeDiagnostic extends BaseDiagnostic {
 }
 
 
-// test (not yet implemented)
+// test
 export class DuplicateDeclarationDiagnostic extends BaseDiagnostic {
-	message = "Duplicate declaration in current scope.";
 	severity = DiagnosticSeverity.Error;
-	constructor(range: Range) {
+	constructor(range: Range, message: string) {
 		super(range);
+		this.message = `Duplicate declaration '${message}' in current scope.`;
 	}
 }
 
@@ -69,6 +80,22 @@ export class DuplicateDeclarationDiagnostic extends BaseDiagnostic {
 export class ShadowDeclarationDiagnostic extends BaseDiagnostic {
 	message = "Declaration is shadowed in the local scope.";
 	severity = DiagnosticSeverity.Warning;
+	constructor(range: Range) {
+		super(range);
+	}
+}
+
+export class VariableNotDefinedDiagnostic extends BaseDiagnostic {
+	message = "Variable not defined.";
+	severity = DiagnosticSeverity.Error;
+	constructor(range: Range) {
+		super(range);
+	}
+}
+
+export class SubOrFunctionNotDefinedDiagnostic extends BaseDiagnostic {
+	message = "Sub or Function not defined.";
+	severity = DiagnosticSeverity.Error;
 	constructor(range: Range) {
 		super(range);
 	}
