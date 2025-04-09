@@ -366,10 +366,10 @@ export class ScopeItemCapability {
 		}
 
 		// All declaration types check for modules.
+		this.resolveShadowedDeclaration(parent.findType(this.name));
 		this.resolveShadowedDeclaration(parent.findModule(this.name));
 		this.resolveShadowedDeclaration(parent.findFunction(this.name));
 		this.resolveShadowedDeclaration(parent.findSubroutine(this.name));
-		this.resolveShadowedDeclaration(parent.findModule(this.name));
 
 		// Properties care about everything except properties that
 		// aren't the same type. Everything else cares about everything.
@@ -473,6 +473,11 @@ export class ScopeItemCapability {
 		return this.explicitSetName
 			?? this.element?.identifierCapability?.name
 			?? 'Unknown';
+	}
+
+	findType(name: string): ScopeItemCapability | undefined {
+		return this.types?.get(name)?.[0]
+			?? this.parent?.findType(name);
 	}
 
 	findModule(name: string): ScopeItemCapability | undefined {
