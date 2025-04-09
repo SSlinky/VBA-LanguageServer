@@ -36,6 +36,19 @@
 			"outFiles": ["${workspaceRoot}/dist/client/out/test/**/*.js"]
 		},
 		{
+			"name": "Run Web Extension in VS Code",
+			"type": "pwa-extensionHost",
+			"debugWebWorkerHost": true,
+			"request": "launch",
+			"args": [
+				"--extensionDevelopmentPath=${workspaceFolder}",
+				"--extensionDevelopmentKind=web"
+			],
+			"outFiles": [
+				"${workspaceFolder}/dist/web/*.js"
+			]
+		},
+		{
 			"name": "Debug ANTLR4 grammar",
 			"type": "antlr-debug",
 			"request": "launch",
