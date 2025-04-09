@@ -213,14 +213,6 @@ export class ScopeItemCapability {
 	) { }
 
 	/**
-	 * Called on a module after it is re-parsed.
-	 * TODO: Implement logic to self-clean before build.
-	 */
-	rebuild(): void {
-		this.build();
-	}
-
-	/**
 	 * Recursively build from this node down.
 	 */
 	build(): void {
@@ -281,6 +273,7 @@ export class ScopeItemCapability {
 		combineNames(names, this.functions);
 		combineNames(names, this.subroutines);
 
+		const logger = Services.logger;
 		names.forEach((items, name) => {
 			// Base case no name clash.
 			if (items.length <= 1) {
@@ -288,7 +281,7 @@ export class ScopeItemCapability {
 			}
 
 			// Diagnose names.
-			Services.logger.debug(`Name ${name} is duplicate`);
+			logger.debug(`Name ${name} is duplicate`);
 			items.forEach(item => this.pushDiagnostic(DuplicateDeclarationDiagnostic, item, name));
 			diagnosedNames.set(name, undefined);
 		});
@@ -296,8 +289,7 @@ export class ScopeItemCapability {
 		// Properties clash with properties of same type. Loop through each and check against names.
 		Object.entries(this.properties ?? {}).forEach(([_, properties]) => {
 			properties?.forEach((items, name) => {
-				const identifier = name.split(' ')[1];
-				const nameItems = names.get(identifier) ?? [];
+				const nameItems = names.get(this.identifier) ?? [];
 
 				// Base case no name clash.
 				if (items.length + nameItems.length === 1) {
@@ -305,18 +297,18 @@ export class ScopeItemCapability {
 				}
 
 				// Diagnose properties.
-				Services.logger.debug(`Property ${name} is duplicate`);
-				items.forEach(item => this.pushDiagnostic(DuplicateDeclarationDiagnostic, item, name));
+				logger.debug(`Property ${items[0].name} is duplicate`);
+				items.forEach(item => this.pushDiagnostic(DuplicateDeclarationDiagnostic, item, item.name));
 
 				// Don't diagnose names if we have already or don't need to.
-				if (diagnosedNames.has(identifier) || nameItems.length === 0) {
+				if (diagnosedNames.has(this.identifier) || nameItems.length === 0) {
 					return;
 				}
 
 				// Diagnose names and register.
-				Services.logger.debug(`Name ${identifier} is duplicate (property)`);
+				logger.debug(`Name ${this.identifier} is duplicate (property)`);
 				nameItems.forEach(item => this.pushDiagnostic(DuplicateDeclarationDiagnostic, item, name));
-				diagnosedNames.set(identifier, undefined);
+				diagnosedNames.set(this.identifier, undefined);
 			});
 		})
 	}
@@ -351,10 +343,10 @@ export class ScopeItemCapability {
 		}
 
 		// All declaration types check for modules.
-		this.resolveShadowedDeclaration(parent.findType(this.name));
-		this.resolveShadowedDeclaration(parent.findModule(this.name));
-		this.resolveShadowedDeclaration(parent.findFunction(this.name));
-		this.resolveShadowedDeclaration(parent.findSubroutine(this.name));
+		this.resolveShadowedDeclaration(parent.findType(this.identifier));
+		this.resolveShadowedDeclaration(parent.findModule(this.identifier));
+		this.resolveShadowedDeclaration(parent.findFunction(this.identifier));
+		this.resolveShadowedDeclaration(parent.findSubroutine(this.identifier));
 
 		// Properties care about everything except properties that
 		// aren't the same type. Everything else cares about everything.
@@ -365,17 +357,17 @@ export class ScopeItemCapability {
 
 		// Check get properties.
 		if (!!(this.assignmentType & AssignmentType.GET)) {
-			this.resolveShadowedDeclaration(parent.findPropertyGetter(this.name));
+			this.resolveShadowedDeclaration(parent.findPropertyGetter(this.identifier));
 		}
 
 		// Check let properties.
 		if (!!(this.assignmentType & AssignmentType.LET)) {
-			this.resolveShadowedDeclaration(parent.findPropertyLetter(this.name));
+			this.resolveShadowedDeclaration(parent.findPropertyLetter(this.identifier));
 		}
 
 		// Check set properties.
 		if (!!(this.assignmentType & AssignmentType.SET)) {
-			this.resolveShadowedDeclaration(parent.findPropertySetter(this.name));
+			this.resolveShadowedDeclaration(parent.findPropertySetter(this.identifier));
 		}
 	}
 
@@ -396,25 +388,25 @@ export class ScopeItemCapability {
 
 		// Handle calls that aren't assignments.
 		if (this.assignmentType === AssignmentType.CALL) {
-			this.linkThisToItem(this.findFunction(this.name));
-			this.linkThisToItem(this.findSubroutine(this.name));
+			this.linkThisToItem(this.findFunction(this.identifier));
+			this.linkThisToItem(this.findSubroutine(this.identifier));
 			return;
 		}
 
 		// Handle get/set/let relationships.
 		if (this.assignmentType & AssignmentType.GET) {
-			this.linkThisToItem(this.findFunction(this.name));
-			this.linkThisToItem(this.findPropertyGetter(this.name));
+			this.linkThisToItem(this.findFunction(this.identifier));
+			this.linkThisToItem(this.findPropertyGetter(this.identifier));
 			return;
 		}
 
 		if (this.assignmentType & AssignmentType.LET) {
-			this.linkThisToItem(this.findPropertyLetter(this.name));
+			this.linkThisToItem(this.findPropertyLetter(this.identifier));
 			return;
 		}
 
 		if (this.assignmentType & AssignmentType.SET) {
-			this.linkThisToItem(this.findPropertySetter(this.name));
+			this.linkThisToItem(this.findPropertySetter(this.identifier));
 			return;
 		}
 	}
@@ -454,45 +446,52 @@ export class ScopeItemCapability {
 		return this.parent?.project;
 	}
 
+	get identifier(): string {
+		if (this.type === ItemType.PROPERTY) {
+			return this.name.split(' ')[1];
+		}
+		return this.name;
+	}
+
 	get name(): string {
 		return this.explicitSetName
 			?? this.element?.identifierCapability?.name
 			?? 'Unknown';
 	}
 
-	findType(name: string): ScopeItemCapability | undefined {
-		return this.types?.get(name)?.[0]
-			?? this.parent?.findType(name);
+	findType(identifier: string): ScopeItemCapability | undefined {
+		return this.types?.get(identifier)?.[0]
+			?? this.parent?.findType(identifier);
 	}
 
-	findModule(name: string): ScopeItemCapability | undefined {
-		return this.modules?.get(name)?.[0]
-			?? this.parent?.findModule(name);
+	findModule(identifier: string): ScopeItemCapability | undefined {
+		return this.modules?.get(identifier)?.[0]
+			?? this.parent?.findModule(identifier);
 	}
 
-	findFunction(name: string): ScopeItemCapability | undefined {
-		return this.functions?.get(name)?.[0]
-			?? this.parent?.findFunction(name);
+	findFunction(identifier: string): ScopeItemCapability | undefined {
+		return this.functions?.get(identifier)?.[0]
+			?? this.parent?.findFunction(identifier);
 	}
 
-	findSubroutine(name: string): ScopeItemCapability | undefined {
-		return this.subroutines?.get(name)?.[0]
-			?? this.parent?.findSubroutine(name);
+	findSubroutine(identifier: string): ScopeItemCapability | undefined {
+		return this.subroutines?.get(identifier)?.[0]
+			?? this.parent?.findSubroutine(identifier);
 	}
 
-	findPropertyGetter(name: string): ScopeItemCapability | undefined {
-		return this.properties?.getters?.get(name)?.[0]
-			?? this.parent?.findPropertyGetter(name);
+	findPropertyGetter(identifier: string): ScopeItemCapability | undefined {
+		return this.properties?.getters?.get(identifier)?.[0]
+			?? this.parent?.findPropertyGetter(identifier);
 	}
 
-	findPropertyLetter(name: string): ScopeItemCapability | undefined {
-		return this.properties?.letters?.get(name)?.[0]
-			?? this.parent?.findPropertyLetter(name);
+	findPropertyLetter(identifier: string): ScopeItemCapability | undefined {
+		return this.properties?.letters?.get(identifier)?.[0]
+			?? this.parent?.findPropertyLetter(identifier);
 	}
 
-	findPropertySetter(name: string): ScopeItemCapability | undefined {
-		return this.properties?.setters?.get(name)?.[0]
-			?? this.parent?.findPropertySetter(name);
+	findPropertySetter(identifier: string): ScopeItemCapability | undefined {
+		return this.properties?.setters?.get(identifier)?.[0]
+			?? this.parent?.findPropertySetter(identifier);
 	}
 
 	/**
@@ -629,9 +628,9 @@ export class ScopeItemCapability {
 	}
 
 	private addItem(target: Map<string, ScopeItemCapability[]>, item: ScopeItemCapability): void {
-		const items = target.get(item.name) ?? [];
+		const items = target.get(item.identifier) ?? [];
 		items.push(item);
-		target.set(item.name, items);
+		target.set(item.identifier, items);
 	}
 
 	/**
