@@ -264,9 +264,8 @@ export class ScopeItemCapability {
 			return;
 		}
 
-		// Track diagnostics added by name so that we can
-		// add a reference instead of a whole new diagnostic.
-		const diags = new Map<string, DuplicateDeclarationDiagnostic>();
+		// Track names we've diagnosed to avoid re-diagnosing when we check properties.
+		const diagnosedNames = new Map<string, undefined>();
 
 		// Functions and subroutines clash each other.
 		// Build map of all suroutines and functions.
@@ -283,56 +282,42 @@ export class ScopeItemCapability {
 		combineNames(names, this.subroutines);
 
 		names.forEach((items, name) => {
-			if (items.length === 1) {
+			// Base case no name clash.
+			if (items.length <= 1) {
 				return;
 			}
 
-			// Create diagnostic
-			const item = items[0];
-			const diagnostic = this.pushDiagnostic(DuplicateDeclarationDiagnostic, item, item.name);
-			if (!diagnostic) {
-				return;
-			}
-
-			// Add references
-			for (let i = 1; i < items.length; i++) {
-				this.addDiagnosticReference(diagnostic, items[i]);
-			}
-
-			// Track the diagnostic to avoid multiples.
-			diags.set(name, diagnostic);
+			// Diagnose names.
+			Services.logger.debug(`Name ${name} is duplicate`);
+			items.forEach(item => this.pushDiagnostic(DuplicateDeclarationDiagnostic, item, name));
+			diagnosedNames.set(name, undefined);
 		});
 
 		// Properties clash with properties of same type. Loop through each and check against names.
 		Object.entries(this.properties ?? {}).forEach(([_, properties]) => {
-			if (!properties) {
-				return;
-			}
+			properties?.forEach((items, name) => {
+				const identifier = name.split(' ')[1];
+				const nameItems = names.get(identifier) ?? [];
 
-			properties.forEach((items, name) => {
-				// Check if we need to raise a diagnostic.
-				const combined = [items, names.get(name) ?? []].flat();
-				if (combined.length === 1) {
+				// Base case no name clash.
+				if (items.length + nameItems.length === 1) {
 					return;
 				}
 
-				// Get or create diagnostic.
-				let startIndex = 0;
-				let diagnostic = diags.get(name);
-				if (!diagnostic) {
-					const item = items[0];
-					diagnostic = this.pushDiagnostic(DuplicateDeclarationDiagnostic, item, item.name);
-					if (!diagnostic) {
-						return;
-					}
-					startIndex = 1;
+				// Diagnose properties.
+				Services.logger.debug(`Property ${name} is duplicate`);
+				items.forEach(item => this.pushDiagnostic(DuplicateDeclarationDiagnostic, item, name));
+
+				// Don't diagnose names if we have already or don't need to.
+				if (diagnosedNames.has(identifier) || nameItems.length === 0) {
+					return;
 				}
 
-				// Add references.
-				for (let i = startIndex; i < items.length; i++) {
-					this.addDiagnosticReference(diagnostic, items[i]);
-				}
-			})
+				// Diagnose names and register.
+				Services.logger.debug(`Name ${identifier} is duplicate (property)`);
+				nameItems.forEach(item => this.pushDiagnostic(DuplicateDeclarationDiagnostic, item, name));
+				diagnosedNames.set(identifier, undefined);
+			});
 		})
 	}
 
