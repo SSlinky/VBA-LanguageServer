@@ -20,6 +20,11 @@ Provides Visual Basic for Applications (VBA) language support in Visual Studio C
 
 <sup>1</sup>Currently full document `Shift+Alt+F` formatting only.
 
+### Web Support
+
+The VBA Pro Extension offers limited support for web environments (e.g. vscode-dev).
+This includes syntax highlighting and snippets.
+
 ### Syntax Highlighting
 
 The most complete and bug-free TextMate grammar for VBA out there.
