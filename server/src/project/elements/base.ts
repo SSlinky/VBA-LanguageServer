@@ -10,6 +10,7 @@ import {
 	DiagnosticCapability,
 	FoldingRangeCapability,
 	IdentifierCapability,
+	ScopeItemCapability,
 	SemanticTokenCapability,
 	SymbolInformationCapability
 } from '../../capabilities/capabilities';
@@ -25,6 +26,7 @@ export abstract class BaseSyntaxElement<T extends ParserRuleContext> {
 	foldingRangeCapability?: FoldingRangeCapability;
 	semanticTokenCapability?: SemanticTokenCapability;
 	symbolInformationCapability?: SymbolInformationCapability;
+	scopeItemCapability?: ScopeItemCapability;
 
 	get isPublic(): boolean { return false; }
 
@@ -139,6 +141,10 @@ export interface HasSemanticTokenCapability {
 
 export interface HasSymbolInformationCapability extends IsIdentifiable {
 	symbolInformationCapability: SymbolInformationCapability
+}
+
+export interface HasScopeItemCapability {
+	scopeItemCapability: ScopeItemCapability;
 }
 
 

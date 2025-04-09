@@ -17,7 +17,7 @@ import {
 
 // Project
 import { BaseContextSyntaxElement, BaseIdentifyableSyntaxElement, HasDiagnosticCapability } from './base';
-import { DiagnosticCapability, FoldingRangeCapability, IdentifierCapability, SymbolInformationCapability } from '../../capabilities/capabilities';
+import { DiagnosticCapability, FoldingRangeCapability, IdentifierCapability, ItemType, ScopeItemCapability, SymbolInformationCapability } from '../../capabilities/capabilities';
 import { DuplicateAttributeDiagnostic, IgnoredAttributeDiagnostic, MissingAttributeDiagnostic, MissingOptionExplicitDiagnostic } from '../../capabilities/diagnostics';
 
 
@@ -40,6 +40,7 @@ abstract class BaseModuleElement<T extends ParserRuleContext> extends BaseIdenti
 		this.settings = documentSettings;
 		// this.foldingRangeCapability = new FoldingRangeCapability(this);
 		this.symbolInformationCapability = new SymbolInformationCapability(this, symbolKind);
+		this.scopeItemCapability = new ScopeItemCapability(this, ItemType.MODULE);
 	}
 
 	// Helpers

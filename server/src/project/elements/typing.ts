@@ -6,6 +6,7 @@ import { SemanticTokenModifiers, SemanticTokenTypes, SymbolKind } from 'vscode-l
 import { ParserRuleContext } from 'antlr4ng';
 import { ConstItemContext,
 	EnumDeclarationContext,
+	EnumMemberContext,
 	GlobalVariableDeclarationContext,
 	PrivateConstDeclarationContext,
 	PrivateTypeDeclarationContext,
@@ -21,7 +22,7 @@ import { ConstItemContext,
 // Project
 import { ElementOutOfPlaceDiagnostic, LegacyFunctionalityDiagnostic } from '../../capabilities/diagnostics';
 import { BaseContextSyntaxElement, HasDiagnosticCapability, HasSemanticTokenCapability, HasSymbolInformationCapability } from './base';
-import { DiagnosticCapability, IdentifierCapability, SemanticTokenCapability, SymbolInformationCapability } from '../../capabilities/capabilities';
+import { AssignmentType, DiagnosticCapability, IdentifierCapability, ItemType, ScopeItemCapability, SemanticTokenCapability, SymbolInformationCapability } from '../../capabilities/capabilities';
 
 
 abstract class BaseTypeDeclarationElement<T extends ParserRuleContext> extends BaseContextSyntaxElement<T> implements HasDiagnosticCapability, HasSymbolInformationCapability, HasSemanticTokenCapability {
@@ -37,6 +38,7 @@ abstract class BaseTypeDeclarationElement<T extends ParserRuleContext> extends B
 		this.diagnosticCapability = new DiagnosticCapability(this);
 		this.symbolInformationCapability = new SymbolInformationCapability(this, symbolKind);
 		this.semanticTokenCapability = new SemanticTokenCapability(this, tokenType, tokenModifiers ?? []);
+		this.scopeItemCapability = new ScopeItemCapability(this, ItemType.TYPE);
 	}
 }
 
@@ -53,6 +55,24 @@ export class EnumDeclarationElement extends BaseTypeDeclarationElement<EnumDecla
 		if (isAfterProcedure) this.diagnosticCapability.diagnostics.push(
 			new ElementOutOfPlaceDiagnostic(this.context.range, "Enum declaration")
 		);
+
+		// ToDo:
+		// diagnosticCapability.evaluate() should check for explicitly numbered members
+		// evaluating to the same value.
+	}
+}
+
+export class EnumMemberDeclarationElement extends BaseContextSyntaxElement<EnumMemberContext> {
+	identifierCapability: IdentifierCapability;
+
+	constructor(ctx: EnumMemberContext, doc: TextDocument) {
+		super(ctx, doc);
+		this.diagnosticCapability = new DiagnosticCapability(this);
+		this.identifierCapability = new IdentifierCapability({
+			element: this,
+			getNameContext: () => ctx.untypedName()
+		});
+		this.scopeItemCapability = new ScopeItemCapability(this, ItemType.VARIABLE, AssignmentType.GET);
 	}
 }
 
@@ -96,6 +116,7 @@ export class DeclarationStatementElement<T extends CombinedVariableContext> exte
 		super(ctx, doc);
 		this._isPublic = isPublic;
 		this.isConstant = isConstant;
+		this.scopeItemCapability = new ScopeItemCapability(this, ItemType.VARIABLE);
 	}
 
 	static create(ctx: CombinedVariableContext, doc: TextDocument) {
@@ -122,6 +143,7 @@ export class VariableDeclarationElement extends BaseContextSyntaxElement<Variabl
 		this.symbolInformationCapability = new SymbolInformationCapability(this, ctx.toSymbolKind());
 		// this.semanticTokenCapability = new SemanticTokenCapability(this, SemanticTokenTypes.variable, isConst ? [SemanticTokenModifiers.declaration, SemanticTokenModifiers.readonly] : [SemanticTokenModifiers.declaration]);
 		this.identifierCapability = new IdentifierCapability({element: this, getNameContext: () => ctx.ambiguousIdentifier()});
+		this.scopeItemCapability = new ScopeItemCapability(this, ItemType.VARIABLE);
 	}
 }
 

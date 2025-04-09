@@ -2,7 +2,6 @@ import { LanguageServerConfiguration } from '../server';
 import { BaseProjectDocument } from '../project/document';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { VbaFmtListener } from '../project/parser/vbaListener';
-import { NamespaceManager } from '../project/scope';
 import { CancellationToken } from 'vscode-languageserver';
 
 export interface Logger {
@@ -41,5 +40,4 @@ export interface IWorkspace {
 	parseDocument(projectDocument: BaseProjectDocument): Promise<void>;
 	openDocument(document: TextDocument): void;
 	closeDocument(document: TextDocument): void;
-	namespaceManager: NamespaceManager;
 }

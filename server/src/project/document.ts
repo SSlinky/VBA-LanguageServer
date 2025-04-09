@@ -1,6 +1,6 @@
 // Core
 import { Range, TextDocument } from 'vscode-languageserver-textdocument';
-import { CancellationToken, Diagnostic, DocumentDiagnosticReport, DocumentDiagnosticReportKind, SymbolInformation, SymbolKind } from 'vscode-languageserver';
+import { CancellationToken, Diagnostic, SymbolInformation, SymbolKind } from 'vscode-languageserver';
 
 // Antlr
 import { ParserRuleContext } from 'antlr4ng';
@@ -10,16 +10,19 @@ import { Dictionary } from '../utils/helpers';
 import { SyntaxParser } from './parser/vbaParser';
 import { FoldingRange } from '../capabilities/folding';
 import { SemanticTokensManager } from '../capabilities/semanticTokens';
-import { BaseContextSyntaxElement,
+import {
+	BaseContextSyntaxElement,
 	BaseSyntaxElement,
 	DeclarableElement,
 	HasDiagnosticCapability,
 	HasFoldingRangeCapability,
+	HasScopeItemCapability,
 	HasSemanticTokenCapability,
 	HasSymbolInformationCapability
 } from './elements/base';
 
-import { PropertyDeclarationElement,
+import {
+	PropertyDeclarationElement,
 	PropertyGetDeclarationElement,
 	PropertyLetDeclarationElement,
 	PropertySetDeclarationElement
@@ -27,7 +30,7 @@ import { PropertyDeclarationElement,
 import { VbaFmtListener } from './parser/vbaListener';
 import { Services } from '../injection/services';
 import { IWorkspace } from '../injection/interface';
-import { VbaFmtParser } from './parser/vbaAntlr';
+import { ScopeItemCapability } from '../capabilities/capabilities';
 
 
 // TODO ---------------------------------------------
@@ -56,9 +59,10 @@ export abstract class BaseProjectDocument {
 	protected symbolInformations: SymbolInformation[] = [];
 	protected unhandledNamedElements: [] = [];
 	protected isClosed = false;
-	
+	protected currentScope: ScopeItemCapability
+
 	abstract symbolKind: SymbolKind
-	
+
 	protected _isBusy = true;
 	get isBusy() { return this._isBusy; }
 
@@ -79,7 +83,7 @@ export abstract class BaseProjectDocument {
 	// 	if (this.documentConfiguration) {
 	// 		return this.documentConfiguration;
 	// 	}
-		
+
 	// 	// Get the configuration from the client.
 	// 	if (this.workspace.hasConfigurationCapability) {
 	// 		this.documentConfiguration = await this.workspace.requestDocumentSettings(this.textDocument.uri);
@@ -108,6 +112,7 @@ export abstract class BaseProjectDocument {
 		this.workspace = Services.workspace;
 		this.version = document.version;
 		this.name = name;
+		this.currentScope = Services.projectScope;
 	}
 
 	static create(document: TextDocument): BaseProjectDocument {
@@ -179,13 +184,14 @@ export abstract class BaseProjectDocument {
 		// Don't parse oversize documents.
 		if (await this.isOversize) {
 			Services.logger.debug(`Document oversize: ${this.textDocument.lineCount} lines.`);
-            Services.logger.warn(`Syntax parsing has been disabled to prevent crashing.`);
+			Services.logger.warn(`Syntax parsing has been disabled to prevent crashing.`);
 			this._isBusy = false;
 			return;
 		}
 
 		// Parse the document.
 		await (new SyntaxParser(Services.logger)).parseAsync(token, this);
+		this.currentScope.build();
 
 		// Evaluate the diagnostics.
 		this.diagnostics = this.hasDiagnosticElements
@@ -199,7 +205,7 @@ export abstract class BaseProjectDocument {
 		// Don't parse oversize documents.
 		if (await this.isOversize) {
 			Services.logger.debug(`Document oversize: ${this.textDocument.lineCount} lines.`);
-            Services.logger.warn(`Syntax parsing has been disabled to prevent crashing.`);
+			Services.logger.warn(`Syntax parsing has been disabled to prevent crashing.`);
 			return;
 		}
 
@@ -216,6 +222,7 @@ export abstract class BaseProjectDocument {
 		if (!!element.foldingRangeCapability) this.registerFoldableElement(element as HasFoldingRangeCapability);
 		if (!!element.semanticTokenCapability) this.registerSemanticToken(element as HasSemanticTokenCapability);
 		if (!!element.symbolInformationCapability) this.registerSymbolInformation(element as HasSymbolInformationCapability);
+		if (!!element.scopeItemCapability) this.registerScopeItem(element as HasScopeItemCapability);
 		return this;
 	}
 
@@ -223,21 +230,6 @@ export abstract class BaseProjectDocument {
 		const elementName = element.propertyName;
 		this.properties.getOrSet(elementName)
 			.addPropertyDeclaration(element);
-		return this;
-	}
-
-	registerNamedElementDeclaration(element: DeclarableElement) {
-		this.workspace.namespaceManager.addNameItem(element);
-		return this;
-	}
-
-	registerNamespaceElement(element: DeclarableElement) {
-		this.workspace.namespaceManager.addNamespace(element);
-		return this;
-	}
-
-	deregisterNamespaceElement() {
-		this.workspace.namespaceManager.popNamespace();
 		return this;
 	}
 
@@ -276,6 +268,15 @@ export abstract class BaseProjectDocument {
 		return this;
 	}
 
+	registerScopeItem = (element: HasScopeItemCapability) =>
+		this.currentScope = this.currentScope.registerScopeItem(element.scopeItemCapability);
+
+	exitContext = (ctx: ParserRuleContext) => {
+		if (ctx === this.currentScope.element?.context.rule) {
+			const parent = this.currentScope.parent;
+			this.currentScope = parent ?? this.currentScope;
+		}
+	}
 
 	private subtractTextFromRanges(ranges: Range[]): string {
 		const text = this.textDocument.getText();
