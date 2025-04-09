@@ -229,13 +229,13 @@ export class ScopeItemCapability {
 			this.resolveLinks();
 			if (!this.link) {
 				// TODO:
-				// Check Option Explicit for variables.
-				// Should always error for method calls.
-
-				// TODO:
-				// Whether a diagnostic is added for missing
-				// declarations or not, the first instance should
-				// be considered the declaration for linking.
+				// References to variables should get a diagnostic if they aren't declared.
+				//  -- No option explicit: gets a hint with code action to declare.
+				//  -- Option explicit: gets an error with code action to declare.
+				//  -- Subsequent explicit declaration should raise duplicate declaration (current bahaviour).
+				// References to function or sub calls should raise an error if they aren't declared.
+				//	-- Must always throw even when option explicit not present.
+				//	-- Nothing required on first reference as declaration may come later.
 				const diagnosticType = this.assignmentType & AssignmentType.CALL
 					? SubOrFunctionNotDefinedDiagnostic
 					: VariableNotDefinedDiagnostic;
