@@ -18,14 +18,12 @@ import {
     IgnoredClassAttrContext,
     IgnoredProceduralAttrContext,
     PrivateConstDeclarationContext,
-    PrivateTypeDeclarationContext,
     PrivateVariableDeclarationContext,
     ProceduralModuleContext,
     ProcedureDeclarationContext,
     PropertyGetDeclarationContext,
     PropertySetDeclarationContext,
     PublicConstDeclarationContext,
-    PublicTypeDeclarationContext,
     PublicVariableDeclarationContext,
     SubroutineDeclarationContext,
     TypeSuffixContext,
@@ -172,10 +170,8 @@ export class VbaListener extends vbaListener {
         this.document.registerElement(element);
     };
 
-    enterPublicTypeDeclaration = (ctx: PublicTypeDeclarationContext) => this.enterTypeDeclaration(ctx, true);
-    enterPrivateTypeDeclaration = (ctx: PrivateTypeDeclarationContext) => this.enterTypeDeclaration(ctx, false);
-    private enterTypeDeclaration = (ctx: PublicTypeDeclarationContext | PrivateTypeDeclarationContext, isPrivate: boolean) => {
-        const element = new TypeDeclarationElement(ctx, this.document.textDocument, isPrivate);
+    enterUdtDeclaration = (ctx: UdtDeclarationContext) => {
+        const element = new TypeDeclarationElement(ctx, this.document.textDocument);
         this.document.registerElement(element);
     };
 

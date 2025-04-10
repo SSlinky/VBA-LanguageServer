@@ -10,13 +10,13 @@ import {
 	EnumMemberContext,
 	GlobalVariableDeclarationContext,
 	PrivateConstDeclarationContext,
-	PrivateEnumDeclarationContext,
-	PrivateTypeDeclarationContext,
 	PrivateVariableDeclarationContext,
 	PublicConstDeclarationContext,
+	PublicEnumDeclarationContext,
 	PublicTypeDeclarationContext,
 	PublicVariableDeclarationContext,
 	TypeSuffixContext,
+	UdtDeclarationContext,
 	VariableDclContext,
 	WitheventsVariableDclContext
 } from '../../antlr/out/vbaParser';
@@ -43,13 +43,21 @@ abstract class BaseTypeDeclarationElement<T extends ParserRuleContext> extends B
 
 		// An enum is public unless explicitly set to private.
 		this.scopeItemCapability = new ScopeItemCapability(this, ItemType.TYPE);
-		this.scopeItemCapability.isPublicScope = !(ctx.parent instanceof PrivateEnumDeclarationContext);
+		this.scopeItemCapability.isPublicScope = this.isPublicScope;
+	}
+
+	protected get isPublicScope(): boolean {
+		throw new Error('Not implemented');
 	}
 }
 
 
 export class EnumDeclarationElement extends BaseTypeDeclarationElement<EnumDeclarationContext> {
 	identifierCapability: IdentifierCapability;
+
+	protected override get isPublicScope(): boolean {
+		return this.context.rule.parent instanceof PublicEnumDeclarationContext;
+	}
 
 	constructor(ctx: EnumDeclarationContext, doc: TextDocument, isAfterProcedure: boolean) {
 		super(ctx, doc, SymbolKind.Enum, SemanticTokenTypes.enum);
@@ -82,18 +90,18 @@ export class EnumMemberDeclarationElement extends BaseContextSyntaxElement<EnumM
 }
 
 
-export class TypeDeclarationElement extends BaseTypeDeclarationElement<PublicTypeDeclarationContext | PrivateTypeDeclarationContext> {
+export class TypeDeclarationElement extends BaseTypeDeclarationElement<UdtDeclarationContext> {
 	identifierCapability: IdentifierCapability;
 
-	private _isPublic: boolean;
-	get isPublic(): boolean { return this._isPublic; }
+	protected override get isPublicScope(): boolean {
+		return this.context.rule.parent instanceof PublicTypeDeclarationContext;
+	}
 
-	constructor(ctx: PublicTypeDeclarationContext | PrivateTypeDeclarationContext, doc: TextDocument, isPublic: boolean) {
+	constructor(ctx: UdtDeclarationContext, doc: TextDocument) {
 		super(ctx, doc, SymbolKind.Struct, SemanticTokenTypes.struct);
-		this._isPublic = isPublic;
 		this.identifierCapability = new IdentifierCapability({
 			element: this,
-			getNameContext: () => ctx.udtDeclaration().untypedName()
+			getNameContext: () => ctx.untypedName()
 		});
 	}
 }
