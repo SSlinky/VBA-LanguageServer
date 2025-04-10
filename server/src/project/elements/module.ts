@@ -30,7 +30,7 @@ abstract class BaseModuleElement<T extends ParserRuleContext> extends BaseIdenti
 	abstract attrubutes: ParserRuleContext[];
 	abstract diagnosticCapability: DiagnosticCapability;
 	abstract hasOptionExplicit: boolean;
-	
+
 	settings: DocumentSettings;
 	// foldingRangeCapability: FoldingRangeCapability;
 	symbolInformationCapability: SymbolInformationCapability;
@@ -82,7 +82,7 @@ abstract class BaseModuleElement<T extends ParserRuleContext> extends BaseIdenti
 				.commonModuleCodeElement()
 				?.commonOptionDirective()
 				?.optionExplicitDirective();
-			if (!!isOptionExplicitDirective) return true;
+			if (isOptionExplicitDirective) return true;
 		}
 		return false;
 	}
@@ -93,11 +93,11 @@ abstract class BaseModuleElement<T extends ParserRuleContext> extends BaseIdenti
 		attrs.forEach(attr => {
 			const attrName = getAttributeName(attr);
 			if (catalogue.has(attrName)) {
-				result.push(attr)
+				result.push(attr);
 			} else {
 				catalogue.set(attrName, null);
 			}
-		})
+		});
 		return result;
 	}
 }
@@ -167,7 +167,7 @@ export class ClassElement extends BaseModuleElement<ClassModuleContext> {
 			nameContextGetter = () => ctx
 				.classModuleHeader()
 				.nameAttr()[0]
-				.STRINGLITERAL()
+				.STRINGLITERAL();
 		}
 		this.identifierCapability = new IdentifierCapability({
 			element: this,
@@ -195,12 +195,12 @@ export class ModuleIgnoredAttributeElement extends BaseContextSyntaxElement<Pars
 				this.context.range, this.context.text.split(' ')[1]
 			));
 			return this.diagnosticCapability.diagnostics;
-		})
+		});
 	}
 }
 
 
 // TODO: Move to helpers.
 function getAttributeName(e: ParserRuleContext): string {
-	return e.getText().split(' ')[1]
+	return e.getText().split(' ')[1];
 }

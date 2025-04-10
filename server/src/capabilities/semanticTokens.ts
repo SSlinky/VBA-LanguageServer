@@ -15,7 +15,7 @@ import { ParserRuleContext } from 'antlr4ng/dist/ParserRuleContext';
 import { BaseContextSyntaxElement, HasSemanticTokenCapability } from '../project/elements/base';
 
 const registeredTokenTypes = new Map<string, number>((Object.keys(SemanticTokenTypes) as (keyof typeof SemanticTokenTypes)[]).map((k, i) => ([k, i])));
-const registeredTokenModifiers = new Map<string, number>((Object.keys(SemanticTokenModifiers) as (keyof typeof SemanticTokenModifiers)[]).map((k, i) => ([k, 2**i])));
+const registeredTokenModifiers = new Map<string, number>((Object.keys(SemanticTokenModifiers) as (keyof typeof SemanticTokenModifiers)[]).map((k, i) => ([k, 2 ** i])));
 
 
 export function activateSemanticTokenProvider(result: InitializeResult) {
@@ -82,7 +82,7 @@ export class SemanticTokensManager {
 		const sortedTokens = this.sortSemanticTokens(filteredTokens);
 		if (sortedTokens.length === 0)
 			return null;
-		
+
 		// Get an array of SemanticTokens relative to previous token.
 		const relativeResult: uinteger[] = sortedTokens.map((token, i) =>
 			token.toUintegerArray(i === 0 ? undefined : sortedTokens[i - 1])).flat();

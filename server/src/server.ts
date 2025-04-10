@@ -11,7 +11,7 @@ import {
 } from 'vscode-languageserver/node';
 
 // Dependency Injection
-import 'reflect-metadata'
+import 'reflect-metadata';
 import { Services } from './injection/services';
 
 // Ensures globally available type extensions.
@@ -37,7 +37,7 @@ export class LanguageServer implements ILanguageServer {
 			this.configuration = new LanguageServerConfiguration(params);
 			Services.registerWorkspace(Workspace);
 			this.workspace = Services.workspace;
-			
+
 			// Set up the connection result.
 			// Update this to make use of the LSCapabilities data class.
 			const result = new ConnectionInitializeResult(this.configuration.capabilities);
@@ -59,7 +59,7 @@ export class LanguageServer implements ILanguageServer {
 		// Ensure we have configuration by getting it if we don't.
 		const ensureConfig = async (): Promise<void> => {
 			if (!this._clientConfiguration) this._clientConfiguration = await getConfig();
-		}
+		};
 
 		return (async (): Promise<ClientConfiguration> => {
 			await ensureConfig();
@@ -80,7 +80,7 @@ export class LanguageServerConfiguration {
 		// 	interFileDependencies: false,
 		// 	workspaceDiagnostics: false
 		// },
-		
+
 		// Implement soon.
 		codeActionProvider: false,
 		completionProvider: undefined,

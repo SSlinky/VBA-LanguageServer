@@ -519,12 +519,10 @@ export class ScopeItemCapability {
 		item.parent = this.isPublicScope ? (this.project ?? this) : this;
 		item.parent.isDirty = true;
 
-		let ancestor: ScopeItemCapability | undefined = this;
-		let ancestorLevel = 0;
-		while (ancestor) {
-			ancestorLevel += 1;
-			ancestor = ancestor.parent;
-		}
+		// Get the scope level for logging.
+		const getAncestorLevel = (item: ScopeItemCapability, level: number): number =>
+			item.parent ? getAncestorLevel(item.parent, level + 1) : level;
+		const ancestorLevel = getAncestorLevel(this, 0);
 		Services.logger.debug(`Registering [${ItemType[item.type]}] ${item.name}`, ancestorLevel);
 
 		// Reference types are not declarations.

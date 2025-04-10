@@ -8,7 +8,7 @@ export type DiagnosticConstructor<T extends BaseDiagnostic> =
 
 export abstract class BaseDiagnostic implements Diagnostic {
 	range: Range;
-	message: string
+	message: string;
 	severity?: DiagnosticSeverity | undefined;
 	code?: string | number | undefined;
 	codeDescription?: CodeDescription | undefined;

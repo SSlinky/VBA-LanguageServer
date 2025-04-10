@@ -18,7 +18,7 @@ import {
 
 export abstract class BaseSyntaxElement<T extends ParserRuleContext> {
 	// Base Properties
-	context?: Context<T>
+	context?: Context<T>;
 	identifierCapability?: IdentifierCapability;
 
 	// Capabilities
@@ -99,7 +99,7 @@ export class Context<T extends ParserRuleContext | TerminalNode> {
 	rule: T;
 	document: TextDocument;
 	range: Range;
-	
+
 	get text(): string {
 		return this.rule.getText();
 	}

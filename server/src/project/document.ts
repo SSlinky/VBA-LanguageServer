@@ -59,7 +59,7 @@ export abstract class BaseProjectDocument {
 	protected symbolInformations: SymbolInformation[] = [];
 	protected unhandledNamedElements: [] = [];
 	protected isClosed = false;
-	protected currentScope: ScopeItemCapability
+	protected currentScope: ScopeItemCapability;
 
 	abstract symbolKind: SymbolKind
 
@@ -176,7 +176,7 @@ export abstract class BaseProjectDocument {
 			return await (new SyntaxParser(Services.logger)).formatParseAsync(token, this);
 		} catch (e) {
 			Services.logger.debug('caught doc');
-			throw e
+			throw e;
 		}
 	}
 
@@ -220,11 +220,11 @@ export abstract class BaseProjectDocument {
 	 * @returns This for chaining.
 	 */
 	registerElement<T extends ParserRuleContext>(element: BaseSyntaxElement<T>) {
-		if (!!element.diagnosticCapability) this.registerDiagnosticElement(element as HasDiagnosticCapability);
-		if (!!element.foldingRangeCapability) this.registerFoldableElement(element as HasFoldingRangeCapability);
-		if (!!element.semanticTokenCapability) this.registerSemanticToken(element as HasSemanticTokenCapability);
-		if (!!element.symbolInformationCapability) this.registerSymbolInformation(element as HasSymbolInformationCapability);
-		if (!!element.scopeItemCapability) this.registerScopeItem(element as HasScopeItemCapability);
+		if (element.diagnosticCapability) this.registerDiagnosticElement(element as HasDiagnosticCapability);
+		if (element.foldingRangeCapability) this.registerFoldableElement(element as HasFoldingRangeCapability);
+		if (element.semanticTokenCapability) this.registerSemanticToken(element as HasSemanticTokenCapability);
+		if (element.symbolInformationCapability) this.registerSymbolInformation(element as HasSymbolInformationCapability);
+		if (element.scopeItemCapability) this.registerScopeItem(element as HasScopeItemCapability);
 		return this;
 	}
 
@@ -253,12 +253,12 @@ export abstract class BaseProjectDocument {
 	registerSemanticToken = (element: HasSemanticTokenCapability) => {
 		this.semanticTokens.add(element);
 		return this;
-	}
+	};
 
 	registerSubtractElement = (element: BaseContextSyntaxElement<ParserRuleContext>) => {
 		this.redactedElements.push(element);
 		return this;
-	}
+	};
 
 	/**
 	 * Registers a SymbolInformation.
@@ -268,7 +268,7 @@ export abstract class BaseProjectDocument {
 	registerSymbolInformation = (element: HasSymbolInformationCapability) => {
 		this.symbolInformations.push(element.symbolInformationCapability.SymbolInformation);
 		return this;
-	}
+	};
 
 	registerScopeItem = (element: HasScopeItemCapability) =>
 		this.currentScope = this.currentScope.registerScopeItem(element.scopeItemCapability);
@@ -278,7 +278,7 @@ export abstract class BaseProjectDocument {
 			const parent = this.currentScope.parent;
 			this.currentScope = parent ?? this.currentScope;
 		}
-	}
+	};
 
 	private subtractTextFromRanges(ranges: Range[]): string {
 		const text = this.textDocument.getText();
@@ -313,7 +313,7 @@ export abstract class BaseProjectDocument {
 			const result = docLines.map((line, i) =>
 				i >= y && i < x ? ' '.repeat(line.length) : line
 			);
-			return result.join('\r\n')
+			return result.join('\r\n');
 		}
 	}
 }

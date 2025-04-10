@@ -85,7 +85,7 @@ export class EnumMemberDeclarationElement extends BaseContextSyntaxElement<EnumM
 export class TypeDeclarationElement extends BaseTypeDeclarationElement<PublicTypeDeclarationContext | PrivateTypeDeclarationContext> {
 	identifierCapability: IdentifierCapability;
 
-	private _isPublic: boolean
+	private _isPublic: boolean;
 	get isPublic(): boolean { return this._isPublic; }
 
 	constructor(ctx: PublicTypeDeclarationContext | PrivateTypeDeclarationContext, doc: TextDocument, isPublic: boolean) {
@@ -174,5 +174,5 @@ export class TypeSuffixElement extends BaseContextSyntaxElement<TypeSuffixContex
 			)
 		);
 		return this.diagnosticCapability.diagnostics;
-	}
+	};
 }

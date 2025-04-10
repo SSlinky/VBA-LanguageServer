@@ -120,10 +120,13 @@ export class Workspace implements IWorkspace {
 			this.logger.info(`Parsed ${this.activeDocument.name}`);
 			this.connection.sendDiagnostics(this.activeDocument.languageServerDiagnostics());
 		} catch (e) {
-			// Swallow cancellation exceptions. They're good. We like these.
-			if (e instanceof ParseCancellationException) { }
-			else if (e instanceof Error) { this.logger.stack(e); }
-			else { this.logger.error('Something went wrong.') }
+			if (e instanceof ParseCancellationException) {
+				// Swallow cancellation exceptions. They're good. We like these.
+			} else if (e instanceof Error) {
+				this.logger.stack(e);
+			} else {
+				this.logger.error('Something went wrong.');
+			}
 		}
 
 		this.parseCancellationTokenSource = undefined;
@@ -141,11 +144,11 @@ export class Workspace implements IWorkspace {
 		}
 		catch (e) {
 			if (e instanceof ParseCancellationException) {
-				this.logger.debug('Parse cancelled successfully.')
+				this.logger.debug('Parse cancelled successfully.');
 			} else if (e instanceof Error) {
 				this.logger.stack(e);
 			} else {
-				this.logger.error(`Parse failed: ${e}`)
+				this.logger.error(`Parse failed: ${e}`);
 			}
 		}
 
@@ -164,7 +167,7 @@ export class Workspace implements IWorkspace {
 	closeDocument(document: TextDocument): void {
 		const projectDocument = this.projectDocuments.get(document.uri);
 		if (!projectDocument) {
-			Services.logger.warn(`Failed to get document to close: ${document.uri}`)
+			Services.logger.warn(`Failed to get document to close: ${document.uri}`);
 			return;
 		}
 
@@ -204,12 +207,12 @@ export class Workspace implements IWorkspace {
 		// immediately anyway so no point in it being lazy. May not
 		// even be working as diagnostics will already have been resolved.
 		this.connection.languages.diagnostics.refresh();
-	}
+	};
 
 	private getConfiguration = async () => {
 		// Logging here will cause a cyclical crash of the server.
 		return await this.connection.workspace.getConfiguration('vbaLanguageServer');
-	}
+	};
 }
 
 
@@ -336,13 +339,13 @@ class WorkspaceEvents {
 
 	private async onFoldingRangesAsync(params: FoldingRangeParams, token: CancellationToken): Promise<FoldingRange[]> {
 		const logger = Services.logger;
-		logger.debug('[Event] onFoldingRanges')
+		logger.debug('[Event] onFoldingRanges');
 		let document: BaseProjectDocument | undefined;
 		try {
 			document = await this.getParsedProjectDocument(params.textDocument.uri, 0, token);
 		} catch (error) {
 			// Swallow parser cancellations and rethrow anything else.
-			if (!!(error instanceof ParseCancellationException)) {
+			if (error instanceof ParseCancellationException) {
 				throw error;
 			}
 		}

@@ -41,7 +41,7 @@ export class FoldingRange implements VscFoldingRange {
 	 * [FoldingRangeKind](#FoldingRangeKind) for an enumeration of standardized kinds.
 	 */
 	get kind(): string | undefined {
-		return this._foldingRangeKind
+		return this._foldingRangeKind;
 	}
 
 	get openWord(): string {
@@ -56,7 +56,7 @@ export class FoldingRange implements VscFoldingRange {
 		return {
 			startLine: this.startLine,
 			endLine: this.endLine
-		}
+		};
 	}
 
 	constructor(

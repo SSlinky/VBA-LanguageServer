@@ -9,35 +9,35 @@ import { ParserRuleContext, TerminalNode } from 'antlr4ng';
 import { CompilerConditionalStatementContext } from '../antlr/out/vbapreParser';
 import {
    AmbiguousIdentifierContext,
-	BuiltinTypeContext,
-	ClassTypeNameContext,
-	ConstItemContext,
-	EndOfStatementContext,
-	EndOfStatementNoWsContext,
-	GlobalVariableDeclarationContext,
-	PrivateConstDeclarationContext,
-	PrivateVariableDeclarationContext,
-	ProcedureTailContext,
-	PublicConstDeclarationContext,
-	PublicVariableDeclarationContext,
-	TypeSpecContext,
-	TypeSuffixContext,
-	VariableDclContext,
-	WitheventsVariableDclContext
+   BuiltinTypeContext,
+   ClassTypeNameContext,
+   ConstItemContext,
+   EndOfStatementContext,
+   EndOfStatementNoWsContext,
+   GlobalVariableDeclarationContext,
+   PrivateConstDeclarationContext,
+   PrivateVariableDeclarationContext,
+   ProcedureTailContext,
+   PublicConstDeclarationContext,
+   PublicVariableDeclarationContext,
+   TypeSpecContext,
+   TypeSuffixContext,
+   VariableDclContext,
+   WitheventsVariableDclContext
 } from '../antlr/out/vbaParser';
 import { LineEndingContext } from '../antlr/out/vbafmtParser';
 
 
 declare module 'antlr4ng' {
-	interface ParserRuleContext {
+   interface ParserRuleContext {
       /** Convert the node to a range. */
-		toRange(doc: TextDocument): Range;
+      toRange(doc: TextDocument): Range;
       startIndex(): number;
       stopIndex(): number;
       hasPositionOf(ctx: ParserRuleContext): boolean;
       endsWithLineEnding: boolean;
       countTrailingLineEndings(): number;
-	}
+   }
 
    interface TerminalNode {
       /** Convert the node to a range. */
@@ -111,25 +111,25 @@ declare module '../antlr/out/vbaParser' {
 
 
 ParserRuleContext.prototype.toRange = function (doc: TextDocument): Range {
-	const startIndex = this.start?.start ?? 0;
-	const stopIndex = this.stop?.stop ?? startIndex;
-	return Range.create(
-		doc.positionAt(startIndex),
-		doc.positionAt(stopIndex + 1)
-	);
+   const startIndex = this.start?.start ?? 0;
+   const stopIndex = this.stop?.stop ?? startIndex;
+   return Range.create(
+      doc.positionAt(startIndex),
+      doc.positionAt(stopIndex + 1)
+   );
 };
 
 ParserRuleContext.prototype.startIndex = function (): number {
    return this.start?.start ?? 0;
-}
+};
 
 ParserRuleContext.prototype.stopIndex = function (): number {
    return this.stop?.stop ?? this.startIndex();
-}
+};
 
 ParserRuleContext.prototype.hasPositionOf = function (ctx: ParserRuleContext): boolean {
    return this.startIndex() === ctx.startIndex() && this.stopIndex() === ctx.stopIndex();
-}
+};
 
 Object.defineProperty(ParserRuleContext.prototype, 'endsWithLineEnding', {
    get: function endsWithLineEnding() {
@@ -159,7 +159,7 @@ Object.defineProperty(ParserRuleContext.prototype, 'endsWithLineEnding', {
       // Not a line ending and no more children.
       return false;
    }
-})
+});
 
 interface LineEndingParserRuleContext {
    NEWLINE(): TerminalNode | null;
@@ -167,8 +167,8 @@ interface LineEndingParserRuleContext {
 
 function isLineEndingParserRuleContext(ctx: unknown): ctx is LineEndingParserRuleContext {
    return typeof ctx === 'object'
-       && ctx !== null
-       && typeof (ctx as any).NEWLINE === 'function';
+      && ctx !== null
+      && typeof (ctx as any).NEWLINE === 'function';
 }
 
 function countTrailingLineEndings(ctx: ParserRuleContext): number {
@@ -186,7 +186,7 @@ function countTrailingLineEndings(ctx: ParserRuleContext): number {
       let result = 0;
       while (i < lines.length) {
          const char = lines[i];
-         
+
          if (char === '\r') {
             result++;
             i += lines[i + 1] === '\n' ? 2 : 1;
@@ -201,7 +201,7 @@ function countTrailingLineEndings(ctx: ParserRuleContext): number {
 
    // Recursive call on last child.
    const lastChild = ctx.children.at(-1);
-   if (!!(lastChild instanceof ParserRuleContext)) {
+   if (lastChild instanceof ParserRuleContext) {
       return countTrailingLineEndings(lastChild);
    }
 
@@ -211,27 +211,27 @@ function countTrailingLineEndings(ctx: ParserRuleContext): number {
 
 ParserRuleContext.prototype.countTrailingLineEndings = function (): number {
    return countTrailingLineEndings(this);
-}
+};
 
 
 TerminalNode.prototype.toRange = function (doc: TextDocument): Range {
    return Range.create(
-		doc.positionAt(this.startIndex()),
-		doc.positionAt(this.stopIndex() + 1)
-	);
+      doc.positionAt(this.startIndex()),
+      doc.positionAt(this.stopIndex() + 1)
+   );
 };
 
 TerminalNode.prototype.startIndex = function (): number {
    return this.getPayload()?.start ?? 0;
-}
+};
 
 TerminalNode.prototype.stopIndex = function (): number {
    return this.getPayload()?.stop ?? this.startIndex();
-}
+};
 
 
 CompilerConditionalStatementContext.prototype.vbaExpression = function (): string {
-	return (this.compilerIfStatement() ?? this.compilerElseIfStatement())!
+   return (this.compilerIfStatement() ?? this.compilerElseIfStatement())!
       .booleanExpression()
       .getText()
       .toLowerCase();
@@ -264,7 +264,7 @@ ConstItemContext.prototype.ambiguousIdentifier = function (): AmbiguousIdentifie
 
 ConstItemContext.prototype.typeContext = function (): BuiltinTypeContext | TypeSuffixContext | undefined {
    return this.typedNameConstItem()?.typedName().typeSuffix()
-      ?? this.untypedNameConstItem()?.constAsClause()?.builtinType()
+      ?? this.untypedNameConstItem()?.constAsClause()?.builtinType();
 };
 
 
@@ -320,33 +320,33 @@ VariableDclContext.prototype.toSymbolKind = function (): SymbolKind {
 
 
 function toSymbolKind(context: BuiltinTypeContext | TypeSuffixContext | TypeSpecContext | ClassTypeNameContext | undefined): SymbolKind {
-	switch (context?.getText().toLocaleLowerCase()) {
+   switch (context?.getText().toLocaleLowerCase()) {
       case undefined:
-         return SymbolKind.Class
-		case 'boolean':
-			return SymbolKind.Boolean;
+         return SymbolKind.Class;
+      case 'boolean':
+         return SymbolKind.Boolean;
       case '$': // string
-		case 'byte':
-		case 'string':
-			return SymbolKind.String;
+      case 'byte':
+      case 'string':
+         return SymbolKind.String;
       case '%': // integer
       case '&': // long
       case '^': // longlong
       case '@': // decimal
       case '!': // single
       case '#': // double
-		case 'double':
-		case 'currency':
+      case 'double':
+      case 'currency':
       case 'integer':
-		case 'long':
-		case 'longPtr':
-		case 'longLong':
-			return SymbolKind.Number;
-		case 'object':
-			return SymbolKind.Object;
-		default:
-			return SymbolKind.Class;
-	}
+      case 'long':
+      case 'longPtr':
+      case 'longLong':
+         return SymbolKind.Number;
+      case 'object':
+         return SymbolKind.Object;
+      default:
+         return SymbolKind.Class;
+   }
 }
 
 /**

@@ -14,15 +14,15 @@ export class CompilerLogicalBlock extends BaseContextSyntaxElement<CompilerIfBlo
 	conditionalBlocks: CompilerConditionBlock[] = [];
 	inactiveBlocks: CompilerConditionBlock[] = [];
 
-	constructor(ctx: CompilerIfBlockContext, doc: TextDocument, env: {environment: { os: string, version: string }}) {
+	constructor(ctx: CompilerIfBlockContext, doc: TextDocument, env: { environment: { os: string, version: string } }) {
 		super(ctx, doc);
 		this.foldingRangeCapability = new FoldingRangeCapability(this);
-		this.foldingRangeCapability.openWord = '#If'
-		this.foldingRangeCapability.closeWord = '#End If'
+		this.foldingRangeCapability.openWord = '#If';
+		this.foldingRangeCapability.closeWord = '#End If';
 
 		// Create the block elements
 		const blocks = [ctx.compilerConditionalBlock(), ctx.compilerDefaultBlock()].flat();
-		blocks.map(x => { if(x) this.conditionalBlocks.push(new CompilerConditionBlock(x, doc, env)) });
+		blocks.map(x => { if (x) this.conditionalBlocks.push(new CompilerConditionBlock(x, doc, env)); });
 
 		// Create the comment elements.
 		let resolved = false;
@@ -39,9 +39,9 @@ export class CompilerLogicalBlock extends BaseContextSyntaxElement<CompilerIfBlo
 
 
 class CompilerConditionBlock extends BaseContextSyntaxElement<CompilerConditionalBlockContext | CompilerDefaultBlockContext> {
-	readonly documentSettings: {environment: { os: string, version: string }};
+	readonly documentSettings: { environment: { os: string, version: string } };
 
-	constructor(ctx: CompilerConditionalBlockContext | CompilerDefaultBlockContext, doc: TextDocument, env: {environment: { os: string, version: string }}) {
+	constructor(ctx: CompilerConditionalBlockContext | CompilerDefaultBlockContext, doc: TextDocument, env: { environment: { os: string, version: string } }) {
 		super(ctx, doc);
 		this.documentSettings = env;
 	}
@@ -53,7 +53,7 @@ class CompilerConditionBlock extends BaseContextSyntaxElement<CompilerConditiona
 	get conditionResult(): boolean {
 		// Default "Else" block is always true.
 		const ctx = this.context.rule;
-		if(((o: any): o is CompilerDefaultBlockContext => 'compilerElseStatement' in o)(ctx)) return true;
+		if (((o: any): o is CompilerDefaultBlockContext => 'compilerElseStatement' in o)(ctx)) return true;
 
 		const vbaExpression = ctx.compilerConditionalStatement().vbaExpression();
 		const tsExpression = this.transpileVbaToTypescript(vbaExpression);
@@ -70,7 +70,7 @@ class CompilerConditionBlock extends BaseContextSyntaxElement<CompilerConditiona
 
 	deactivate(): void {
 		this.diagnosticCapability = new DiagnosticCapability(this);
-		this.diagnosticCapability.diagnostics.push(new UnreachableCodeDiagnostic(this.context.range))
+		this.diagnosticCapability.diagnostics.push(new UnreachableCodeDiagnostic(this.context.range));
 	}
 
 	/** Transpiles a VBA expression into Typescript. */
@@ -80,10 +80,10 @@ class CompilerConditionBlock extends BaseContextSyntaxElement<CompilerConditiona
 			const isOs = this.documentSettings.environment.os.toLowerCase() == opt;
 			const isVer = this.documentSettings.environment.version.toLowerCase() == opt;
 			return isOs || isVer ? 'true' : 'false';
-		}
+		};
 
 		// Set up text replacements map.
-		const constants = ['vba6', 'vba7', 'mac', 'win16', 'win32', 'win64']
+		const constants = ['vba6', 'vba7', 'mac', 'win16', 'win32', 'win64'];
 		const replacements = new Map(constants.map(x => [x, envToBooleanText(x)]));
 		replacements.set('or', '||');
 		replacements.set('and', '&&');
@@ -92,7 +92,7 @@ class CompilerConditionBlock extends BaseContextSyntaxElement<CompilerConditiona
 		// Perform text replacements.
 		let result = exp;
 		replacements.forEach((v, k) => {
-			const regexp = RegExp(`${k}`, 'i')
+			const regexp = RegExp(`${k}`, 'i');
 			if (regexp.test(result)) {
 				result = result.replace(regexp, v);
 			}
