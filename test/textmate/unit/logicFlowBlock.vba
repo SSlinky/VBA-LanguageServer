@@ -111,10 +111,18 @@ Public Sub Foo()
     End If
 '   ^^^ ^^                                                  meta.block-if-else.vba keyword.control.block-if.close.vba
 
+    On Error GoTo Some_Label
+'   ^^^^^^^^^^^^^^^^^^^^^^^^    meta.onErrorStatement.vba
+'   ^^ ^^^^^ ^^^^               keyword.control.flow.jump.vba
+'                 ^^^^^^^^^^    variable.other.constant.label.vba
+100:
+'<---           variable.other.constant.label.vba
+Some_Label:
+'<----------    variable.other.constant.label.vba
+
     Select Case True
 '   ^^^^^^ ^^^^             meta.flow.switch.vba keyword.control.flow.switch.vba
 '               ^^^^        meta.flow.switch.vba meta.expression.vba
-100:
         Case Is = x = y:
 '       ^^^^                keyword.control.flow.switch.vba
 '            ^^^^^^^^^^     meta.flow.switch.vba meta.expression.vba

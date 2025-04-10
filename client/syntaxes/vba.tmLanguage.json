@@ -498,7 +498,7 @@
               "repository": {
                 "onErrorStatement": {
                   "name": "meta.onErrorStatement.vba",
-                  "match": "(?i)\\b(on\\s+error)\\s+(?:(resume\\s+next)|(goto)\\s+([a-z0-9]+))",
+                  "match": "(?i)\\b(on\\s+error)\\s+(?:(resume\\s+next)|(goto)\\s+([a-z0-9_]+))",
                   "captures": {
                     "1": {
                       "name": "keyword.control.flow.jump.vba"
@@ -549,7 +549,7 @@
                       "include": "#literals"
                     },
                     {
-                      "match": "(?i)([a-z][a-z0-9]*)",
+                      "match": "(?i)([a-z][a-z0-9_]*)",
                       "name": "variable.other.constant.label.vba"
                     }
                   ]
@@ -819,7 +819,7 @@
     },
     "argumentSignatureFromParam": {
       "name": "meta.argument-signature.param.vba",
-      "begin": "(?i)[a-z][a-z0-9]*(\\(\\))?",
+      "begin": "(?i)[a-z][a-z0-9_]*(\\(\\))?",
       "end": "(?=[,):'\\n])",
       "beginCaptures": {
         "0": {
