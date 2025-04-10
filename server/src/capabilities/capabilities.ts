@@ -211,8 +211,8 @@ export class ScopeItemCapability {
 
 	constructor(
 		readonly element?: BaseContextSyntaxElement<ParserRuleContext>,
-		readonly type: ItemType = ItemType.REFERENCE,
-		readonly assignmentType: AssignmentType = AssignmentType.NONE,
+		public type: ItemType = ItemType.REFERENCE,
+		public assignmentType: AssignmentType = AssignmentType.NONE,
 		public parent?: ScopeItemCapability,
 	) { }
 

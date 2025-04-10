@@ -7,6 +7,7 @@ import { ParserRuleContext } from 'antlr4ng';
 import {
 	AmbiguousIdentifierContext,
 	FunctionDeclarationContext,
+	ProcedureScopeContext,
 	PropertyGetDeclarationContext,
 	PropertySetDeclarationContext,
 	SubroutineDeclarationContext
@@ -16,11 +17,15 @@ import {
 import { BaseContextSyntaxElement, HasDiagnosticCapability, HasSymbolInformationCapability } from './base';
 import { AssignmentType, DiagnosticCapability, FoldingRangeCapability, IdentifierCapability, ItemType, ScopeItemCapability, SymbolInformationCapability } from '../../capabilities/capabilities';
 
+interface HasProcedureScope {
+	procedureScope(): ProcedureScopeContext | null
+}
 
-abstract class BaseProcedureElement<T extends ParserRuleContext> extends BaseContextSyntaxElement<T> implements HasDiagnosticCapability, HasSymbolInformationCapability {
+abstract class BaseProcedureElement<T extends ParserRuleContext & HasProcedureScope> extends BaseContextSyntaxElement<T> implements HasDiagnosticCapability, HasSymbolInformationCapability {
 	diagnosticCapability: DiagnosticCapability;
 	foldingRangeCapability: FoldingRangeCapability;
 	symbolInformationCapability: SymbolInformationCapability;
+	scopeItemCapability: ScopeItemCapability;
 	abstract identifierCapability: IdentifierCapability;
 
 	constructor(ctx: T, doc: TextDocument, symbolKind: SymbolKind) {
@@ -28,6 +33,12 @@ abstract class BaseProcedureElement<T extends ParserRuleContext> extends BaseCon
 		this.diagnosticCapability = new DiagnosticCapability(this);
 		this.foldingRangeCapability = new FoldingRangeCapability(this);
 		this.symbolInformationCapability = new SymbolInformationCapability(this, symbolKind);
+		this.scopeItemCapability = new ScopeItemCapability(this);
+		this.scopeItemCapability.isPublicScope = this.isPublicScope;
+	}
+
+	protected get isPublicScope(): boolean {
+		return !this.context.rule.procedureScope()?.PRIVATE();
 	}
 
 	// ToDo:
@@ -49,7 +60,7 @@ export class SubDeclarationElement extends BaseProcedureElement<SubroutineDeclar
 		});
 		this.foldingRangeCapability.openWord = `Sub ${this.identifierCapability.name}`;
 		this.foldingRangeCapability.closeWord = 'End Sub';
-		this.scopeItemCapability = new ScopeItemCapability(this, ItemType.SUBROUTINE);
+		this.scopeItemCapability.type = ItemType.SUBROUTINE;
 	}
 }
 
@@ -65,7 +76,7 @@ export class FunctionDeclarationElement extends BaseProcedureElement<FunctionDec
 		});
 		this.foldingRangeCapability.openWord = `Function ${this.identifierCapability.name}`;
 		this.foldingRangeCapability.closeWord = 'End Function';
-		this.scopeItemCapability = new ScopeItemCapability(this, ItemType.FUNCTION);
+		this.scopeItemCapability.type = ItemType.FUNCTION;
 	}
 }
 
@@ -90,7 +101,7 @@ export class PropertyDeclarationElement {
 /**
  * A base class for property Get, Set, Let types to inherit from.
  */
-abstract class BasePropertyDeclarationElement<T extends ParserRuleContext> extends BaseProcedureElement<T> {
+abstract class BasePropertyDeclarationElement<T extends ParserRuleContext & HasProcedureScope> extends BaseProcedureElement<T> {
 	identifierCapability: IdentifierCapability;
 
 	private propertyType: string;
@@ -116,7 +127,8 @@ export class PropertyGetDeclarationElement extends BasePropertyDeclarationElemen
 		super(ctx, doc, 'Get', ctx.functionName()?.ambiguousIdentifier() ?? undefined);
 		this.foldingRangeCapability.openWord = `Get Property ${this.identifierCapability.name}`;
 		this.foldingRangeCapability.closeWord = 'End Property';
-		this.scopeItemCapability = new ScopeItemCapability(this, ItemType.PROPERTY, AssignmentType.GET);
+		this.scopeItemCapability.type = ItemType.PROPERTY;
+		this.scopeItemCapability.assignmentType = AssignmentType.GET;
 	}
 }
 
@@ -126,7 +138,8 @@ export class PropertySetDeclarationElement extends BasePropertyDeclarationElemen
 		super(ctx, doc, 'Set', ctx.subroutineName()?.ambiguousIdentifier() ?? undefined);
 		this.foldingRangeCapability.openWord = `Set Property ${this.identifierCapability.name}`;
 		this.foldingRangeCapability.closeWord = 'End Property';
-		this.scopeItemCapability = new ScopeItemCapability(this, ItemType.PROPERTY, AssignmentType.SET);
+		this.scopeItemCapability.type = ItemType.PROPERTY;
+		this.scopeItemCapability.assignmentType = AssignmentType.SET;
 	}
 }
 
@@ -136,6 +149,7 @@ export class PropertyLetDeclarationElement extends BasePropertyDeclarationElemen
 		super(ctx, doc, 'Let', ctx.subroutineName()?.ambiguousIdentifier() ?? undefined);
 		this.foldingRangeCapability.openWord = `Let Property ${this.identifierCapability.name}`;
 		this.foldingRangeCapability.closeWord = 'End Property';
-		this.scopeItemCapability = new ScopeItemCapability(this, ItemType.PROPERTY, AssignmentType.LET);
+		this.scopeItemCapability.type = ItemType.PROPERTY;
+		this.scopeItemCapability.assignmentType = AssignmentType.LET;
 	}
 }
