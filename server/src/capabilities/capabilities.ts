@@ -20,7 +20,7 @@ import { Services } from '../injection/services';
 
 
 abstract class BaseCapability {
-	element: BaseContextSyntaxElement<ParserRuleContext>
+	element: BaseContextSyntaxElement<ParserRuleContext>;
 
 	constructor(element: BaseContextSyntaxElement<ParserRuleContext>) {
 		this.element = element;
@@ -39,7 +39,7 @@ export class FoldingRangeCapability extends BaseCapability {
 		const end = {
 			line: this.element.context.range.end.line - trailingLineCount,
 			character: this.element.context.range.end.character
-		}
+		};
 		const range = Range.create(start, end);
 		return new FoldingRange(range, this.foldingRangeKind, this.openWord, this.closeWord);
 	}
@@ -53,7 +53,7 @@ export class FoldingRangeCapability extends BaseCapability {
 
 export class DiagnosticCapability extends BaseCapability {
 	diagnostics: Diagnostic[] = [];
-	evaluate: (...args: any[]) => Diagnostic[]
+	evaluate: (...args: any[]) => Diagnostic[];
 
 	constructor(element: BaseContextSyntaxElement<ParserRuleContext>, evaluate?: (...args: any[]) => Diagnostic[]) {
 		super(element);
@@ -70,7 +70,7 @@ export class SemanticTokenCapability extends BaseCapability {
 
 	get semanticToken(): SemanticToken {
 		const element = this.element as BaseContextSyntaxElement<ParserRuleContext> & HasSemanticTokenCapability;
-		const context = !!element.identifierCapability
+		const context = element.identifierCapability
 			? new Context(element.identifierCapability.nameContext, element.context.document)
 			: element.context;
 
@@ -100,7 +100,7 @@ export class SemanticTokenCapability extends BaseCapability {
 
 
 export class SymbolInformationCapability extends BaseCapability {
-	private symbolKind: SymbolKind
+	private symbolKind: SymbolKind;
 
 	get SymbolInformation(): SymbolInformation {
 		const element = this.element as BaseIdentifyableSyntaxElement<ParserRuleContext>;
@@ -109,7 +109,7 @@ export class SymbolInformationCapability extends BaseCapability {
 			this.symbolKind,
 			element.context.range,
 			element.context.document.uri
-		)
+		);
 	}
 
 	constructor(element: BaseIdentifyableSyntaxElement<ParserRuleContext>, symbolKind: SymbolKind) {
@@ -147,7 +147,7 @@ export class IdentifierCapability extends BaseCapability {
 			// Use the defaults to set the values.
 			if (!args.defaultRange) throw new Error("Default range not optional where name context not found.");
 			this.name = (args.defaultName ?? "Unknown Element");
-			this.range = !!args.defaultRange ? args.defaultRange() : args.element.context.range;
+			this.range = args.defaultRange ? args.defaultRange() : args.element.context.range;
 		}
 	}
 }
@@ -201,8 +201,12 @@ export class ScopeItemCapability {
 	link?: ScopeItemCapability;
 	backLinks?: ScopeItemCapability[];
 
-	// Properties
+	// Technical
+	isDirty: boolean = true;
+
+	// Item Properties
 	explicitSetName?: string;
+	isPublicScope: boolean = false;
 
 
 	constructor(
@@ -247,6 +251,8 @@ export class ScopeItemCapability {
 		this.properties?.getters?.forEach(items => items.forEach(item => item.build()));
 		this.properties?.letters?.forEach(items => items.forEach(item => item.build()));
 		this.properties?.setters?.forEach(items => items.forEach(item => item.build()));
+
+		this.isDirty = false;
 	}
 
 	/** Resolves for the current scope, i.e., children of the current item. */
@@ -265,7 +271,7 @@ export class ScopeItemCapability {
 		const combineNames = (a: Map<string, ScopeItemCapability[]>, b: Map<string, ScopeItemCapability[]> | undefined) => {
 			b?.forEach((bItems, name) => a.set(name, [a.get(name) ?? [], bItems].flat()));
 			return a;
-		}
+		};
 
 		const names = new Map<string, ScopeItemCapability[]>();
 		combineNames(names, this.types);
@@ -310,7 +316,7 @@ export class ScopeItemCapability {
 				nameItems.forEach(item => this.pushDiagnostic(DuplicateDeclarationDiagnostic, item, name));
 				diagnosedNames.set(this.identifier, undefined);
 			});
-		})
+		});
 	}
 
 	private addDiagnosticReference(diagnostic: BaseDiagnostic | undefined, item: ScopeItemCapability): void {
@@ -325,13 +331,13 @@ export class ScopeItemCapability {
 				uri: context.document.uri,
 				range: context.range
 			}
-		})
+		});
 	}
 
 	private resolveShadowedDeclaration(item: ScopeItemCapability | undefined): void {
 		if (item) {
 			const diagnostic = this.pushDiagnostic(ShadowDeclarationDiagnostic);
-			this.addDiagnosticReference(diagnostic, item)
+			this.addDiagnosticReference(diagnostic, item);
 		}
 	}
 
@@ -356,17 +362,17 @@ export class ScopeItemCapability {
 		// get/set/let diagnostics into one single diagnostic.
 
 		// Check get properties.
-		if (!!(this.assignmentType & AssignmentType.GET)) {
+		if (this.assignmentType & AssignmentType.GET) {
 			this.resolveShadowedDeclaration(parent.findPropertyGetter(this.identifier));
 		}
 
 		// Check let properties.
-		if (!!(this.assignmentType & AssignmentType.LET)) {
+		if (this.assignmentType & AssignmentType.LET) {
 			this.resolveShadowedDeclaration(parent.findPropertyLetter(this.identifier));
 		}
 
 		// Check set properties.
-		if (!!(this.assignmentType & AssignmentType.SET)) {
+		if (this.assignmentType & AssignmentType.SET) {
 			this.resolveShadowedDeclaration(parent.findPropertySetter(this.identifier));
 		}
 	}
@@ -504,12 +510,18 @@ export class ScopeItemCapability {
 		// Public scoped elements should get the project.
 		// Check pub/priv declares in same document treated as duplicate instead of shadowed.
 
+		/**
+		 *  !! Declaring public things is working :)
+		 *     So far: just Enum (need to set up the logic for everything).
+		 */
+
 		// Set the parent for the item.
-		item.parent = this;
+		item.parent = this.isPublicScope ? (this.project ?? this) : this;
+		item.parent.isDirty = true;
 
 		let ancestor: ScopeItemCapability | undefined = this;
 		let ancestorLevel = 0;
-		while (!!ancestor) {
+		while (ancestor) {
 			ancestorLevel += 1;
 			ancestor = ancestor.parent;
 		}
@@ -517,54 +529,54 @@ export class ScopeItemCapability {
 
 		// Reference types are not declarations.
 		if (item.type === ItemType.REFERENCE) {
-			this.references ??= new Map();
-			this.addItem(this.references, item);
+			item.parent.references ??= new Map();
+			item.parent.addItem(item.parent.references, item);
 			return this;
 		}
 
 		// Register functions.
 		if (item.type === ItemType.FUNCTION) {
-			this.functions ??= new Map();
-			this.addItem(this.functions, item);
+			item.parent.functions ??= new Map();
+			item.parent.addItem(item.parent.functions, item);
 			return item;
 		}
 
 		// Register subroutine.
 		if (item.type === ItemType.SUBROUTINE) {
-			this.subroutines ??= new Map();
-			this.addItem(this.subroutines, item);
+			item.parent.subroutines ??= new Map();
+			item.parent.addItem(item.parent.subroutines, item);
 			return item;
 		}
 
 		// Register enum or type.
 		if (item.type === ItemType.TYPE) {
-			this.types ??= new Map();
-			this.addItem(this.types, item);
+			item.parent.types ??= new Map();
+			item.parent.addItem(item.parent.types, item);
 			return item;
 		}
 
 		// Register properties and variables.
 		if (item.type === ItemType.PROPERTY || item.type === ItemType.VARIABLE) {
-			this.properties ??= {};
+			item.parent.properties ??= {};
 			if (item.assignmentType & AssignmentType.GET) {
-				this.properties.getters ??= new Map();
-				this.addItem(this.properties.getters, item);
+				item.parent.properties.getters ??= new Map();
+				item.parent.addItem(item.parent.properties.getters, item);
 			}
 			if (item.assignmentType & AssignmentType.LET) {
-				this.properties.letters ??= new Map();
-				this.addItem(this.properties.letters, item);
+				item.parent.properties.letters ??= new Map();
+				item.parent.addItem(item.parent.properties.letters, item);
 			}
 			if (item.assignmentType & AssignmentType.SET) {
-				this.properties.setters ??= new Map();
-				this.addItem(this.properties.setters, item);
+				item.parent.properties.setters ??= new Map();
+				item.parent.addItem(item.parent.properties.setters, item);
 			}
 			return item.type === ItemType.PROPERTY ? item : this;
 		}
 
 		// Handle module registration
 		if (item.type === ItemType.MODULE) {
-			this.modules ??= new Map();
-			this.addItem(this.modules, item);
+			item.parent.modules ??= new Map();
+			item.parent.addItem(item.parent.modules, item);
 			return item;
 		}
 
@@ -580,7 +592,7 @@ export class ScopeItemCapability {
 			item.link?.removeBacklink(item);
 			// Remove link from any backlinked items.
 			item.backLinks?.forEach(node => node.link = undefined);
-		}
+		};
 
 		const scan = (map: Map<string, ScopeItemCapability[]> | undefined, uri: string) => {
 			if (map === undefined) {
@@ -589,7 +601,7 @@ export class ScopeItemCapability {
 
 			const keys = Array.from(map.keys());
 			keys.forEach(key => {
-				const items = map.get(key)!
+				const items = map.get(key)!;
 				const keep = items.filter(item => item.element?.context.document.uri !== uri);
 				const remove = items.filter(item => item.element?.context.document.uri === uri);
 

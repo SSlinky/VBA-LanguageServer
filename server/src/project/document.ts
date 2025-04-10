@@ -191,7 +191,9 @@ export abstract class BaseProjectDocument {
 
 		// Parse the document.
 		await (new SyntaxParser(Services.logger)).parseAsync(token, this);
-		this.currentScope.build();
+		const projectScope = this.currentScope.project;
+		const buildScope = projectScope?.isDirty ? projectScope : this.currentScope;
+		buildScope.build();
 
 		// Evaluate the diagnostics.
 		this.diagnostics = this.hasDiagnosticElements

@@ -4,11 +4,13 @@ import { SemanticTokenModifiers, SemanticTokenTypes, SymbolKind } from 'vscode-l
 
 // Antlr
 import { ParserRuleContext } from 'antlr4ng';
-import { ConstItemContext,
+import {
+	ConstItemContext,
 	EnumDeclarationContext,
 	EnumMemberContext,
 	GlobalVariableDeclarationContext,
 	PrivateConstDeclarationContext,
+	PrivateEnumDeclarationContext,
 	PrivateTypeDeclarationContext,
 	PrivateVariableDeclarationContext,
 	PublicConstDeclarationContext,
@@ -38,7 +40,10 @@ abstract class BaseTypeDeclarationElement<T extends ParserRuleContext> extends B
 		this.diagnosticCapability = new DiagnosticCapability(this);
 		this.symbolInformationCapability = new SymbolInformationCapability(this, symbolKind);
 		this.semanticTokenCapability = new SemanticTokenCapability(this, tokenType, tokenModifiers ?? []);
+
+		// An enum is public unless explicitly set to private.
 		this.scopeItemCapability = new ScopeItemCapability(this, ItemType.TYPE);
+		this.scopeItemCapability.isPublicScope = !(ctx.parent instanceof PrivateEnumDeclarationContext);
 	}
 }
 
@@ -142,7 +147,7 @@ export class VariableDeclarationElement extends BaseContextSyntaxElement<Variabl
 		this.diagnosticCapability = new DiagnosticCapability(this);
 		this.symbolInformationCapability = new SymbolInformationCapability(this, ctx.toSymbolKind());
 		// this.semanticTokenCapability = new SemanticTokenCapability(this, SemanticTokenTypes.variable, isConst ? [SemanticTokenModifiers.declaration, SemanticTokenModifiers.readonly] : [SemanticTokenModifiers.declaration]);
-		this.identifierCapability = new IdentifierCapability({element: this, getNameContext: () => ctx.ambiguousIdentifier()});
+		this.identifierCapability = new IdentifierCapability({ element: this, getNameContext: () => ctx.ambiguousIdentifier() });
 		this.scopeItemCapability = new ScopeItemCapability(this, ItemType.VARIABLE);
 	}
 }
