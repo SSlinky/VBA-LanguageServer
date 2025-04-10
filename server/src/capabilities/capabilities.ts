@@ -279,7 +279,6 @@ export class ScopeItemCapability {
 		combineNames(names, this.functions);
 		combineNames(names, this.subroutines);
 
-		const logger = Services.logger;
 		names.forEach((items, name) => {
 			// Base case no name clash.
 			if (items.length <= 1) {
@@ -287,7 +286,6 @@ export class ScopeItemCapability {
 			}
 
 			// Diagnose names.
-			logger.debug(`Name ${name} is duplicate`);
 			items.forEach(item => this.pushDiagnostic(DuplicateDeclarationDiagnostic, item, name));
 			diagnosedNames.set(name, undefined);
 		});
@@ -303,7 +301,6 @@ export class ScopeItemCapability {
 				}
 
 				// Diagnose properties.
-				logger.debug(`Property ${items[0].name} is duplicate`);
 				items.forEach(item => this.pushDiagnostic(DuplicateDeclarationDiagnostic, item, item.name));
 
 				// Don't diagnose names if we have already or don't need to.
@@ -312,7 +309,6 @@ export class ScopeItemCapability {
 				}
 
 				// Diagnose names and register.
-				logger.debug(`Name ${this.identifier} is duplicate (property)`);
 				nameItems.forEach(item => this.pushDiagnostic(DuplicateDeclarationDiagnostic, item, name));
 				diagnosedNames.set(this.identifier, undefined);
 			});
@@ -523,7 +519,7 @@ export class ScopeItemCapability {
 		const getAncestorLevel = (item: ScopeItemCapability, level: number): number =>
 			item.parent ? getAncestorLevel(item.parent, level + 1) : level;
 		const ancestorLevel = getAncestorLevel(this, 0);
-		Services.logger.debug(`Registering [${ItemType[item.type]}] ${item.name}`, ancestorLevel);
+		Services.logger.debug(`Registering [${item.isPublicScope ? 'public' : 'private'} ${ItemType[item.type]}] ${item.name}`, ancestorLevel);
 
 		// Reference types are not declarations.
 		if (item.type === ItemType.REFERENCE) {
