@@ -1,6 +1,6 @@
 {
 	"name": "vba-lsp-client",
-	"description": "VSCode part of a language server",
+	"description": "VS Code part of a language server",
 	"author": "SSlinky",
 	"license": "MIT",
 	"version": "0.0.1",
