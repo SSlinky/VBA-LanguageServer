@@ -14,12 +14,7 @@ import {
    ConstItemContext,
    EndOfStatementContext,
    EndOfStatementNoWsContext,
-   GlobalVariableDeclarationContext,
-   PrivateConstDeclarationContext,
-   PrivateVariableDeclarationContext,
    ProcedureTailContext,
-   PublicConstDeclarationContext,
-   PublicVariableDeclarationContext,
    TypeSpecContext,
    TypeSuffixContext,
    VariableDclContext,
@@ -56,15 +51,6 @@ declare module '../antlr/out/vbapreParser' {
 
 
 declare module '../antlr/out/vbaParser' {
-   interface PublicConstDeclarationContext {
-      /** Shortcut to get the declaration contexts. */
-      declarationContexts(): ConstItemContext[];
-   }
-
-   interface PrivateConstDeclarationContext {
-      /** Shortcut to get the declaration contexts. */
-      declarationContexts(): ConstItemContext[];
-   }
 
    interface ConstItemContext {
       /** Shortcut the identifier as we know it will always exist. */
@@ -73,21 +59,6 @@ declare module '../antlr/out/vbaParser' {
       typeContext(): BuiltinTypeContext | TypeSuffixContext | undefined;
       /** Extension method to get the symbol kind. */
       toSymbolKind(): SymbolKind;
-   }
-
-   interface PublicVariableDeclarationContext {
-      /** Shortcut the variable list */
-      declarationContexts(): (VariableDclContext | WitheventsVariableDclContext)[];
-   }
-
-   interface PrivateVariableDeclarationContext {
-      /** Shortcut the variable list */
-      declarationContexts(): (VariableDclContext | WitheventsVariableDclContext)[];
-   }
-
-   interface GlobalVariableDeclarationContext {
-      /** Shortcut the variable list */
-      declarationContexts(): VariableDclContext[];
    }
 
    interface VariableDclContext {
@@ -237,55 +208,6 @@ CompilerConditionalStatementContext.prototype.vbaExpression = function (): strin
       .toLowerCase();
 };
 
-
-// Constants
-
-PublicConstDeclarationContext.prototype.declarationContexts = function (): ConstItemContext[] {
-   return this.moduleConstDeclaration()
-      .constDeclaration()
-      .constItemList()
-      .constItem();
-};
-
-
-PrivateConstDeclarationContext.prototype.declarationContexts = function (): ConstItemContext[] {
-   return this.moduleConstDeclaration()
-      .constDeclaration()
-      .constItemList()
-      .constItem();
-};
-
-
-ConstItemContext.prototype.ambiguousIdentifier = function (): AmbiguousIdentifierContext {
-   // A variable will always be typed or untyped.
-   return this.typedNameConstItem()?.typedName().ambiguousIdentifier()
-      ?? this.untypedNameConstItem()!.ambiguousIdentifier();
-};
-
-ConstItemContext.prototype.typeContext = function (): BuiltinTypeContext | TypeSuffixContext | undefined {
-   return this.typedNameConstItem()?.typedName().typeSuffix()
-      ?? this.untypedNameConstItem()?.constAsClause()?.builtinType();
-};
-
-
-// Variables
-
-PublicVariableDeclarationContext.prototype.declarationContexts = function (): (VariableDclContext | WitheventsVariableDclContext)[] {
-   const dims = this.moduleVariableDeclarationList();
-   return [dims.witheventsVariableDcl(), dims.variableDcl()].flat();
-};
-
-
-PrivateVariableDeclarationContext.prototype.declarationContexts = function (): (VariableDclContext | WitheventsVariableDclContext)[] {
-   const dims = this.moduleVariableDeclarationList();
-   return [dims.witheventsVariableDcl(), dims.variableDcl()].flat();
-};
-
-
-GlobalVariableDeclarationContext.prototype.declarationContexts = function (): VariableDclContext[] {
-   const varList = this.variableDeclarationList();
-   return varList.variableDcl();
-};
 
 
 VariableDclContext.prototype.ambiguousIdentifier = function (): AmbiguousIdentifierContext {
