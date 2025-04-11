@@ -5,7 +5,7 @@ Attribute VB_Foo = False
 
 Option Explicit
 
-Public Sub Foo()
+Public Sub UniqueNameFoo()
     Dim i As Long
     While True
         i = i ++ 1
@@ -13,9 +13,9 @@ Public Sub Foo()
     Wend
 End Sub
 
-Sub Identifier()
-Attribute Identifier.VB_Description = "Dosctring."
-Attribute Identifier.VB_Description = "Dosctring."
+Sub UniqueNameIdentifier()
+Attribute UniqueNameIdentifier.VB_Description = "Dosctring."
+Attribute UniqueNameIdentifier.VB_Description = "Dosctring."
 '   Dosctring.
 '
 '   Args:
@@ -25,7 +25,7 @@ Attribute Identifier.VB_Description = "Dosctring."
 '
 End Sub
 
-Public Enum EnumFoo
+Public Enum UniqueNameEnumFoo
     Enum1
     Enum2
     Enum3

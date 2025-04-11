@@ -14,7 +14,7 @@ export class SyntaxParser {
 
     async parseAsync(token: CancellationToken, document: VbaClassDocument | VbaModuleDocument): Promise<void> {
         // Preparse the document if we find a precompiler statement.
-        const regexp = new RegExp(/^\s*#If/gmi)
+        const regexp = new RegExp(/^\s*#If/gmi);
         let docText = document.textDocument.getText();
         if (regexp.test(docText)) {
             this.logger.debug(`Beginning pre-parse.`);
@@ -40,7 +40,7 @@ export class SyntaxParser {
         const parser = VbaFmtParser.create(document.textDocument.getText(range));
         await this.parseDocumentAsync(token, listener, parser);
         this.logger.debug(`Completed format parse.`);
-        
+
         return listener;
     }
 

@@ -9,28 +9,23 @@ import { vbafmtListener } from '../../antlr/out/vbafmtListener';
 import { CompilerIfBlockContext } from '../../antlr/out/vbapreParser';
 import {
     AnyOperatorContext,
-	ClassModuleContext,
-	EnumDeclarationContext,
-	FunctionDeclarationContext,
-	GlobalVariableDeclarationContext,
-	IfStatementContext,
-	IgnoredClassAttrContext,
-	IgnoredProceduralAttrContext,
-	PrivateConstDeclarationContext,
-	PrivateTypeDeclarationContext,
-	PrivateVariableDeclarationContext,
-	ProceduralModuleContext,
-	ProcedureDeclarationContext,
-	PropertyGetDeclarationContext,
-	PropertySetDeclarationContext,
-	PublicConstDeclarationContext,
-	PublicTypeDeclarationContext,
-	PublicVariableDeclarationContext,
-	SubroutineDeclarationContext,
-	TypeSuffixContext,
-	UdtDeclarationContext,
-	UnexpectedEndOfLineContext,
-	WhileStatementContext
+    ClassModuleContext,
+    EnumDeclarationContext,
+    EnumMemberContext,
+    FunctionDeclarationContext,
+    IfStatementContext,
+    IgnoredClassAttrContext,
+    IgnoredProceduralAttrContext,
+    ProceduralModuleContext,
+    ProcedureDeclarationContext,
+    PropertyGetDeclarationContext,
+    PropertySetDeclarationContext,
+    SubroutineDeclarationContext,
+    TypeSuffixContext,
+    UdtDeclarationContext,
+    UnexpectedEndOfLineContext,
+    VariableDeclarationContext,
+    WhileStatementContext
 } from '../../antlr/out/vbaParser';
 import {
     AttributeStatementContext,
@@ -58,7 +53,7 @@ import { UnexpectedEndOfLineElement } from '../elements/utils';
 import { DuplicateOperatorElement, IfElseBlock as IfStatementElement, WhileLoopElement } from '../elements/flow';
 import { VbaClassDocument, VbaModuleDocument } from '../document';
 import { ClassElement, ModuleElement, ModuleIgnoredAttributeElement } from '../elements/module';
-import { DeclarationStatementElement, EnumDeclarationElement, TypeDeclarationElement, TypeSuffixElement } from '../elements/typing';
+import { VariableDeclarationStatementElement, EnumDeclarationElement, EnumMemberDeclarationElement, TypeDeclarationElement, TypeSuffixElement } from '../elements/typing';
 import { FunctionDeclarationElement, PropertyGetDeclarationElement, PropertyLetDeclarationElement, PropertySetDeclarationElement, SubDeclarationElement } from '../elements/procedure';
 import { ExtensionConfiguration } from '../workspace';
 import { Services } from '../../injection/services';
@@ -106,28 +101,29 @@ export class VbaListener extends vbaListener {
         this.documentSettings = await Services.server.clientConfiguration;
     }
 
+    exitEveryRule(node: ParserRuleContext): void {
+        this.document.exitContext(node);
+    }
+
     enterAnyOperator = (ctx: AnyOperatorContext) => {
         const element = new DuplicateOperatorElement(ctx, this.document.textDocument);
         this.document.registerElement(element);
-    }
+    };
 
     enterEnumDeclaration = (ctx: EnumDeclarationContext) => {
         const element = new EnumDeclarationElement(ctx, this.document.textDocument, this.isAfterMethodDeclaration);
-        this.document.registerElement(element)
-            .registerNamespaceElement(element);
+        this.document.registerElement(element);
     };
 
-    exitEnumDeclaration = (_: EnumDeclarationContext) =>
-        this.document.deregisterNamespaceElement();
+    enterEnumMember = (ctx: EnumMemberContext) => {
+        const element = new EnumMemberDeclarationElement(ctx, this.document.textDocument);
+        this.document.registerElement(element);
+    };
 
     enterClassModule = (ctx: ClassModuleContext) => {
         const element = new ClassElement(ctx, this.document.textDocument, this.documentSettings ?? { doWarnOptionExplicitMissing: true });
-        this.document.registerElement(element)
-            .registerNamespaceElement(element)
+        this.document.registerElement(element);
     };
-
-    exitClassModule = (_: ClassModuleContext) =>
-        this.document.deregisterNamespaceElement();
 
     enterIfStatement = (ctx: IfStatementContext) =>
         this.document.registerElement(new IfStatementElement(ctx, this.document.textDocument));
@@ -135,80 +131,61 @@ export class VbaListener extends vbaListener {
     enterIgnoredClassAttr = (ctx: IgnoredClassAttrContext) => this.registerIgnoredAttribute(ctx);
     enterIgnoredProceduralAttr = (ctx: IgnoredProceduralAttrContext) => this.registerIgnoredAttribute(ctx);
     private registerIgnoredAttribute(ctx: IgnoredClassAttrContext | IgnoredProceduralAttrContext) {
-        this.document.registerElement(new ModuleIgnoredAttributeElement(ctx, this.document.textDocument))
+        this.document.registerElement(new ModuleIgnoredAttributeElement(ctx, this.document.textDocument));
     }
 
     enterProceduralModule = (ctx: ProceduralModuleContext) => {
         const element = new ModuleElement(ctx, this.document.textDocument, this.documentSettings ?? { doWarnOptionExplicitMissing: true });
-        this.document.registerElement(element)
-            .registerNamespaceElement(element)
+        this.document.registerElement(element);
     };
-
-    exitProceduralModule = (_: ProceduralModuleContext) =>
-        this.document.deregisterNamespaceElement();
 
     // Handles exiting of a sub, func, or property.
     exitProcedureDeclaration = (ctx: ProcedureDeclarationContext) => {
         this.isAfterMethodDeclaration = true;
-        this.document.deregisterNamespaceElement();
     };
 
     enterPropertyGetDeclaration = (ctx: PropertyGetDeclarationContext) => {
         const element = new PropertyGetDeclarationElement(ctx, this.document.textDocument);
-        this.document.registerElement(element)
-            .registerNamespaceElement(element);
+        this.document.registerElement(element);
     };
 
     enterPropertySetDeclaration = (ctx: PropertySetDeclarationContext) => {
-        const element = !!ctx.LET()
+        const element = ctx.LET()
             ? new PropertyLetDeclarationElement(ctx, this.document.textDocument)
             : new PropertySetDeclarationElement(ctx, this.document.textDocument);
-        this.document.registerElement(element)
-            .registerNamespaceElement(element);
+        this.document.registerElement(element);
     };
 
     enterSubroutineDeclaration = (ctx: SubroutineDeclarationContext) => {
         const element = new SubDeclarationElement(ctx, this.document.textDocument);
         this.document.registerElement(element);
-    }
+    };
 
     enterFunctionDeclaration = (ctx: FunctionDeclarationContext) => {
         const element = new FunctionDeclarationElement(ctx, this.document.textDocument);
         this.document.registerElement(element);
-    }
+    };
 
-    enterPublicTypeDeclaration = (ctx: PublicTypeDeclarationContext) => this.enterTypeDeclaration(ctx, true);
-    enterPrivateTypeDeclaration = (ctx: PrivateTypeDeclarationContext) => this.enterTypeDeclaration(ctx, false);
-    private enterTypeDeclaration = (ctx: PublicTypeDeclarationContext | PrivateTypeDeclarationContext, isPrivate: boolean) => {
-        const element = new TypeDeclarationElement(ctx, this.document.textDocument, isPrivate);
-        this.document.registerElement(element).registerNamespaceElement(element);
-    }
+    enterUdtDeclaration = (ctx: UdtDeclarationContext) => {
+        const element = new TypeDeclarationElement(ctx, this.document.textDocument);
+        this.document.registerElement(element);
+    };
 
     enterTypeSuffix = (ctx: TypeSuffixContext) =>
         this.document.registerElement(new TypeSuffixElement(ctx, this.document.textDocument));
 
-    // Handles public and private type declarations.
-    exitUdtDeclaration = (_: UdtDeclarationContext) =>
-        this.document.deregisterNamespaceElement();
-
-    // Variables
-    enterPublicConstDeclaration = (ctx: PublicConstDeclarationContext) => this.enterVariableDeclaration(ctx);
-    enterPrivateConstDeclaration = (ctx: PrivateConstDeclarationContext) => this.enterVariableDeclaration(ctx);
-    enterPublicVariableDeclaration = (ctx: PublicVariableDeclarationContext) => this.enterVariableDeclaration(ctx);
-    enterGlobalVariableDeclaration = (ctx: GlobalVariableDeclarationContext) => this.enterVariableDeclaration(ctx);
-    enterPrivateVariableDeclaration = (ctx: PrivateVariableDeclarationContext) => this.enterVariableDeclaration(ctx);
-    private enterVariableDeclaration = (ctx: PublicConstDeclarationContext | PrivateConstDeclarationContext | PublicVariableDeclarationContext | GlobalVariableDeclarationContext | PrivateVariableDeclarationContext) => {
-        const element = DeclarationStatementElement.create(ctx, this.document.textDocument);
-        element.declarations.forEach(x => this.document.registerElement(x));
-    }
+    enterVariableDeclaration = (ctx: VariableDeclarationContext) => {
+        const element = new VariableDeclarationStatementElement(ctx, this.document.textDocument);
+        element.declarations.forEach(declaration => this.document.registerElement(declaration));
+    };
 
     enterUnexpectedEndOfLine = (ctx: UnexpectedEndOfLineContext) => {
         const element = new UnexpectedEndOfLineElement(ctx, this.document.textDocument);
         this.document.registerElement(element);
-    }
+    };
 
     enterWhileStatement = (ctx: WhileStatementContext) => {
-        const element = new WhileLoopElement(ctx, this.document.textDocument)
+        const element = new WhileLoopElement(ctx, this.document.textDocument);
         this.document.registerElement(element);
     };
 
@@ -244,12 +221,12 @@ export class VbaPreListener extends vbapreListener {
             b => doc.registerElement(b)
                 .registerSubtractElement(b)
         );
-    }
+    };
 }
 
 class PreIfElseBlockElement {
-    ctx: PreIfElseBlockContext
-    blocks: { block: PreBlockContext, levels: number[] }[] = []
+    ctx: PreIfElseBlockContext;
+    blocks: { block: PreBlockContext, levels: number[] }[] = [];
     readonly levelBeforeEnter: number;
 
     get levelOnExit(): number {
@@ -263,9 +240,9 @@ class PreIfElseBlockElement {
     get levelOnExit2(): number {
         const maxs = this.blocks.map(x => Math.max(...x.levels));
         return Math.min(...maxs);
-    }    
+    }
 
-    constructor (ctx: PreIfElseBlockContext, levelBeforeEnter: number) {
+    constructor(ctx: PreIfElseBlockContext, levelBeforeEnter: number) {
         this.ctx = ctx;
         this.levelBeforeEnter = levelBeforeEnter;
     }
@@ -308,7 +285,7 @@ export class VbaFmtListener extends vbafmtListener {
 
     visitErrorNode(node: ErrorNode): void {
         const doc = this.common.document.textDocument;
-        Services.logger.error(`Couldn't parse ${node.toRange(doc)}\n${node.getText()}`)
+        Services.logger.error(`Couldn't parse ${node.toRange(doc)}\n${node.getText()}`);
     }
 
     /**
@@ -328,7 +305,7 @@ export class VbaFmtListener extends vbafmtListener {
     // Attributes are always zero indented.
     enterAttributeStatement = (ctx: AttributeStatementContext) => {
         const range = this.getCtxRange(ctx);
-        const offset = ctx.endsWithLineEnding ? 0 : 1
+        const offset = ctx.endsWithLineEnding ? 0 : 1;
 
         // Set the line after the end to what is current and then set current to zero.
         this.setIndentAt({
@@ -343,7 +320,7 @@ export class VbaFmtListener extends vbafmtListener {
             text: `${this.rangeText(ctx)} Attribute`
         });
         this.activeElements.push(ctx);
-    }
+    };
 
     // Line ending treatments.
     enterContinuation = (ctx: ContinuationContext) => {
@@ -353,7 +330,7 @@ export class VbaFmtListener extends vbafmtListener {
             // Don't indent if we're already indented.
             if (continuedElement === activeElement)
                 return;
-            
+
             // Flag this element as continued / indented.
             this.continuedElements.push(activeElement);
 
@@ -365,7 +342,7 @@ export class VbaFmtListener extends vbafmtListener {
                 text: `${this.rangeText(ctx)} cont`
             });
         }
-    }
+    };
 
     // Handle anything that has been continued.
     exitEveryRule(node: ParserRuleContext): void {
@@ -380,7 +357,7 @@ export class VbaFmtListener extends vbafmtListener {
         // Remove from continued and outdent next line.
         this.continuedElements.pop();
         const doc = this.common.document.textDocument;
-        const offset = node.endsWithLineEnding ? 0 : 1
+        const offset = node.endsWithLineEnding ? 0 : 1;
         const line = node.toRange(doc).end.line + offset;
         this.modifyIndentAt({
             line: line,
@@ -393,42 +370,42 @@ export class VbaFmtListener extends vbafmtListener {
         this.activeElements.push(ctx);
 
     enterBlock = (ctx: BlockContext) =>
-        this.indentOnEnter({context: ctx});
+        this.indentOnEnter({ context: ctx });
 
     exitBlock = (ctx: BlockContext) =>
-        this.outdentAfterExit({context: ctx});
+        this.outdentAfterExit({ context: ctx });
 
     enterCaseDefaultStatement = (ctx: CaseDefaultStatementContext) => {
         this.outdentCaseStatementBlock(ctx);
         this.indentCaseStatementBlock(ctx);
-    }
+    };
 
     enterCaseStatement = (ctx: CaseStatementContext) => {
         this.outdentCaseStatementBlock(ctx);
         this.indentCaseStatementBlock(ctx);
-    }
+    };
 
     enterClassHeaderBlock = (ctx: ClassHeaderBlockContext) =>
-        this.indentOnEnter({context: ctx, offset: 1});
+        this.indentOnEnter({ context: ctx, offset: 1 });
 
     exitClassHeaderBlock = (ctx: ClassHeaderBlockContext) =>
-        this.outdentAfterExit({context: ctx, offset: -1});
+        this.outdentAfterExit({ context: ctx, offset: -1 });
 
     enterIndentAfterElement = (ctx: IndentAfterElementContext) =>
         this.activeElements.push(ctx);
 
     enterDocumentElement = (ctx: DocumentElementContext) =>
         this.activeElements.push(ctx);
-    
+
     exitIndentAfterElement = (ctx: IndentAfterElementContext) => {
-        const offset = ctx.endsWithLineEnding ? 0 : 1
+        const offset = ctx.endsWithLineEnding ? 0 : 1;
         const line = this.getCtxRange(ctx).end.line + offset;
         this.modifyIndentAt({
             line: line,
             offset: 2,
             text: `${this.rangeText(ctx)}`
         });
-    }
+    };
 
     enterLabelStatement? = (ctx: LabelStatementContext) => {
         // A label is a special case that will always be 0 indent
@@ -436,8 +413,8 @@ export class VbaFmtListener extends vbafmtListener {
         const line = this.getCtxRange(ctx).start.line;
         this.indentationKeys[line + 1] = this.getIndent(line);
         this.indentationKeys[line] = 0;
-    }
-    
+    };
+
     enterMethodParameters = (ctx: MethodParametersContext) =>
         this.activeElements.push(ctx);
 
@@ -448,7 +425,7 @@ export class VbaFmtListener extends vbafmtListener {
             offset: -2,
             text: `${this.rangeText(ctx)}`
         });
-    }
+    };
 
     // Enter outdent on enter / indent after exit element.
     enterOutdentOnIndentAfterElement = (ctx: OutdentOnIndentAfterElementContext) => {
@@ -459,20 +436,20 @@ export class VbaFmtListener extends vbafmtListener {
             offset: -2,
             text: `${this.rangeText(ctx)}`
         });
-    }
+    };
 
     // Exit outdent on enter / indent after exit element.
     exitOutdentOnIndentAfterElement = (ctx: OutdentOnIndentAfterElementContext) => {
         // Offset the line to indent based on whether the element ends with a new line character.
-        const offset = ctx.endsWithLineEnding ? 0 : 1
+        const offset = ctx.endsWithLineEnding ? 0 : 1;
         const line = this.getCtxRange(ctx).end.line + offset;
         this.modifyIndentAt({
             line: line,
             offset: 2,
             text: `${this.rangeText(ctx)}`
         });
-    }
-        
+    };
+
     enterPreBlock = (ctx: PreBlockContext) => {
         // Get and ensure we have a preCompilerElement
         const preCompilerElement = this.preCompilerElements.at(-1);
@@ -495,7 +472,7 @@ export class VbaFmtListener extends vbafmtListener {
             block: ctx,
             levels: [preCompilerElement.levelBeforeEnter + 1]
         });
-    }
+    };
 
     exitPreBlock = (ctx: PreBlockContext) =>
         this.setIndentAt({
@@ -507,7 +484,7 @@ export class VbaFmtListener extends vbafmtListener {
     enterPreIfElseBlock = (ctx: PreIfElseBlockContext) => {
         const indentBeforeEnter = this.getIndent(this.getCtxRange(ctx).start.line);
         this.preCompilerElements.push(new PreIfElseBlockElement(ctx, indentBeforeEnter));
-    }
+    };
 
     exitPreIfElseBlock = (ctx: PreIfElseBlockContext) =>
         this.setIndentAt({
@@ -517,7 +494,7 @@ export class VbaFmtListener extends vbafmtListener {
         });
 
     enterSelectCaseOpen = (_: SelectCaseOpenContext) =>
-        this.selectCaseTrackers.push({statements: []});
+        this.selectCaseTrackers.push({ statements: [] });
 
     exitSelectCaseClose = (ctx: SelectCaseCloseContext) => {
         // Pop the tracker as it's no longer needed after this.
@@ -527,9 +504,9 @@ export class VbaFmtListener extends vbafmtListener {
         // Get the previous case statement and outdent if it had a line ending.
         const caseElement = selectCaseElement.statements.at(-1);
         if (!!caseElement && caseElement.endsWithLineEnding) {
-            this.outdentAfterExit({context: ctx});
+            this.outdentAfterExit({ context: ctx });
         }
-    }
+    };
 
     /**
      * Special outdent handler for case statements where the previous case was a block type.
@@ -663,7 +640,7 @@ export class VbaFmtListener extends vbafmtListener {
         // Log the outcome.
         const num = (params.line + 1).toString().padStart(3, '0');
         const arrows = newIndent > 0 ? '>'.repeat(newIndent) : '<'.repeat(Math.abs(newIndent));
-        Services.logger.debug(`${num}: ${arrows} ${params.text}`)
+        Services.logger.debug(`${num}: ${arrows} ${params.text}`);
         return newIndentSafe;
     }
 
@@ -678,7 +655,7 @@ export class VbaFmtListener extends vbafmtListener {
         // If current indent is odd, assume we're just inside a #[else]if block.
         // -1 to offset an indent, 0 to leave it alone.
         const offset = (currentIndent.isOdd() && newOffset.isEven()) ? 1 : 0;
-        
+
         // Switch the direction if we have an outdent value.
         const offsetToggle = offset > 0 ? -1 : 1;
         return offset * offsetToggle;
@@ -700,7 +677,7 @@ export class VbaFmtListener extends vbafmtListener {
         this.indentationKeys[params.line] = params.offset;
         const num = (params.line + 1).toString().padStart(3, '0');
         const arrows = '>'.repeat(params.offset);
-        Services.logger.debug(`${num}: ${arrows} ${params.text}`)
+        Services.logger.debug(`${num}: ${arrows} ${params.text}`);
         if (params.trackMinimumIndent) {
             this.minumumIndent = params.offset;
         }
@@ -711,7 +688,7 @@ export class VbaFmtListener extends vbafmtListener {
      */
     private rangeText(ctx: ParserRuleContext): string {
         const r = this.getCtxRange(ctx);
-        return `[${r.start.line + 1}, ${r.start.character}, ${r.end.line + 1}, ${r.end.character}]`
+        return `[${r.start.line + 1}, ${r.start.character}, ${r.end.line + 1}, ${r.end.character}]`;
     }
 
     private getCtxRange(ctx: ParserRuleContext): Range {

@@ -2,7 +2,7 @@ VERSION 1.0 CLASS
 BEGIN
   MultiUse = -1  'True
 END
-Attribute VB_Name = "Diagnostics"
+Attribute VB_Name = "DiagnosticsClassTest"
 Attribute VB_Description = "Class description goes here"
 Attribute VB_GlobalNameSpace = False
 Attribute VB_GlobalNameSpace = False
@@ -14,7 +14,7 @@ Attribute VB_Exxposed = False
 
 Option Explicit
 
-Public Sub Foo()
+Public Sub SmkfeiondFoo()
     Dim i As Long
     While True
         i = i ++ 1
@@ -22,9 +22,9 @@ Public Sub Foo()
     Wend
 End Sub
 
-Sub Identifier()
-Attribute Identifier.VB_Description = "Dosctring."
-Attribute Identifier.VB_Description = "Dosctring."
+Sub GkiofseiFoo()
+Attribute GkiofseiFoo.VB_Description = "Dosctring."
+Attribute GkiofseiFoo.VB_Description = "Dosctring."
 '   Dosctring.
 '
 '   Args:
@@ -34,7 +34,7 @@ Attribute Identifier.VB_Description = "Dosctring."
 '
 End Sub
 
-Public Enum EnumFoo
+Public Enum PewmfoiawFoo
     Enum1
     Enum2
     Enum3

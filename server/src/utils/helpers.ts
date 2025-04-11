@@ -1,4 +1,4 @@
-export class Dictionary<K,V> extends Map<K,V> {
+export class Dictionary<K, V> extends Map<K, V> {
 	private defaultFactory: (...args: any) => V;
 
 	constructor(defaultFactory: (...args: any) => V) {
@@ -19,13 +19,13 @@ export class Dictionary<K,V> extends Map<K,V> {
 
 
 export function isOfType<T>(obj: unknown, property: keyof T, nullable: boolean = true): obj is T {
-    if (nullable) return (obj as T)[property] !== undefined;
+	if (nullable) return (obj as T)[property] !== undefined;
 	return (
 		typeof obj === 'object'
 		&& obj !== null
 		&& property in obj
 		&& (!!(obj as T)[property])
-	)
+	);
 }
 
 export function ioEvents(): Promise<void> {
@@ -33,5 +33,5 @@ export function ioEvents(): Promise<void> {
 }
 
 export function sleep(ms: number): Promise<unknown> {
-	return new Promise(resolve => setTimeout(resolve, ms) );
+	return new Promise(resolve => setTimeout(resolve, ms));
 }

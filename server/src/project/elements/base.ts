@@ -10,6 +10,7 @@ import {
 	DiagnosticCapability,
 	FoldingRangeCapability,
 	IdentifierCapability,
+	ScopeItemCapability,
 	SemanticTokenCapability,
 	SymbolInformationCapability
 } from '../../capabilities/capabilities';
@@ -17,7 +18,7 @@ import {
 
 export abstract class BaseSyntaxElement<T extends ParserRuleContext> {
 	// Base Properties
-	context?: Context<T>
+	context?: Context<T>;
 	identifierCapability?: IdentifierCapability;
 
 	// Capabilities
@@ -25,8 +26,7 @@ export abstract class BaseSyntaxElement<T extends ParserRuleContext> {
 	foldingRangeCapability?: FoldingRangeCapability;
 	semanticTokenCapability?: SemanticTokenCapability;
 	symbolInformationCapability?: SymbolInformationCapability;
-
-	get isPublic(): boolean { return false; }
+	scopeItemCapability?: ScopeItemCapability;
 
 	constructor();
 	constructor(ctx: T, doc: TextDocument)
@@ -97,7 +97,7 @@ export class Context<T extends ParserRuleContext | TerminalNode> {
 	rule: T;
 	document: TextDocument;
 	range: Range;
-	
+
 	get text(): string {
 		return this.rule.getText();
 	}
@@ -139,6 +139,10 @@ export interface HasSemanticTokenCapability {
 
 export interface HasSymbolInformationCapability extends IsIdentifiable {
 	symbolInformationCapability: SymbolInformationCapability
+}
+
+export interface HasScopeItemCapability {
+	scopeItemCapability: ScopeItemCapability;
 }
 
 

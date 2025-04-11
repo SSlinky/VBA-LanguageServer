@@ -8,24 +8,24 @@ Sub Foo(): Debug.Print "Hello, World!": End Sub
 '                                       ^^^^^^^ storage.type.method.close.vba
 
 ' Standard sub
-Public Sub Foo(ByVal x As Long, ByRef y As Long, ParamArray vars() As Variant)
-' <------------------------------------------------------------------------------   source.method.signature.vba
-' <----------                                                                       storage.type.method.vba
-'          ^^^                                                                      entity.name.function.vba
-'              ^^^^^                                                                storage.modifier.ByVal.vba
-'                    ^                                                              variable.parameter.vba
-'                      ^^                                                           keyword.control.as.vba
-'                         ^^^^                                                      support.type.primitive.Long.vba
-'                             ^                                                     punctuation.separator.vba
-'                               ^^^^^                                               storage.modifier.ByRef.vba
-'                                     ^                                             variable.parameter.vba
-'                                       ^^                                          keyword.control.as.vba
-'                                          ^^^^                                     support.type.primitive.Long.vba
-'                                              ^                                    punctuation.separator.vba
-'                                                ^^^^^^^^^^                         storage.type.modifier.vba
-'                                                           ^^^^                    variable.parameter.vba
-'                                                                  ^^               keyword.control.as.vba
-'                                                                     ^^^^^^^       support.type.primitive.Variant.vba
+Public Sub Foo(ByVal x As Long, ByRef underscore_param As Long, ParamArray vars() As Variant)
+' <---------------------------------------------------------------------------------------------    source.method.signature.vba
+' <----------                                                                                       storage.type.method.vba
+'          ^^^                                                                                      entity.name.function.vba
+'              ^^^^^                                                                                storage.modifier.ByVal.vba
+'                    ^                                                                              variable.parameter.vba
+'                      ^^                                                                           keyword.control.as.vba
+'                         ^^^^                                                                      support.type.primitive.Long.vba
+'                             ^                                                                     punctuation.separator.vba
+'                               ^^^^^                                                               storage.modifier.ByRef.vba
+'                                     ^^^^^^^^^^^^^^^^                                              variable.parameter.vba
+'                                                      ^^                                           keyword.control.as.vba
+'                                                         ^^^^                                      support.type.primitive.Long.vba
+'                                                             ^                                     punctuation.separator.vba
+'                                                               ^^^^^^^^^^                          storage.type.modifier.vba
+'                                                                          ^^^^                     variable.parameter.vba
+'                                                                                 ^^                keyword.control.as.vba
+'                                                                                    ^^^^^^^        support.type.primitive.Variant.vba
 End Sub
 
 
@@ -39,26 +39,26 @@ Function Foo() As String: Foo = "Hello, World!": End Function
 '                                                ^^^^^^^^^^^^   storage.type.method.close.vba
 
 ' Standard function
-Public Function Foo(ByVal x As Long, ByRef y As Long, ParamArray vars() As Variant) As Object
-' <---------------------------------------------------------------------------------------------    source.method.signature.vba
-' <---------------                                                                                  storage.type.method.vba
-'               ^^^                                                                                 entity.name.function.vba
-'                   ^^^^^                                                                           storage.modifier.ByVal.vba
-'                         ^                                                                         variable.parameter.vba
-'                           ^^                                                                      keyword.control.as.vba
-'                              ^^^^                                                                 support.type.primitive.Long.vba
-'                                  ^                                                                punctuation.separator.vba
-'                                    ^^^^^                                                          storage.modifier.ByRef.vba
-'                                          ^                                                        variable.parameter.vba
-'                                            ^^                                                     keyword.control.as.vba
-'                                               ^^^^                                                support.type.primitive.Long.vba
-'                                                   ^                                               punctuation.separator.vba
-'                                                     ^^^^^^^^^^                                    storage.type.modifier.vba
-'                                                                ^^^^                               variable.parameter.vba
-'                                                                       ^^                          keyword.control.as.vba
-'                                                                          ^^^^^^^                  support.type.primitive.Variant.vba
-'                                                                                   ^^              keyword.control.as.vba
-'                                                                                      ^^^^^^       support.type.object.Object.vba
+Public Function Foo(ByVal x As Long, ByRef underscore_param As Long, ParamArray vars() As Variant) As Object
+' <-----------------------------------------^^^^^^^^^^^^^^^----------------------------------------------------     source.method.signature.vba
+' <---------------                                                                                                  storage.type.method.vba
+'               ^^^                                                                                                 entity.name.function.vba
+'                   ^^^^^                                                                                           storage.modifier.ByVal.vba
+'                         ^                                                                                         variable.parameter.vba
+'                           ^^                                                                                      keyword.control.as.vba
+'                              ^^^^                                                                                 support.type.primitive.Long.vba
+'                                  ^                                                                                punctuation.separator.vba
+'                                    ^^^^^                                                                          storage.modifier.ByRef.vba
+'                                          ^^^^^^^^^^^^^^^^                                                         variable.parameter.vba
+'                                                           ^^                                                      keyword.control.as.vba
+'                                                              ^^^^                                                 support.type.primitive.Long.vba
+'                                                                  ^                                                punctuation.separator.vba
+'                                                                    ^^^^^^^^^^                                     storage.type.modifier.vba
+'                                                                               ^^^^                                variable.parameter.vba
+'                                                                                      ^^                           keyword.control.as.vba
+'                                                                                         ^^^^^^^                   support.type.primitive.Variant.vba
+'                                                                                                  ^^               keyword.control.as.vba
+'                                                                                                     ^^^^^^        support.type.object.Object.vba
 End Function
 '<-------------                                                                                     storage.type.method.close.vba
 
