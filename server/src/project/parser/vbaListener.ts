@@ -13,22 +13,18 @@ import {
     EnumDeclarationContext,
     EnumMemberContext,
     FunctionDeclarationContext,
-    GlobalVariableDeclarationContext,
     IfStatementContext,
     IgnoredClassAttrContext,
     IgnoredProceduralAttrContext,
-    PrivateConstDeclarationContext,
-    PrivateVariableDeclarationContext,
     ProceduralModuleContext,
     ProcedureDeclarationContext,
     PropertyGetDeclarationContext,
     PropertySetDeclarationContext,
-    PublicConstDeclarationContext,
-    PublicVariableDeclarationContext,
     SubroutineDeclarationContext,
     TypeSuffixContext,
     UdtDeclarationContext,
     UnexpectedEndOfLineContext,
+    VariableDeclarationContext,
     WhileStatementContext
 } from '../../antlr/out/vbaParser';
 import {
@@ -57,7 +53,7 @@ import { UnexpectedEndOfLineElement } from '../elements/utils';
 import { DuplicateOperatorElement, IfElseBlock as IfStatementElement, WhileLoopElement } from '../elements/flow';
 import { VbaClassDocument, VbaModuleDocument } from '../document';
 import { ClassElement, ModuleElement, ModuleIgnoredAttributeElement } from '../elements/module';
-import { DeclarationStatementElement, EnumDeclarationElement, EnumMemberDeclarationElement, TypeDeclarationElement, TypeSuffixElement } from '../elements/typing';
+import { VariableDeclarationStatementElement, EnumDeclarationElement, EnumMemberDeclarationElement, TypeDeclarationElement, TypeSuffixElement } from '../elements/typing';
 import { FunctionDeclarationElement, PropertyGetDeclarationElement, PropertyLetDeclarationElement, PropertySetDeclarationElement, SubDeclarationElement } from '../elements/procedure';
 import { ExtensionConfiguration } from '../workspace';
 import { Services } from '../../injection/services';
@@ -178,15 +174,9 @@ export class VbaListener extends vbaListener {
     enterTypeSuffix = (ctx: TypeSuffixContext) =>
         this.document.registerElement(new TypeSuffixElement(ctx, this.document.textDocument));
 
-    // Variables
-    enterPublicConstDeclaration = (ctx: PublicConstDeclarationContext) => this.enterVariableDeclaration(ctx);
-    enterPrivateConstDeclaration = (ctx: PrivateConstDeclarationContext) => this.enterVariableDeclaration(ctx);
-    enterPublicVariableDeclaration = (ctx: PublicVariableDeclarationContext) => this.enterVariableDeclaration(ctx);
-    enterGlobalVariableDeclaration = (ctx: GlobalVariableDeclarationContext) => this.enterVariableDeclaration(ctx);
-    enterPrivateVariableDeclaration = (ctx: PrivateVariableDeclarationContext) => this.enterVariableDeclaration(ctx);
-    private enterVariableDeclaration = (ctx: PublicConstDeclarationContext | PrivateConstDeclarationContext | PublicVariableDeclarationContext | GlobalVariableDeclarationContext | PrivateVariableDeclarationContext) => {
-        const element = DeclarationStatementElement.create(ctx, this.document.textDocument);
-        element.declarations.forEach(x => this.document.registerElement(x));
+    enterVariableDeclaration = (ctx: VariableDeclarationContext) => {
+        const element = new VariableDeclarationStatementElement(ctx, this.document.textDocument);
+        element.declarations.forEach(declaration => this.document.registerElement(declaration));
     };
 
     enterUnexpectedEndOfLine = (ctx: UnexpectedEndOfLineContext) => {
