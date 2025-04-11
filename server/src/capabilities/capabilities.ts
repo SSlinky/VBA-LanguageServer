@@ -15,7 +15,7 @@ import { ParserRuleContext, TerminalNode } from 'antlr4ng';
 import { SemanticToken } from '../capabilities/semanticTokens';
 import { FoldingRange, FoldingRangeKind } from '../capabilities/folding';
 import { BaseContextSyntaxElement, BaseIdentifyableSyntaxElement, Context, HasSemanticTokenCapability } from '../project/elements/base';
-import { BaseDiagnostic, DuplicateDeclarationDiagnostic, ShadowDeclarationDiagnostic, SubOrFunctionNotDefinedDiagnostic, VariableNotDefinedDiagnostic } from './diagnostics';
+import { BaseDiagnostic, DuplicateDeclarationDiagnostic, MethodVariableIsPublicDiagnostic, ShadowDeclarationDiagnostic, SubOrFunctionNotDefinedDiagnostic, VariableNotDefinedDiagnostic } from './diagnostics';
 import { Services } from '../injection/services';
 
 
@@ -203,11 +203,18 @@ export class ScopeItemCapability {
 
 	// Technical
 	isDirty: boolean = true;
+	private get isMethodScope(): boolean {
+		return [
+			ItemType.SUBROUTINE,
+			ItemType.FUNCTION,
+			ItemType.PROPERTY,
+		].includes(this.type);
+	}
 
 	// Item Properties
 	explicitSetName?: string;
-	isPublicScope: boolean = false;
-
+	isPublicScope = false;
+	visibilityModifierContext?: ParserRuleContext;
 
 	constructor(
 		readonly element?: BaseContextSyntaxElement<ParserRuleContext>,
@@ -507,12 +514,28 @@ export class ScopeItemCapability {
 		// Check pub/priv declares in same document treated as duplicate instead of shadowed.
 
 		/**
-		 *  !! Declaring public things is working :)
-		 *     So far: just Enum (need to set up the logic for everything).
+		 * Visibility on a method-scoped variable does nothing but isn't invalid.
+		 * These should declare as if they're private and raise a warning.
 		 */
 
+		const getParent = (item: ScopeItemCapability): ScopeItemCapability =>
+			(item.isPublicScope ? this.project : this) ?? this;
+
+		// Method-scoped variables are always private. 
+		if (this.isMethodScope && item.type === ItemType.VARIABLE && item.isPublicScope) {
+			item.isPublicScope = false;
+			if (item.visibilityModifierContext && item.element) {
+				const ctx = item.visibilityModifierContext;
+				const diagnostic = new MethodVariableIsPublicDiagnostic(
+					ctx.toRange(item.element.context.document),
+					ItemType[this.type]
+				);
+				item.element?.diagnosticCapability?.diagnostics.push(diagnostic);
+			}
+		}
+
 		// Set the parent for the item.
-		item.parent = this.isPublicScope ? (this.project ?? this) : this;
+		item.parent = getParent(item);
 		item.parent.isDirty = true;
 
 		// Get the scope level for logging.
