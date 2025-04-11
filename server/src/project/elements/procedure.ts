@@ -6,6 +6,7 @@ import { TextDocument } from 'vscode-languageserver-textdocument';
 import { ParserRuleContext } from 'antlr4ng';
 import {
 	AmbiguousIdentifierContext,
+	AttributeStatementContext,
 	FunctionDeclarationContext,
 	ProcedureScopeContext,
 	PropertyGetDeclarationContext,
@@ -26,6 +27,7 @@ abstract class BaseProcedureElement<T extends ParserRuleContext & HasProcedureSc
 	foldingRangeCapability: FoldingRangeCapability;
 	symbolInformationCapability: SymbolInformationCapability;
 	scopeItemCapability: ScopeItemCapability;
+	attributes: AttributeStatementContext[] = [];
 	abstract identifierCapability: IdentifierCapability;
 
 	constructor(ctx: T, doc: TextDocument, symbolKind: SymbolKind) {
@@ -45,7 +47,9 @@ abstract class BaseProcedureElement<T extends ParserRuleContext & HasProcedureSc
 	// Add a diagnostic when the attribute name doesn't match the method name.
 }
 
-
+// ToDo: When events are implemented, need to update a sub to take into account the special
+//		 significance of an underscore, e.g., MyEventEmiiter_OnEmit()
+// 		 Might be good to visually distinguish an event as recognised by a Private WithEvents MyEventEmitter.
 export class SubDeclarationElement extends BaseProcedureElement<SubroutineDeclarationContext> {
 	identifierCapability: IdentifierCapability;
 
