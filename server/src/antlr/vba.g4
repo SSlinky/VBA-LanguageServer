@@ -1389,6 +1389,7 @@ reservedTypeIdentifier
     | BYTE
     | CURRENCY
     | DATE
+    | DECIMAL
     | DOUBLE
     | INTEGER
     | LONG
@@ -1466,7 +1467,6 @@ reservedForImplementationUse
     ;
 futureReserved
     : CDECL
-    | DECIMAL
     | DEFDEC
     ;
 
