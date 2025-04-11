@@ -42,7 +42,7 @@ classBeginBlock
     ;
 
 beginBlockConfigElement
-    : endOfLine+ (OBJECT '.')? '_'? ambiguousIdentifier WS? eqOperator WS? (('-'? literalExpression) | FILEOFFSET)
+    : endOfLine+ (OBJECT '.')? '_'? ambiguousIdentifier WS? eqOperator WS? (expression | FILEOFFSET)
     | formBeginBlock
     | beginPropertyBlock
     ;
@@ -1584,85 +1584,84 @@ anyOperator
     ;
 
 powOperator
-    : POW (wsc? anyOperator)*
+    : POW (anyOperator)*
     ;
 
 divOperator
-    : DIV (wsc? anyOperator)*
+    : DIV (anyOperator)*
     ;
 
 multOperator
-    : MULT (wsc? anyOperator)*
+    : MULT (anyOperator)*
     ;
 
 modOperator
-    : MOD (wsc? anyOperator)*
+    : MOD (anyOperator)*
     ;
 
 plusOperator
-    : PLUS (wsc? anyOperator)*
+    : PLUS (anyOperator)*
     ;
 
 minusOperator
-    : MINUS (wsc? anyOperator)*
+    : MINUS (anyOperator)*
     ;
 
 ampOperator
-    : AMPERSAND (wsc? anyOperator)*
+    : AMPERSAND (anyOperator)*
     ;
 
 isOperator
-    : IS (wsc? anyOperator)*
+    : IS (anyOperator)*
     ;
 
 likeOperator
-    : LIKE (wsc? anyOperator)*
+    : LIKE (anyOperator)*
     ;
 
 geqOperator
-    : GEQ (wsc? anyOperator)*
+    : GEQ (anyOperator)*
     ;
 
 leqOperator
-    : LEQ (wsc? anyOperator)*
+    : LEQ (anyOperator)*
     ;
 
 gtOperator
-    : GT (wsc? anyOperator)*
+    : GT (anyOperator)*
     ;
 
 ltOperator
-    : LT (wsc? anyOperator)*
+    : LT (anyOperator)*
     ;
 
 neqOperator
-    : NEQ (wsc? anyOperator)*
+    : NEQ (anyOperator)*
     ;
 
 eqOperator
-    : EQ (wsc? anyOperator)*
+    : EQ (anyOperator)*
     ;
 
 andOperator
-    : AND (wsc? anyOperator)*
+    : AND (anyOperator)*
     ;
 
 orOperator
-    : OR (wsc? anyOperator)*
+    : OR (anyOperator)*
     ;
 
 xorOperator
-    : XOR (wsc? anyOperator)*
+    : XOR (anyOperator)*
     ;
 
 eqvOperator
-    : EQV (wsc? anyOperator)*
+    : EQV (anyOperator)*
     ;
 
 impOperator
-    : IMP (wsc? anyOperator)*
+    : IMP (anyOperator)*
     ;
-
 
 // keywords
 ABS
@@ -2736,14 +2735,12 @@ STRINGLITERAL
     ;
 
 INTEGERLITERAL
-    : MINUS? (DIGIT DIGIT*
-    | '&H' [0-9A-F]+
-    | '&' [O]? [0-7]+) [%&^]?
+    : (DIGIT DIGIT* | '&H' [0-9A-F]+ | '&' [O]? [0-7]+) [%&^]?
     ;
 
 FLOATLITERAL
-    : MINUS? FLOATINGPOINTLITERAL [!#@]?
-    | MINUS? DECIMALLITERAL [!#@]
+    : FLOATINGPOINTLITERAL [!#@]?
+    | DECIMALLITERAL [!#@]
     ;
 
 fragment FLOATINGPOINTLITERAL
