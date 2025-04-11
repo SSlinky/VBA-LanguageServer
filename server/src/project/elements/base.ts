@@ -28,8 +28,6 @@ export abstract class BaseSyntaxElement<T extends ParserRuleContext> {
 	symbolInformationCapability?: SymbolInformationCapability;
 	scopeItemCapability?: ScopeItemCapability;
 
-	get isPublic(): boolean { return false; }
-
 	constructor();
 	constructor(ctx: T, doc: TextDocument)
 	constructor(ctx?: T, doc?: TextDocument) {
