@@ -2,7 +2,7 @@
 	<img src="images/vba-lsp-icon.png" alt="drawing" width="128"/>
 </p>
 
-# VBA Pro Extension for VScode
+# VBA Pro Extension for VS Code
 
 Provides Visual Basic for Applications (VBA) language support in Visual Studio Code using a Language Server Protocol (LSP) compliant backend. We all know that VBA is a dinosaur from the '90s, but it doesn't have to feel like one.
 
@@ -38,7 +38,7 @@ A small but growing collection of highly useful code snippets. The idea is to ke
 
 ### Document Symbols
 
-Document Symbols allow you to view a structured outline of your code in the VSCode Outline view and breadcrumbs. These make it easy to understand and navigate files.
+Document Symbols allow you to view a structured outline of your code in the VS Code Outline view and breadcrumbs. These make it easy to understand and navigate files.
 
 ### Document Diagnostics
 
@@ -64,8 +64,8 @@ End Property
 
 ## Installation
 
-* Through the VSCode Marketplace,
-* VSCode command palette `ext install notisdataanalytics.vba-lsp`, or;
+* Through the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=NotisDataAnalytics.vba-lsp),
+* VS Code command palette `ext install notisdataanalytics.vba-lsp`, or;
 * Download the [visx](../../releases/latest).
 
 ## Contributing
