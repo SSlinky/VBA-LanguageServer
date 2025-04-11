@@ -101,6 +101,23 @@ export class SubOrFunctionNotDefinedDiagnostic extends BaseDiagnostic {
 	}
 }
 
+// test
+export class MethodVariableHasVisibilityModifierDiagnostic extends BaseDiagnostic {
+	severity = DiagnosticSeverity.Information;
+	constructor(range: Range, message: string) {
+		super(range);
+		this.message = `Visibility ignored for ${message} scoped variables.`;
+	}
+}
+
+// test
+export class MethodVariableIsPublicDiagnostic extends BaseDiagnostic {
+	severity = DiagnosticSeverity.Warning;
+	constructor(range: Range, message: string) {
+		super(range);
+		this.message = `${message} scoped variables cannot be public.`;
+	}
+}
 
 // test
 export class UnexpectedLineEndingDiagnostic extends BaseDiagnostic {
