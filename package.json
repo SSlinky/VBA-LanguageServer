@@ -2,7 +2,7 @@
 	"name": "vba-lsp",
 	"type": "commonjs",
 	"displayName": "VBA Pro",
-	"description": "A VBA extension for VSCode with Language Server support",
+	"description": "A VBA extension for VS Code with Language Server support",
 	"icon": "images/vba-lsp-icon.png",
 	"author": "SSlinky",
 	"license": "MIT",
