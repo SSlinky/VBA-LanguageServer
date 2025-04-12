@@ -427,7 +427,7 @@ constantName
 //     ;
 
 constDeclaration
-    : variableModifier? CONST wsc constItemList
+    : (variableModifier wsc)? CONST wsc constItemList
     ;
 
 constItemList
