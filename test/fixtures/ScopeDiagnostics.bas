@@ -10,7 +10,7 @@ Public Enum XfaskofeaFoo
     Bar = 2 ^ 3
 End Enum
 
-Public Sub XfaskofeaFoo()
+Public Sub XfaskofeaFoo(Optional test_param As Variant = -0.1)
 Attribute XfaskofeaFoo.VB_Description = "docstring."
-
+    Call SomeSub(param, -0.15)
 End Sub
