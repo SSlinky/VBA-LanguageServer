@@ -25,6 +25,7 @@
 		"vscode": "^1.63.0"
 	},
 	"main": "dist/client/out/extension",
+	"browser": "dist/web/webextension.js",
 	"activationEvents": [],
 	"contributes": {
 		"languages": [
