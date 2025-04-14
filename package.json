@@ -145,6 +145,7 @@
 	"scripts": {
 		"vscode:prepublish": "npm run package",
 		"build": "npm run check-types && node esbuild.js",
+		"fullBuild": "npm run textMate && npm run antlr",
 		"build-test": "node esbuild.js --test",
 		"check-types": "tsc --noEmit",
 		"watch": "npm-run-all -p watch:*",
