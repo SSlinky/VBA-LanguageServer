@@ -16,7 +16,8 @@
 		"Programming Languages",
 		"Snippets",
 		"Linters",
-		"Formatters"
+		"Formatters",
+		"Themes"
 	],
 	"keywords": [
 		"multi-root ready"
@@ -30,46 +31,27 @@
 	"contributes": {
 		"languages": [
 			{
-				"id": "vba-class",
+				"id": "vba",
 				"aliases": [
-					"VBA Class"
+					"VBA"
 				],
 				"extensions": [
-					".cls"
+					".cls",
+					".bas",
+					".frm"
 				],
 				"configuration": "./vba.language-configuration.json",
 				"icon": {
 					"dark": "icons/vba_90sGreen_dark.svg",
 					"light": "icons/vba_90sGreen_light.svg"
 				}
-			},
+			}
+		],
+		"iconThemes": [
 			{
-				"id": "vba-module",
-				"aliases": [
-					"VBA Module"
-				],
-				"extensions": [
-					".bas"
-				],
-				"configuration": "./vba.language-configuration.json",
-				"icon": {
-					"dark": "icons/vba_90sPurple_dark.svg",
-					"light": "icons/vba_90sPurple_light.svg"
-				}
-			},
-			{
-				"id": "vba-form",
-				"aliases": [
-					"VBA Form"
-				],
-				"extensions": [
-					".frm"
-				],
-				"configuration": "./vba.language-configuration.json",
-				"icon": {
-					"dark": "icons/vba_90sYellow_dark.svg",
-					"light": "icons/vba_90sYellow_light.svg"
-				}
+				"id": "vba-lsp",
+				"label": "VBA Icons",
+				"path": "icon-theme.json"
 			}
 		],
 		"configurationDefaults": {
@@ -148,32 +130,14 @@
 		},
 		"grammars": [
 			{
-				"language": "vba-class",
-				"scopeName": "source.vba",
-				"path": "./client/syntaxes/vba.tmLanguage.json"
-			},
-			{
-				"language": "vba-module",
-				"scopeName": "source.vba",
-				"path": "./client/syntaxes/vba.tmLanguage.json"
-			},
-			{
-				"language": "vba-form",
+				"language": "vba",
 				"scopeName": "source.vba",
 				"path": "./client/syntaxes/vba.tmLanguage.json"
 			}
 		],
 		"snippets": [
 			{
-				"language": "vba-class",
-				"path": "./snippets/vba.json"
-			},
-			{
-				"language": "vba-module",
-				"path": "./snippets/vba.json"
-			},
-			{
-				"language": "vba-form",
+				"language": "vba",
 				"path": "./snippets/vba.json"
 			}
 		]
