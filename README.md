@@ -14,6 +14,7 @@ Provides Visual Basic for Applications (VBA) language support in Visual Studio C
 * Semantic highlighting
 * Folding ranges
 * Code Snippets
+* Icon theme
 * Document symbols
 * Document diagnostics
 * Document formatting<sup>1</sup>
@@ -40,6 +41,14 @@ Folding ranges help organise code, collapsing things out of the way when you don
 ### Code Snippets
 
 A small but growing collection of highly useful code snippets. The idea is to keep these to a "rememberable" level, but if there's something you use all the time and you think it's missing, I'd love to hear from you.
+
+### Icon Theme
+
+VS Code supports two ways of contributing icons.
+* Per language identifier. Limited to one icon for all file types.
+* Icon pack. Allows more flexibility, however, only one icon theme can be active at any time.
+
+This extension provides both methods. Users with no icon pack installed can use the icon pack provided by this extension to see a visual difference between classes, modules, and forms. Users who prefer to use an alternative icon pack can fall back to the language assigned icon.
 
 ### Document Symbols
 
