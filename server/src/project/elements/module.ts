@@ -16,7 +16,7 @@ import {
 } from '../../antlr/out/vbaParser';
 
 // Project
-import { BaseContextSyntaxElement, BaseIdentifyableSyntaxElement, HasDiagnosticCapability } from './base';
+import { BaseRuleSyntaxElement, BaseIdentifyableSyntaxElement, HasDiagnosticCapability } from './base';
 import { DiagnosticCapability, FoldingRangeCapability, IdentifierCapability, ItemType, ScopeItemCapability, SymbolInformationCapability } from '../../capabilities/capabilities';
 import { DuplicateAttributeDiagnostic, IgnoredAttributeDiagnostic, MissingAttributeDiagnostic, MissingOptionExplicitDiagnostic } from '../../capabilities/diagnostics';
 
@@ -185,7 +185,7 @@ export class ClassElement extends BaseModuleElement<ClassModuleContext> {
 }
 
 
-export class ModuleIgnoredAttributeElement extends BaseContextSyntaxElement<ParserRuleContext> implements HasDiagnosticCapability {
+export class ModuleIgnoredAttributeElement extends BaseRuleSyntaxElement<ParserRuleContext> implements HasDiagnosticCapability {
 	diagnosticCapability: DiagnosticCapability;
 
 	constructor(ctx: IgnoredClassAttrContext | IgnoredProceduralAttrContext, doc: TextDocument) {

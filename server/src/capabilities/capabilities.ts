@@ -14,15 +14,15 @@ import { ParserRuleContext, TerminalNode } from 'antlr4ng';
 // Project
 import { SemanticToken } from '../capabilities/semanticTokens';
 import { FoldingRange, FoldingRangeKind } from '../capabilities/folding';
-import { BaseContextSyntaxElement, BaseIdentifyableSyntaxElement, Context, HasSemanticTokenCapability } from '../project/elements/base';
+import { BaseRuleSyntaxElement, BaseIdentifyableSyntaxElement, BaseSyntaxElement, Context, HasSemanticTokenCapability } from '../project/elements/base';
 import { BaseDiagnostic, DuplicateDeclarationDiagnostic, MethodVariableIsPublicDiagnostic, ShadowDeclarationDiagnostic, SubOrFunctionNotDefinedDiagnostic, VariableNotDefinedDiagnostic } from './diagnostics';
 import { Services } from '../injection/services';
 
 
 abstract class BaseCapability {
-	element: BaseContextSyntaxElement<ParserRuleContext>;
+	element: BaseRuleSyntaxElement<ParserRuleContext> | BaseSyntaxElement;
 
-	constructor(element: BaseContextSyntaxElement<ParserRuleContext>) {
+	constructor(element: BaseRuleSyntaxElement<ParserRuleContext> | BaseSyntaxElement) {
 		this.element = element;
 	}
 }
@@ -34,17 +34,20 @@ export class FoldingRangeCapability extends BaseCapability {
 	closeWord?: string;
 
 	get foldingRange(): FoldingRange {
-		const trailingLineCount = this.element.context.rule.countTrailingLineEndings();
-		const start = this.element.context.range.start;
+		// Cast the element to the same type we get in the constructor.
+		const element = this.element as unknown as BaseRuleSyntaxElement<ParserRuleContext>;
+
+		const trailingLineCount = element.context.rule.countTrailingLineEndings();
+		const start = element.context.range.start;
 		const end = {
-			line: this.element.context.range.end.line - trailingLineCount,
-			character: this.element.context.range.end.character
+			line: element.context.range.end.line - trailingLineCount,
+			character: element.context.range.end.character
 		};
 		const range = Range.create(start, end);
 		return new FoldingRange(range, this.foldingRangeKind, this.openWord, this.closeWord);
 	}
 
-	constructor(element: BaseContextSyntaxElement<ParserRuleContext>, foldingRangeKind?: FoldingRangeKind) {
+	constructor(element: BaseRuleSyntaxElement<ParserRuleContext>, foldingRangeKind?: FoldingRangeKind) {
 		super(element);
 		this.foldingRangeKind = foldingRangeKind;
 	}
@@ -55,7 +58,7 @@ export class DiagnosticCapability extends BaseCapability {
 	diagnostics: Diagnostic[] = [];
 	evaluate: (...args: any[]) => Diagnostic[];
 
-	constructor(element: BaseContextSyntaxElement<ParserRuleContext>, evaluate?: (...args: any[]) => Diagnostic[]) {
+	constructor(element: BaseSyntaxElement, evaluate?: (...args: any[]) => Diagnostic[]) {
 		super(element);
 		this.evaluate = evaluate ?? (() => this.diagnostics);
 	}
@@ -69,7 +72,7 @@ export class SemanticTokenCapability extends BaseCapability {
 	private overrideLength?: number;
 
 	get semanticToken(): SemanticToken {
-		const element = this.element as BaseContextSyntaxElement<ParserRuleContext> & HasSemanticTokenCapability;
+		const element = this.element as BaseRuleSyntaxElement<ParserRuleContext> & HasSemanticTokenCapability;
 		const context = element.identifierCapability
 			? new Context(element.identifierCapability.nameContext, element.context.document)
 			: element.context;
@@ -89,7 +92,7 @@ export class SemanticTokenCapability extends BaseCapability {
 		);
 	}
 
-	constructor(element: BaseContextSyntaxElement<ParserRuleContext> & HasSemanticTokenCapability, tokenType: SemanticTokenTypes, tokenModifiers: SemanticTokenModifiers[], overrideRange?: Range, overrideLength?: number) {
+	constructor(element: BaseRuleSyntaxElement<ParserRuleContext> & HasSemanticTokenCapability, tokenType: SemanticTokenTypes, tokenModifiers: SemanticTokenModifiers[], overrideRange?: Range, overrideLength?: number) {
 		super(element);
 		this.tokenType = tokenType;
 		this.tokenModifiers = tokenModifiers;
@@ -119,7 +122,7 @@ export class SymbolInformationCapability extends BaseCapability {
 }
 
 interface IdentifierArgs {
-	element: BaseContextSyntaxElement<ParserRuleContext>,
+	element: BaseRuleSyntaxElement<ParserRuleContext>,
 	getNameContext?: () => ParserRuleContext | TerminalNode | null | undefined,
 	formatName?: (name: string) => string,
 	defaultName?: string;
@@ -217,7 +220,7 @@ export class ScopeItemCapability {
 	visibilityModifierContext?: ParserRuleContext;
 
 	constructor(
-		readonly element?: BaseContextSyntaxElement<ParserRuleContext>,
+		readonly element?: BaseRuleSyntaxElement<ParserRuleContext>,
 		public type: ItemType = ItemType.REFERENCE,
 		public assignmentType: AssignmentType = AssignmentType.NONE,
 		public parent?: ScopeItemCapability,

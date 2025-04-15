@@ -123,13 +123,26 @@ export class VbaErrorHandler extends DefaultErrorStrategy {
             }
         }
 
+        // When we don't know what could come next, invalidate the entire line.
+        if (expectedTokens.minElement === -1) {
+            const invalidTokens: Token[] = [];
+            while (![vbaLexer.NEWLINE, vbaLexer.EOF].includes(stream.LA(1))) {
+                invalidTokens.push(stream.LT(1)!);
+                recognizer.consume();
+            }
+            if (invalidTokens.length > 0) {
+                const missingToken = this.createErrorToken(recognizer, invalidTokens);
+                return missingToken;
+            }
+        }
+
         // Recover using insertion strategy.
-        const missingToken = this.createErrorToken(recognizer, expectedTokens);
+        const missingToken = this.createExpectedToken(recognizer, expectedTokens);
         this.reportMatch(recognizer);
         return missingToken;
     }
 
-    private createErrorToken(recognizer: Parser, expectedTokens: IntervalSet): Token {
+    private createExpectedToken(recognizer: Parser, expectedTokens: IntervalSet): Token {
         // Set up the token attributes.
         const type = expectedTokens.length === 0
             ? Token.INVALID_TYPE
@@ -157,6 +170,31 @@ export class VbaErrorHandler extends DefaultErrorStrategy {
             currentToken.stop,
             currentToken.line,
             currentToken.column
+        );
+    }
+
+    private createErrorToken(recognizer: Parser, consumedTokens: Token[]): Token {
+        // Set up the token attributes.
+        const type = Token.INVALID_TYPE;
+        const text = `Invalid syntax: ${consumedTokens.map(t => t.text ?? '?').join('')}`;
+
+        // We know have at least one token consumed.
+        const fromToken = consumedTokens[0];
+        const toToken = consumedTokens.at(-1);
+
+        // Create the token.
+        return recognizer.getTokenFactory().create(
+            [
+                recognizer.tokenStream.tokenSource,
+                recognizer.tokenStream.tokenSource.inputStream
+            ],
+            type,
+            text,
+            Token.DEFAULT_CHANNEL,
+            fromToken.start,
+            toToken?.stop ?? fromToken.stop,
+            fromToken.line,
+            fromToken.column
         );
     }
 

@@ -3,7 +3,7 @@ import { Position, Range } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 
 // Antlr
-import { ParserRuleContext, TerminalNode } from 'antlr4ng';
+import { Parser, ParserRuleContext, TerminalNode } from 'antlr4ng';
 
 // Project
 import {
@@ -16,9 +16,9 @@ import {
 } from '../../capabilities/capabilities';
 
 
-export abstract class BaseSyntaxElement<T extends ParserRuleContext> {
+export abstract class BaseSyntaxElement {
 	// Base Properties
-	context?: Context<T>;
+	context?: Context<ParserRuleContext | TerminalNode>;
 	identifierCapability?: IdentifierCapability;
 
 	// Capabilities
@@ -28,10 +28,22 @@ export abstract class BaseSyntaxElement<T extends ParserRuleContext> {
 	symbolInformationCapability?: SymbolInformationCapability;
 	scopeItemCapability?: ScopeItemCapability;
 
-	constructor();
-	constructor(ctx: T, doc: TextDocument)
-	constructor(ctx?: T, doc?: TextDocument) {
-		if (!!ctx && !!doc) this.context = new Context(ctx, doc);
+	/**
+	 *
+	 */
+	constructor() {
+		let x: TerminalNode | ParserRuleContext;
+		
+	}
+}
+
+
+export abstract class BaseRuleSyntaxElement<T extends ParserRuleContext> extends BaseSyntaxElement {
+	context!: Context<T>;
+
+	constructor(ctx: T, doc: TextDocument) {
+		super();
+		this.context = new Context(ctx, doc);
 	}
 
 	/**
@@ -39,10 +51,10 @@ export abstract class BaseSyntaxElement<T extends ParserRuleContext> {
 	 * @returns True if the element is a child of the passed element.
 	 */
 	isChildOf(range: Range): boolean;
-	isChildOf(element: BaseSyntaxElement<T>): boolean;
-	isChildOf(elementOrRange: BaseSyntaxElement<T> | Range): boolean {
+	isChildOf(element: BaseRuleSyntaxElement<T>): boolean;
+	isChildOf(elementOrRange: BaseRuleSyntaxElement<T> | Range): boolean {
 		const a = this.context?.range;
-		const b = ((o: any): o is BaseSyntaxElement<T> => 'context' in o)(elementOrRange)
+		const b = ((o: any): o is BaseRuleSyntaxElement<T> => 'context' in o)(elementOrRange)
 			? elementOrRange.context?.range
 			: elementOrRange;
 
@@ -59,7 +71,7 @@ export abstract class BaseSyntaxElement<T extends ParserRuleContext> {
 	 * Compare two syntax elements for equality.
 	 * @returns True if the document, range, and text match.
 	 */
-	equals(element: BaseSyntaxElement<T>): boolean {
+	equals(element: BaseRuleSyntaxElement<T>): boolean {
 		const a = this.context;
 		const b = element.context;
 
@@ -71,16 +83,7 @@ export abstract class BaseSyntaxElement<T extends ParserRuleContext> {
 }
 
 
-export abstract class BaseContextSyntaxElement<T extends ParserRuleContext> extends BaseSyntaxElement<T> implements HasContext<T> {
-	context!: Context<T>;
-
-	constructor(ctx: T, doc: TextDocument) {
-		super(ctx, doc);
-	}
-}
-
-
-export abstract class BaseIdentifyableSyntaxElement<T extends ParserRuleContext> extends BaseContextSyntaxElement<T> implements IsIdentifiable {
+export abstract class BaseIdentifyableSyntaxElement<T extends ParserRuleContext> extends BaseRuleSyntaxElement<T> implements IsIdentifiable {
 	abstract identifierCapability: IdentifierCapability;
 
 	constructor(ctx: T, doc: TextDocument) {
@@ -155,4 +158,4 @@ export interface HasFoldingRangeCapability {
 // Compound Types
 // ---------------------------------------------------------
 
-export type DeclarableElement = BaseContextSyntaxElement<ParserRuleContext> & IsIdentifiable & HasDiagnosticCapability;
+export type DeclarableElement = BaseRuleSyntaxElement<ParserRuleContext> & IsIdentifiable & HasDiagnosticCapability;

@@ -12,7 +12,7 @@ import {
 import { ParserRuleContext } from 'antlr4ng/dist/ParserRuleContext';
 
 // Project
-import { BaseContextSyntaxElement, HasSemanticTokenCapability } from '../project/elements/base';
+import { BaseRuleSyntaxElement, HasSemanticTokenCapability } from '../project/elements/base';
 
 const registeredTokenTypes = new Map<string, number>((Object.keys(SemanticTokenTypes) as (keyof typeof SemanticTokenTypes)[]).map((k, i) => ([k, i])));
 const registeredTokenModifiers = new Map<string, number>((Object.keys(SemanticTokenModifiers) as (keyof typeof SemanticTokenModifiers)[]).map((k, i) => ([k, 2 ** i])));
@@ -30,7 +30,7 @@ export function activateSemanticTokenProvider(result: InitializeResult) {
 
 
 type SemanticElementType = HasSemanticTokenCapability
-	& BaseContextSyntaxElement<ParserRuleContext>;
+	& BaseRuleSyntaxElement<ParserRuleContext>;
 
 export class SemanticToken {
 	line: uinteger;

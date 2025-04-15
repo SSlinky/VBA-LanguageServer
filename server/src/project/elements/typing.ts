@@ -23,11 +23,11 @@ import {
 
 // Project
 import { ElementOutOfPlaceDiagnostic, LegacyFunctionalityDiagnostic } from '../../capabilities/diagnostics';
-import { BaseContextSyntaxElement, HasDiagnosticCapability, HasSemanticTokenCapability, HasSymbolInformationCapability } from './base';
+import { BaseRuleSyntaxElement, HasDiagnosticCapability, HasSemanticTokenCapability, HasSymbolInformationCapability } from './base';
 import { AssignmentType, DiagnosticCapability, IdentifierCapability, ItemType, ScopeItemCapability, SemanticTokenCapability, SymbolInformationCapability } from '../../capabilities/capabilities';
 
 
-abstract class BaseTypeDeclarationElement<T extends ParserRuleContext> extends BaseContextSyntaxElement<T> implements HasDiagnosticCapability, HasSymbolInformationCapability, HasSemanticTokenCapability {
+abstract class BaseTypeDeclarationElement<T extends ParserRuleContext> extends BaseRuleSyntaxElement<T> implements HasDiagnosticCapability, HasSymbolInformationCapability, HasSemanticTokenCapability {
 	diagnosticCapability: DiagnosticCapability;
 	abstract identifierCapability: IdentifierCapability;
 	symbolInformationCapability: SymbolInformationCapability;
@@ -75,7 +75,7 @@ export class EnumDeclarationElement extends BaseTypeDeclarationElement<EnumDecla
 	}
 }
 
-export class EnumMemberDeclarationElement extends BaseContextSyntaxElement<EnumMemberContext> {
+export class EnumMemberDeclarationElement extends BaseRuleSyntaxElement<EnumMemberContext> {
 	identifierCapability: IdentifierCapability;
 
 	constructor(ctx: EnumMemberContext, doc: TextDocument) {
@@ -112,7 +112,7 @@ export class TypeDeclarationElement extends BaseTypeDeclarationElement<UdtDeclar
 // 		 attached until the object is constructed.
 //		 Also note that an event _can only be public_. 
 
-export class VariableDeclarationStatementElement extends BaseContextSyntaxElement<VariableDeclarationContext> {
+export class VariableDeclarationStatementElement extends BaseRuleSyntaxElement<VariableDeclarationContext> {
 
 	get isPublic(): boolean {
 		const modifierCtx = this.context.rule.variableModifier();
@@ -133,7 +133,7 @@ export class VariableDeclarationStatementElement extends BaseContextSyntaxElemen
 	}
 }
 
-export class ConstDeclarationStatementElement extends BaseContextSyntaxElement<ConstDeclarationContext> {
+export class ConstDeclarationStatementElement extends BaseRuleSyntaxElement<ConstDeclarationContext> {
 
 	get isPublic(): boolean {
 		const modifierCtx = this.context.rule.variableModifier();
@@ -153,7 +153,7 @@ export class ConstDeclarationStatementElement extends BaseContextSyntaxElement<C
 }
 
 
-export class VariableDeclarationElement extends BaseContextSyntaxElement<VariableDclContext | WitheventsVariableDclContext | ConstItemContext> implements HasDiagnosticCapability, HasSymbolInformationCapability { //, HasSemanticTokenCapability {
+export class VariableDeclarationElement extends BaseRuleSyntaxElement<VariableDclContext | WitheventsVariableDclContext | ConstItemContext> implements HasDiagnosticCapability, HasSymbolInformationCapability { //, HasSemanticTokenCapability {
 	identifierCapability: IdentifierCapability;
 	diagnosticCapability: DiagnosticCapability;
 	symbolInformationCapability: SymbolInformationCapability;
@@ -224,7 +224,7 @@ export class VariableDeclarationElement extends BaseContextSyntaxElement<Variabl
 }
 
 // ToDo: Needs to handle ClassTypeNameContext
-class VariableTypeInformation extends BaseContextSyntaxElement<TypeSuffixContext | AsClauseContext> {
+class VariableTypeInformation extends BaseRuleSyntaxElement<TypeSuffixContext | AsClauseContext> {
 	get isObjectType(): boolean {
 		// Type hints are never an object.
 		const ctx = this.context.rule;
@@ -291,7 +291,7 @@ class VariableTypeInformation extends BaseContextSyntaxElement<TypeSuffixContext
 }
 
 
-export class TypeSuffixElement extends BaseContextSyntaxElement<TypeSuffixContext> implements HasDiagnosticCapability, HasSemanticTokenCapability {
+export class TypeSuffixElement extends BaseRuleSyntaxElement<TypeSuffixContext> implements HasDiagnosticCapability, HasSemanticTokenCapability {
 	diagnosticCapability: DiagnosticCapability;
 	semanticTokenCapability: SemanticTokenCapability;
 

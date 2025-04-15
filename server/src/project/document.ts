@@ -11,7 +11,7 @@ import { SyntaxParser } from './parser/vbaParser';
 import { FoldingRange } from '../capabilities/folding';
 import { SemanticTokensManager } from '../capabilities/semanticTokens';
 import {
-	BaseContextSyntaxElement,
+	BaseRuleSyntaxElement,
 	BaseSyntaxElement,
 	DeclarableElement,
 	HasDiagnosticCapability,
@@ -54,7 +54,7 @@ export abstract class BaseProjectDocument {
 	protected foldableElements: FoldingRange[] = [];
 	protected hasDiagnosticElements: HasDiagnosticCapability[] = [];
 	protected properties: Dictionary<string, PropertyDeclarationElement> = new Dictionary(() => new PropertyDeclarationElement());
-	protected redactedElements: BaseContextSyntaxElement<ParserRuleContext>[] = [];
+	protected redactedElements: BaseRuleSyntaxElement<ParserRuleContext>[] = [];
 	protected semanticTokens: SemanticTokensManager = new SemanticTokensManager();
 	protected symbolInformations: SymbolInformation[] = [];
 	protected unhandledNamedElements: [] = [];
@@ -255,7 +255,7 @@ export abstract class BaseProjectDocument {
 		return this;
 	};
 
-	registerSubtractElement = (element: BaseContextSyntaxElement<ParserRuleContext>) => {
+	registerSubtractElement = (element: BaseRuleSyntaxElement<ParserRuleContext>) => {
 		this.redactedElements.push(element);
 		return this;
 	};
