@@ -40,9 +40,7 @@ export function activate(context: ExtensionContext) {
 	const clientOptions: LanguageClientOptions = {
 		// Register the server for plain text documents
 		documentSelector: [
-			{ scheme: 'file', language: 'vba-class' },
-			{ scheme: 'file', language: 'vba-module' },
-			{ scheme: 'file', language: 'vba-form' }
+			{ scheme: 'file', language: 'vba' }
 		],
 		synchronize: {
 			// Notify the server about file changes to '.clientrc files contained in the workspace
@@ -61,7 +59,7 @@ export function activate(context: ExtensionContext) {
 	// Add logging support for messages received from the server.
 	client.onNotification("window/logMessage", (params) => {
 		VscodeLogger.logMessage(params);
-	})
+	});
 
 	// Start the client. This will also launch the server
 	client.start();

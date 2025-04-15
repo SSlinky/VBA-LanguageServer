@@ -1,18 +1,34 @@
 {
+	"iconDefinitions": {
+		"_class": {
+			"iconPath": "icons/vba_90sGreen_dark.svg"
+		},
+		"_class_light": {
+			"iconPath": "icons/vba_90sGreen_light.svg"
+		},
+		"_module": {
+			"iconPath": "icons/vba_90sPurple_dark.svg"
+		},
+		"_module_light": {
+			"iconPath": "icons/vba_90sPurple_light.svg"
+		},
+		"_userform": {
+			"iconPath": "icons/vba_90sYellow_dark.svg"
+		},
+		"_userform_light": {
+			"iconPath": "icons/vba_90sPurple_light.svg"
+		}
+	},
 	"fileExtensions": {
 		"cls": "_class",
 		"bas": "_module",
 		"frm": "_userform"
 	},
-	"iconDefinitions": {
-		"_class": {
-			"iconPath": "icons/vba_blue.svg"
-		},
-		"_module": {
-			"iconPath": "icons/vba_orange.svg"
-		},
-		"_userform": {
-			"iconPath": "icons/vba_green.svg"
+	"light": {
+		"fileExtensions": {
+			"cls": "_class_light",
+			"bas": "_module_light",
+			"frm": "_userform_light"
 		}
 	}
 }
