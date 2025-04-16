@@ -219,7 +219,7 @@ export abstract class BaseProjectDocument {
 	 * Auto registers the element based on capabilities.
 	 * @returns This for chaining.
 	 */
-	registerElement<T extends ParserRuleContext>(element: BaseSyntaxElement<T>) {
+	registerElement(element: BaseSyntaxElement) {
 		if (element.diagnosticCapability) this.registerDiagnosticElement(element as HasDiagnosticCapability);
 		if (element.foldingRangeCapability) this.registerFoldableElement(element as HasFoldingRangeCapability);
 		if (element.semanticTokenCapability) this.registerSemanticToken(element as HasSemanticTokenCapability);
@@ -235,12 +235,12 @@ export abstract class BaseProjectDocument {
 		return this;
 	}
 
-	registerDiagnosticElement(element: HasDiagnosticCapability) {
+	private registerDiagnosticElement(element: HasDiagnosticCapability) {
 		this.hasDiagnosticElements.push(element);
 		return this;
 	}
 
-	registerFoldableElement = (element: HasFoldingRangeCapability) => {
+	private registerFoldableElement = (element: HasFoldingRangeCapability) => {
 		this.foldableElements.push(element.foldingRangeCapability.foldingRange);
 		return this;
 	};
@@ -250,7 +250,7 @@ export abstract class BaseProjectDocument {
 	 * @param element element The element that has a semantic token.
 	 * @returns this for chaining.
 	 */
-	registerSemanticToken = (element: HasSemanticTokenCapability) => {
+	private registerSemanticToken = (element: HasSemanticTokenCapability) => {
 		this.semanticTokens.add(element);
 		return this;
 	};
@@ -265,12 +265,12 @@ export abstract class BaseProjectDocument {
 	 * @param element The element that has symbol information.
 	 * @returns this for chaining.
 	 */
-	registerSymbolInformation = (element: HasSymbolInformationCapability) => {
+	private registerSymbolInformation = (element: HasSymbolInformationCapability) => {
 		this.symbolInformations.push(element.symbolInformationCapability.SymbolInformation);
 		return this;
 	};
 
-	registerScopeItem = (element: HasScopeItemCapability) =>
+	private registerScopeItem = (element: HasScopeItemCapability) =>
 		this.currentScope = this.currentScope.registerScopeItem(element.scopeItemCapability);
 
 	exitContext = (ctx: ParserRuleContext) => {
