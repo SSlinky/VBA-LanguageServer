@@ -1,6 +1,6 @@
 # theme-seti
 
-This is an icon theme that uses the icons from [`seti-ui`](https://github.com/jesseweed/seti-ui).
+This is an icon theme that uses the icons from a fork of [`seti-ui`](https://github.com/jesseweed/seti-ui).
 
 ## Updating icons
 
