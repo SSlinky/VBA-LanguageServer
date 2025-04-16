@@ -27,16 +27,18 @@ async function testFoldingRanges(docUri: vscode.Uri, expectedFoldingRanges: vsco
 	const action = () => vscode.commands.executeCommand<vscode.FoldingRange[]>(
 		'vscode.executeFoldingRangeProvider',
 		docUri
-	)
+	);
 	
 	// Use this method first to ensure the extension is activated.
 	const actualFoldingRanges = await runOnActivate(
 		action,
-		(result) => Array.isArray(result) && result.length > 0
+		// Test returns 7 folding ranges when run in normal mode
+		// but six in debug. Appears to be an issue with timing,
+		// probably due to the editor guessing before LSP kicks in.
+		(result) => Array.isArray(result) && result.length === expectedFoldingRanges.length
 	);
 
-	assert.equal(actualFoldingRanges.length ?? 0, expectedFoldingRanges.length, "Count");
-
+	// No need to assert length as this test will throw if it's not the same.
 	expectedFoldingRanges.forEach((expectedFoldingRange, i) => {
 		const actualFoldingRange = actualFoldingRanges[i];
 		assert.deepEqual(actualFoldingRange, expectedFoldingRange, `FoldingRange ${i}`);
