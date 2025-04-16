@@ -52,6 +52,11 @@
 				"id": "vba-lsp",
 				"label": "VBA Icons",
 				"path": "icon-theme.json"
+			},
+			{
+				"id": "vs-seti-vba",
+				"label": "Seti + VBA",
+				"path": "icons/theme-seti/icons/vs-seti-icon-theme.json"
 			}
 		],
 		"configurationDefaults": {
