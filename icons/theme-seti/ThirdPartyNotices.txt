@@ -1,11 +1,11 @@
 
 THIRD-PARTY SOFTWARE NOTICES AND INFORMATION
-For Microsoft vscode-theme-seti
+For VBA-LanguageServer vscode-theme-seti
 
-This file is based on or incorporates material from the projects listed below ("Third Party OSS"). The original copyright
-notice and the license under which Microsoft received such Third Party OSS, are set forth below. Such licenses and notice
-are provided for informational purposes only. Microsoft licenses the Third Party OSS to you under the licensing terms for
-the Microsoft product or service. Microsoft reserves all other rights not expressly granted under this agreement, whether
+This theme is based on or incorporates material from the projects listed below ("Third Party OSS"). The original copyright
+notice and the license under which VBA-LanguageServer received such Third Party OSS, are set forth below. Such licenses and notice
+are provided for informational purposes only. VBA-LanguageServer licenses the Third Party OSS to you under the licensing terms for
+the VBA-LanguageServer product or service. VBA-LanguageServer reserves all other rights not expressly granted under this agreement, whether
 by implication, estoppel or otherwise.†
 
 1.       Seti UI - A subtle dark colored UI theme for Atom. (https://github.com/jesseweed/seti-ui)

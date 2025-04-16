@@ -3,6 +3,8 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
+//@ts-nocheck
+
 'use strict';
 
 const path = require('path');
@@ -54,14 +56,14 @@ const ignoreExtAssociation = {
 	"properties": true
 };
 
-const FROM_DISK = true; // set to true to take content from a repo checked out next to the vscode repo
+const FROM_DISK = false; // set to true to take content from a repo checked out next to the vscode repo
 
 let font, fontMappingsFile, fileAssociationFile, colorsFile;
 if (!FROM_DISK) {
-	font = 'https://raw.githubusercontent.com/jesseweed/seti-ui/master/styles/_fonts/seti/seti.woff';
-	fontMappingsFile = 'https://raw.githubusercontent.com/jesseweed/seti-ui/master/styles/_fonts/seti.less';
-	fileAssociationFile = 'https://raw.githubusercontent.com/jesseweed/seti-ui/master/styles/components/icons/mapping.less';
-	colorsFile = 'https://raw.githubusercontent.com/jesseweed/seti-ui/master/styles/ui-variables.less';
+	font = 'https://raw.githubusercontent.com/DecimalTurn/seti-ui/vba/styles/_fonts/seti/seti.woff';
+	fontMappingsFile = 'https://raw.githubusercontent.com/DecimalTurn/seti-ui/vba/styles/_fonts/seti.less';
+	fileAssociationFile = 'https://raw.githubusercontent.com/DecimalTurn/seti-ui/vba/styles/components/icons/mapping.less';
+	colorsFile = 'https://raw.githubusercontent.com/DecimalTurn/seti-ui/vba/styles/ui-variables.less';
 } else {
 	font = '../../../seti-ui/styles/_fonts/seti/seti.woff';
 	fontMappingsFile = '../../../seti-ui/styles/_fonts/seti.less';
@@ -70,7 +72,7 @@ if (!FROM_DISK) {
 }
 
 function getCommitSha(repoId) {
-	const commitInfo = 'https://api.github.com/repos/' + repoId + '/commits/master';
+	const commitInfo = 'https://api.github.com/repos/' + repoId + '/commits/vba';
 	return download(commitInfo).then(function (content) {
 		try {
 			const lastCommit = JSON.parse(content);
@@ -303,11 +305,11 @@ exports.update = function () {
 
 		const res = {
 			information_for_contributors: [
-				'This file has been generated from data in https://github.com/jesseweed/seti-ui',
-				'- icon definitions: https://github.com/jesseweed/seti-ui/blob/master/styles/_fonts/seti.less',
-				'- icon colors: https://github.com/jesseweed/seti-ui/blob/master/styles/ui-variables.less',
-				'- file associations: https://github.com/jesseweed/seti-ui/blob/master/styles/components/icons/mapping.less',
-				'If you want to provide a fix or improvement, please create a pull request against the jesseweed/seti-ui repository.',
+				'This file has been generated from data in https://github.com/DecimalTurn/seti-ui',
+				'- icon definitions: https://github.com/DecimalTurn/seti-ui/blob/vba/styles/_fonts/seti.less',
+				'- icon colors: https://github.com/DecimalTurn/seti-ui/blob/vba/styles/ui-variables.less',
+				'- file associations: https://github.com/DecimalTurn/seti-ui/blob/vba/styles/components/icons/mapping.less',
+				'If you want to provide a fix or improvement, please create a pull request against the DecimalTurn/seti-ui repository.',
 				'Once accepted there, we are happy to receive an update request.',
 			],
 			fonts: [{
@@ -329,7 +331,7 @@ exports.update = function () {
 				languageIds: getInvertSet(lang2Def),
 				fileNames: getInvertSet(fileName2Def)
 			},
-			version: 'https://github.com/jesseweed/seti-ui/commit/' + info.commitSha,
+			version: 'https://github.com/DecimalTurn/seti-ui/commit/' + info.commitSha,
 		};
 
 		const path = './icons/vs-seti-icon-theme.json';
@@ -443,7 +445,7 @@ exports.update = function () {
 				while ((match = regex3.exec(content)) !== null) {
 					colorId2Value[match[1]] = match[2];
 				}
-				return getCommitSha('jesseweed/seti-ui').then(function (info) {
+				return getCommitSha('DecimalTurn/seti-ui').then(function (info) {
 					try {
 						writeFileIconContent(info);
 
@@ -454,7 +456,7 @@ exports.update = function () {
 						fs.writeFileSync(cgmanifestPath, JSON.stringify(cgmanifestContent, null, '\t'));
 						console.log('updated ' + cgmanifestPath);
 
-						console.log('Updated to jesseweed/seti-ui@' + info.commitSha.substr(0, 7) + ' (' + info.commitDate.substr(0, 10) + ')');
+						console.log('Updated to DecimalTurn/seti-ui@' + info.commitSha.substr(0, 7) + ' (' + info.commitDate.substr(0, 10) + ')');
 
 					} catch (e) {
 						console.error(e);

@@ -5,7 +5,7 @@
 				"type": "git",
 				"git": {
 					"name": "seti-ui",
-					"repositoryUrl": "https://github.com/jesseweed/seti-ui",
+					"repositoryUrl": "https://github.com/DecimalTurn/seti-ui",
 					"commitHash": "1cac4f30f93cc898103c62dde41823a09b0d7b74"
 				}
 			},
