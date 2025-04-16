@@ -3,6 +3,9 @@ import { TextDocument } from 'vscode-languageserver-textdocument';
 import {
 	CancellationToken,
 	CancellationTokenSource,
+	CodeAction,
+	CodeActionParams,
+	Command,
 	CompletionItem,
 	CompletionParams,
 	DidChangeConfigurationNotification,
@@ -277,6 +280,7 @@ class WorkspaceEvents {
 		connection.onHover(params => this.onHover(params));
 		connection.onDocumentFormatting(async (params, token) => await this.onDocumentFormatting(params, token));
 		connection.onDidCloseTextDocument(params => { Services.logger.debug('[event] onDidCloseTextDocument'); Services.logger.debug(JSON.stringify(params), 1); });
+		connection.onCodeAction((params, token) => this.onCodeActionRequest(params, token));
 
 		if (hasWorkspaceConfigurationCapability(Services.server)) {
 			connection.onFoldingRanges(async (params, token) => await cancellableOnFoldingRanges(params, token));
@@ -391,6 +395,42 @@ class WorkspaceEvents {
 			return [];
 		}
 
+	}
+
+	private async onCodeActionRequest(params: CodeActionParams, token: CancellationToken): Promise<(Command | CodeAction)[] | null | undefined> {
+		const logger = Services.logger;
+		logger.debug(`[event] onCodeAction: ${JSON.stringify(params)}`);
+
+		// For now, if we have no diagnostics then don't return any actions.
+		if (params.context.diagnostics.length === 0) {
+			return [];
+		}
+
+		if (token.isCancellationRequested) {
+			logger.debug(`[cbs] onCodeAction`);
+			return;
+		}
+
+		try {
+			// We don't actually need the document but await to ensure it's parsed.
+			await this.getParsedProjectDocument(params.textDocument.uri, 0, token);
+			const uri = params.textDocument.uri;
+			const result: (Command | CodeAction)[] = [];
+			const codeActionRegistry = Services.codeActionsRegistry;
+			params.context.diagnostics.forEach(d => {
+				const action = codeActionRegistry.getDiagnosticAction(d, uri);
+				if (action) {
+					result.push(action);
+				}
+			});
+			return result;
+		} catch (e) {
+			// If cancelled or something went wrong, just return.
+			if (e instanceof Error) {
+				logger.stack(e);
+			}
+			return;
+		}
 	}
 
 	/** Documents event handlers */

@@ -1,5 +1,6 @@
 // Core
-import { CodeDescription, Diagnostic, DiagnosticRelatedInformation, DiagnosticSeverity, DiagnosticTag, Position, Range } from 'vscode-languageserver';
+import { CodeAction, CodeActionKind, CodeDescription, Command, Diagnostic, DiagnosticRelatedInformation, DiagnosticSeverity, DiagnosticTag, Position, Range } from 'vscode-languageserver';
+import { Services } from '../injection/services';
 
 
 export type DiagnosticConstructor<T extends BaseDiagnostic> =
@@ -9,12 +10,13 @@ export type DiagnosticConstructor<T extends BaseDiagnostic> =
 export abstract class BaseDiagnostic implements Diagnostic {
 	range: Range;
 	message: string;
-	severity?: DiagnosticSeverity | undefined;
-	code?: string | number | undefined;
-	codeDescription?: CodeDescription | undefined;
-	source?: string | undefined;
-	tags?: DiagnosticTag[] | undefined;
-	relatedInformation?: DiagnosticRelatedInformation[] | undefined;
+	severity?: DiagnosticSeverity;
+	code?: string | number;
+	actionFactory?: (diagnostic: Diagnostic, uri: string) => CodeAction | Command;
+	codeDescription?: CodeDescription;
+	source?: string;
+	tags?: DiagnosticTag[];
+	relatedInformation?: DiagnosticRelatedInformation[];
 	data?: unknown;
 
 	constructor(range: Range)
@@ -151,6 +153,21 @@ export class MissingOptionExplicitDiagnostic extends BaseDiagnostic {
 	severity = DiagnosticSeverity.Warning;
 	constructor(range: Range) {
 		super(range);
+
+		// Set up the properties that will enable the action.
+		this.code = 'W001';
+		this.actionFactory = (diagnostic: Diagnostic, uri: string) =>
+			CodeAction.create(
+				"Insert Option Explicit",
+				{ changes: { [uri]: [{
+					range: diagnostic.range,
+					newText: "\nOption Explicit"
+				}]}},
+				CodeActionKind.QuickFix
+			);
+
+		// Register the action factory to enable onActionRequest.
+		Services.codeActionsRegistry.registerDiagnosticAction(this);
 	}
 }
 
