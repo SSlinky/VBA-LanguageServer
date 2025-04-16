@@ -30,3 +30,15 @@ Public Enum UniqueNameEnumFoo
     Enum2
     Enum3
 End Enum
+
+Public Sub CallsBadSub()
+Attribute CallsBadSub.VB_Description = "docstring."
+'   docstring.
+'
+'   Args:
+'       param1:
+'
+'   Raises:
+'
+    InvalidSubCall(arg)
+End Sub

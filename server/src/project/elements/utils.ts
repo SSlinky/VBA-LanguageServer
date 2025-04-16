@@ -6,11 +6,11 @@ import { UnexpectedEndOfLineContext } from '../../antlr/out/vbaParser';
 
 // Project
 import { DiagnosticCapability } from '../../capabilities/capabilities';
-import { BaseContextSyntaxElement, HasDiagnosticCapability } from './base';
+import { BaseRuleSyntaxElement, HasDiagnosticCapability } from './base';
 import { UnexpectedLineEndingDiagnostic } from '../../capabilities/diagnostics';
 
 
-export class UnexpectedEndOfLineElement extends BaseContextSyntaxElement<UnexpectedEndOfLineContext> implements HasDiagnosticCapability {
+export class UnexpectedEndOfLineElement extends BaseRuleSyntaxElement<UnexpectedEndOfLineContext> implements HasDiagnosticCapability {
 	diagnosticCapability: DiagnosticCapability;
 
 	constructor(context: UnexpectedEndOfLineContext, document: TextDocument) {

@@ -15,14 +15,14 @@ import {
 } from '../../antlr/out/vbaParser';
 
 // Project
-import { BaseContextSyntaxElement, HasDiagnosticCapability, HasSymbolInformationCapability } from './base';
+import { BaseRuleSyntaxElement, HasDiagnosticCapability, HasSymbolInformationCapability } from './base';
 import { AssignmentType, DiagnosticCapability, FoldingRangeCapability, IdentifierCapability, ItemType, ScopeItemCapability, SymbolInformationCapability } from '../../capabilities/capabilities';
 
 interface HasProcedureScope {
 	procedureScope(): ProcedureScopeContext | null
 }
 
-abstract class BaseProcedureElement<T extends ParserRuleContext & HasProcedureScope> extends BaseContextSyntaxElement<T> implements HasDiagnosticCapability, HasSymbolInformationCapability {
+abstract class BaseProcedureElement<T extends ParserRuleContext & HasProcedureScope> extends BaseRuleSyntaxElement<T> implements HasDiagnosticCapability, HasSymbolInformationCapability {
 	diagnosticCapability: DiagnosticCapability;
 	foldingRangeCapability: FoldingRangeCapability;
 	symbolInformationCapability: SymbolInformationCapability;

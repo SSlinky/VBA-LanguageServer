@@ -6,10 +6,10 @@ import { AnyOperatorContext, IfStatementContext, WhileStatementContext } from '.
 
 // Project
 import { DiagnosticCapability, FoldingRangeCapability } from '../../capabilities/capabilities';
-import { BaseContextSyntaxElement, HasDiagnosticCapability } from './base';
+import { BaseRuleSyntaxElement, HasDiagnosticCapability } from './base';
 import { MultipleOperatorsDiagnostic, WhileWendDeprecatedDiagnostic } from '../../capabilities/diagnostics';
 
-export class IfElseBlock extends BaseContextSyntaxElement<IfStatementContext> {
+export class IfElseBlock extends BaseRuleSyntaxElement<IfStatementContext> {
 	constructor(context: IfStatementContext, document: TextDocument) {
 		super(context, document);
 		this.foldingRangeCapability = new FoldingRangeCapability(this);
@@ -19,7 +19,7 @@ export class IfElseBlock extends BaseContextSyntaxElement<IfStatementContext> {
 }
 
 
-export class WhileLoopElement extends BaseContextSyntaxElement<WhileStatementContext> implements HasDiagnosticCapability {
+export class WhileLoopElement extends BaseRuleSyntaxElement<WhileStatementContext> implements HasDiagnosticCapability {
 	diagnosticCapability: DiagnosticCapability;
 
 	constructor(context: WhileStatementContext, document: TextDocument) {
@@ -35,7 +35,7 @@ export class WhileLoopElement extends BaseContextSyntaxElement<WhileStatementCon
 }
 
 
-export class DuplicateOperatorElement extends BaseContextSyntaxElement<AnyOperatorContext> implements HasDiagnosticCapability {
+export class DuplicateOperatorElement extends BaseRuleSyntaxElement<AnyOperatorContext> implements HasDiagnosticCapability {
 	diagnosticCapability: DiagnosticCapability;
 
 	constructor(context: AnyOperatorContext, document: TextDocument) {

@@ -6,11 +6,11 @@ import { CompilerConditionalBlockContext, CompilerDefaultBlockContext, CompilerI
 
 // Project
 import { DiagnosticCapability, FoldingRangeCapability } from '../../capabilities/capabilities';
-import { BaseContextSyntaxElement } from '../elements/base';
+import { BaseRuleSyntaxElement } from '../elements/base';
 import { UnreachableCodeDiagnostic } from '../../capabilities/diagnostics';
 
 
-export class CompilerLogicalBlock extends BaseContextSyntaxElement<CompilerIfBlockContext> {
+export class CompilerLogicalBlock extends BaseRuleSyntaxElement<CompilerIfBlockContext> {
 	conditionalBlocks: CompilerConditionBlock[] = [];
 	inactiveBlocks: CompilerConditionBlock[] = [];
 
@@ -38,7 +38,7 @@ export class CompilerLogicalBlock extends BaseContextSyntaxElement<CompilerIfBlo
 }
 
 
-class CompilerConditionBlock extends BaseContextSyntaxElement<CompilerConditionalBlockContext | CompilerDefaultBlockContext> {
+class CompilerConditionBlock extends BaseRuleSyntaxElement<CompilerConditionalBlockContext | CompilerDefaultBlockContext> {
 	readonly documentSettings: { environment: { os: string, version: string } };
 
 	constructor(ctx: CompilerConditionalBlockContext | CompilerDefaultBlockContext, doc: TextDocument, env: { environment: { os: string, version: string } }) {

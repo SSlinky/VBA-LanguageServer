@@ -91,6 +91,12 @@ suite('Should get diagnostics', () => {
 				range: toRange(28, 7, 32, 8),
 				severity: vscode.DiagnosticSeverity.Error,
 				source: 'ex'
+			},
+			{
+				message: 'Invalid syntax: InvalidSubCall(arg)',
+				range: toRange(43, 4, 43, 23),
+				severity: vscode.DiagnosticSeverity.Error,
+				source: 'ex'
 			}
 		]);
 	});
@@ -156,8 +162,8 @@ async function testDiagnostics(docUri: vscode.Uri, expectedDiagnostics: vscode.D
 
 	expectedDiagnostics.forEach((expectedDiagnostic, i) => {
 		const actualDiagnostic = actualDiagnostics[i];
-		assert.equal(actualDiagnostic.message, expectedDiagnostic.message, "Message");
-		assert.deepEqual(actualDiagnostic.range, expectedDiagnostic.range, "Range");
-		assert.equal(actualDiagnostic.severity, expectedDiagnostic.severity, "Severity");
+		assert.equal(actualDiagnostic.message, expectedDiagnostic.message, `Message: expected '${expectedDiagnostic.message}' got '${actualDiagnostic.message}'.`);
+		assert.deepEqual(actualDiagnostic.range, expectedDiagnostic.range, `Range: expected '${JSON.stringify(expectedDiagnostic.range)}' got '${JSON.stringify(actualDiagnostic.range)}'.`);
+		assert.equal(actualDiagnostic.severity, expectedDiagnostic.severity, `Severity: expected '${expectedDiagnostic.severity}' got '${actualDiagnostic.severity}'.`);
 	});
 }
