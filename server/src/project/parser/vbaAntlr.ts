@@ -90,48 +90,47 @@ export class VbaFmtParser extends vbafmtParser {
 
 export class VbaErrorHandler extends DefaultErrorStrategy {
     override recover(recognizer: Parser, e: RecognitionException): void {
+        // Try base recovery for some reason.
+        super.recover(recognizer, e);
+
         // Consume the error token if look-ahead is not EOF.
         const inputStream = recognizer.inputStream;
         if (inputStream.LA(1) !== Token.EOF) {
+            const intervalSet = this.getErrorRecoverySet(recognizer);
+            console.log(`recover consuming ${recognizer.getCurrentToken()}`);
             inputStream.consume();
+            // this.consumeUntil(recognizer, intervalSet);
         }
         this.endErrorCondition(recognizer);
     }
 
     override recoverInline(recognizer: Parser): Token {
-        const stream = recognizer.inputStream;
-        const thisToken = recognizer.getCurrentToken();
-
-        // Recover using deletion strategy.
-        const nextToken = stream.LT(2);
-        const expectedTokens = recognizer.getExpectedTokens();
-        if (nextToken && expectedTokens.contains(nextToken.type)) {
-            recognizer.consume();
-            this.reportMatch(recognizer);
-            return thisToken;
+        // Attempt to recover using token deletion.
+        const matchedSymbol = this.singleTokenDeletion(recognizer);
+        if (matchedSymbol) {
+          recognizer.consume();
+          return matchedSymbol;
         }
-
-        // Failsafe to prevent circular insertions.
-        const MAXRECURSION = -20;
-        for (let i = -1; i >= MAXRECURSION; i--) {
-            if (i <= -20) {
-                throw new InputMismatchException(recognizer);
-            }
-            const wasInsertedToken = this.isTokenPositionMatch(thisToken, recognizer.inputStream.LT(i));
-            if (!wasInsertedToken) {
-                break;
-            }
+        // Attempt to recover using token insertion.
+        if (this.singleTokenInsertion(recognizer)) {
+          return this.getMissingSymbol(recognizer);
         }
 
         // When we don't know what could come next, invalidate the entire line.
+        const stream = recognizer.inputStream;
+        const expectedTokens = recognizer.getExpectedTokens();
         if (expectedTokens.minElement === -1) {
             const invalidTokens: Token[] = [];
             while (![vbaLexer.NEWLINE, vbaLexer.EOF].includes(stream.LA(1))) {
                 invalidTokens.push(stream.LT(1)!);
+                console.log(`inline consuming ${recognizer.getCurrentToken()}`);
                 recognizer.consume();
             }
             if (invalidTokens.length > 0) {
                 const missingToken = this.createErrorToken(recognizer, invalidTokens);
+                this.reportMatch(recognizer);
+                console.log(`inline consuming ${recognizer.getCurrentToken()}`);
+                recognizer.consume();
                 return missingToken;
             }
         }
