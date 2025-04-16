@@ -17,7 +17,7 @@ import {
 
 // Project
 import { BaseRuleSyntaxElement, BaseIdentifyableSyntaxElement, HasDiagnosticCapability } from './base';
-import { DiagnosticCapability, FoldingRangeCapability, IdentifierCapability, ItemType, ScopeItemCapability, SymbolInformationCapability } from '../../capabilities/capabilities';
+import { DiagnosticCapability, IdentifierCapability, ItemType, ScopeItemCapability, SymbolInformationCapability } from '../../capabilities/capabilities';
 import { DuplicateAttributeDiagnostic, IgnoredAttributeDiagnostic, MissingAttributeDiagnostic, MissingOptionExplicitDiagnostic } from '../../capabilities/diagnostics';
 
 
@@ -32,13 +32,11 @@ abstract class BaseModuleElement<T extends ParserRuleContext> extends BaseIdenti
 	abstract hasOptionExplicit: boolean;
 
 	settings: DocumentSettings;
-	// foldingRangeCapability: FoldingRangeCapability;
 	symbolInformationCapability: SymbolInformationCapability;
 
 	constructor(ctx: T, doc: TextDocument, documentSettings: DocumentSettings, symbolKind: SymbolKind) {
 		super(ctx, doc);
 		this.settings = documentSettings;
-		// this.foldingRangeCapability = new FoldingRangeCapability(this);
 		this.symbolInformationCapability = new SymbolInformationCapability(this, symbolKind);
 		this.scopeItemCapability = new ScopeItemCapability(this, ItemType.MODULE);
 	}
