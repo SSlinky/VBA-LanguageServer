@@ -3,12 +3,14 @@ import { Logger, IWorkspace, ILanguageServer } from './interface';
 import { LspLogger } from '../utils/logger';
 import { _Connection, createConnection, ProposedFeatures } from 'vscode-languageserver/node';
 import { ScopeItemCapability } from '../capabilities/capabilities';
+import { CodeActionsRegistry } from '../capabilities/codeActions';
 
 
 export class Services {
 	static registerServices(): void {
 		container.registerSingleton("ILogger", LspLogger);
 		container.registerInstance("_Connection", createConnection(ProposedFeatures.all));
+		container.registerSingleton("CodeActions", CodeActionsRegistry);
 	}
 
 	static registerProjectScope(scope: ScopeItemCapability): void {
@@ -33,6 +35,10 @@ export class Services {
 
 	static get server(): ILanguageServer {
 		return container.resolve("ILanguageServer");
+	}
+
+	static get codeActionsRegistry(): CodeActionsRegistry {
+		return container.resolve("CodeActions");
 	}
 
 	static get projectScope(): ScopeItemCapability {

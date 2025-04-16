@@ -82,7 +82,7 @@ export class LanguageServerConfiguration {
 		// },
 
 		// Implement soon.
-		codeActionProvider: false,
+		codeActionProvider: true,
 		completionProvider: undefined,
 		hoverProvider: false,
 
