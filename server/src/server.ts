@@ -70,7 +70,6 @@ export class LanguageServer implements ILanguageServer {
 
 
 export class LanguageServerConfiguration {
-	params: InitializeParams;
 	capabilities: ServerCapabilities<any> = {
 		// Implemented
 		documentSymbolProvider: true,
@@ -111,9 +110,7 @@ export class LanguageServerConfiguration {
 		experimental: undefined,
 	};
 
-	constructor(params: InitializeParams) {
-		this.params = params;
-	}
+	constructor(public params: InitializeParams) { }
 }
 
 
