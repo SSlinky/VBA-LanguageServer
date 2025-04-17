@@ -56,10 +56,8 @@ export interface ExtensionConfiguration {
 @injectable()
 export class Workspace implements IWorkspace {
 	private events?: WorkspaceEvents;
-	private documents: BaseProjectDocument[] = [];
 	private parseCancellationTokenSource?: CancellationTokenSource;
 
-	private _activeDocument?: BaseProjectDocument;
 	private readonly _hasConfigurationCapability: boolean;
 	private _extensionConfiguration?: ExtensionConfiguration;
 
@@ -82,10 +80,6 @@ export class Workspace implements IWorkspace {
 		})();
 	}
 
-	get activeDocument() {
-		return this._activeDocument;
-	}
-
 	constructor(
 		@inject("_Connection") public readonly connection: _Connection,
 		@inject("ILanguageServer") private server: ILanguageServer) {
@@ -101,27 +95,16 @@ export class Workspace implements IWorkspace {
 		Services.registerProjectScope(projectScope);
 	}
 
-	activateDocument(document?: BaseProjectDocument) {
-		if (document) {
-			this._activeDocument = document;
-		}
-	}
-
-	async parseDocument(document?: BaseProjectDocument) {
-		this.activateDocument(document);
+	async parseDocument(document: BaseProjectDocument) {
+		// this.activateDocument(document);
 		this.parseCancellationTokenSource?.cancel();
 		this.parseCancellationTokenSource = new CancellationTokenSource();
 
-		if (!this.activeDocument) {
-			this.logger.error('No active document.');
-			return;
-		}
-
 		// Exceptions thrown by the parser should be ignored.
 		try {
-			await this.activeDocument.parseAsync(this.parseCancellationTokenSource.token);
-			this.logger.info(`Parsed ${this.activeDocument.name}`);
-			this.connection.sendDiagnostics(this.activeDocument.languageServerDiagnostics());
+			await document.parse(this.parseCancellationTokenSource.token);
+			this.logger.info(`Parsed ${document.name}`);
+			this.connection.sendDiagnostics(document.languageServerDiagnostics());
 		} catch (e) {
 			if (e instanceof ParseCancellationException) {
 				// Swallow cancellation exceptions. They're good. We like these.
@@ -135,14 +118,12 @@ export class Workspace implements IWorkspace {
 		this.parseCancellationTokenSource = undefined;
 	}
 
-	async formatParseDocument(document: TextDocument): Promise<VbaFmtListener | undefined> {
-		this.parseCancellationTokenSource?.cancel();
-		this.parseCancellationTokenSource = new CancellationTokenSource();
-
+	async formatParseDocument(document: TextDocument, token: CancellationToken): Promise<VbaFmtListener | undefined> {
 		// Exceptions thrown by the parser should be ignored.
 		let result: VbaFmtListener | undefined;
 		try {
-			result = await this.activeDocument?.formatParseAsync(this.parseCancellationTokenSource.token);
+			const projectDocument = this.projectDocuments.get(document.uri);
+			result = await projectDocument?.formatParse(token);
 			this.logger.info(`Formatted ${document.uri}`);
 		}
 		catch (e) {
@@ -163,6 +144,7 @@ export class Workspace implements IWorkspace {
 		const projectDocument = this.projectDocuments.get(document.uri);
 		if (document.version === projectDocument?.version) {
 			projectDocument.open();
+			this.parseDocument(projectDocument);
 			this.connection.sendDiagnostics(projectDocument.languageServerDiagnostics());
 		}
 	}
