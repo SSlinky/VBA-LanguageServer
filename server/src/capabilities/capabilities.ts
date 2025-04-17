@@ -163,7 +163,9 @@ export enum ItemType {
 	APPLICATION,
 	/** The user's project. */
 	PROJECT,
-	/** Class/Module/Form. */
+	/** Class/Form. */
+	CLASS,
+	/** Module. */
 	MODULE,
 	/** Function declaration. */
 	FUNCTION,
@@ -444,7 +446,7 @@ export class ScopeItemCapability {
 
 	/** Returns the module this scope item falls under */
 	get module(): ScopeItemCapability | undefined {
-		if (this.type == ItemType.MODULE) {
+		if (this.type === ItemType.MODULE || this.type === ItemType.CLASS) {
 			return this;
 		}
 		return this.parent?.module;
@@ -519,10 +521,12 @@ export class ScopeItemCapability {
 		/**
 		 * Visibility on a method-scoped variable does nothing but isn't invalid.
 		 * These should declare as if they're private and raise a warning.
+		 * 
+		 * Only MODULE scoped items are accessible implicitly in PROJECT scope and therefore
+		 * only they should be 'escalated' to that scope.
 		 */
-
 		const getParent = (item: ScopeItemCapability): ScopeItemCapability =>
-			(item.isPublicScope ? this.project : this) ?? this;
+			(item.isPublicScope && this.type === ItemType.MODULE ? this.project : this) ?? this;
 
 		// Method-scoped variables are always private. 
 		if (this.isMethodScope && item.type === ItemType.VARIABLE && item.isPublicScope) {
@@ -594,7 +598,7 @@ export class ScopeItemCapability {
 		}
 
 		// Handle module registration
-		if (item.type === ItemType.MODULE) {
+		if (item.type === ItemType.MODULE || item.type === ItemType.CLASS) {
 			item.parent.modules ??= new Map();
 			item.parent.addItem(item.parent.modules, item);
 			return item;

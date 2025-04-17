@@ -30,6 +30,7 @@ abstract class BaseModuleElement<T extends ParserRuleContext> extends BaseIdenti
 	abstract attrubutes: ParserRuleContext[];
 	abstract diagnosticCapability: DiagnosticCapability;
 	abstract hasOptionExplicit: boolean;
+	abstract scopeItemCapability: ScopeItemCapability;
 
 	settings: DocumentSettings;
 	symbolInformationCapability: SymbolInformationCapability;
@@ -38,7 +39,6 @@ abstract class BaseModuleElement<T extends ParserRuleContext> extends BaseIdenti
 		super(ctx, doc);
 		this.settings = documentSettings;
 		this.symbolInformationCapability = new SymbolInformationCapability(this, symbolKind);
-		this.scopeItemCapability = new ScopeItemCapability(this, ItemType.MODULE);
 	}
 
 	// Helpers
@@ -104,6 +104,7 @@ abstract class BaseModuleElement<T extends ParserRuleContext> extends BaseIdenti
 export class ModuleElement extends BaseModuleElement<ProceduralModuleContext> {
 	diagnosticCapability: DiagnosticCapability;
 	identifierCapability: IdentifierCapability;
+	scopeItemCapability: ScopeItemCapability;
 
 	attrubutes: ParserRuleContext[];
 	hasOptionExplicit: boolean;
@@ -112,6 +113,7 @@ export class ModuleElement extends BaseModuleElement<ProceduralModuleContext> {
 		super(ctx, doc, documentSettings, SymbolKind.File);
 		this.attrubutes = ctx.proceduralModuleHeader().proceduralModuleAttr();
 		this.diagnosticCapability = new DiagnosticCapability(this);
+		this.scopeItemCapability = new ScopeItemCapability(this, ItemType.MODULE);
 
 		this.hasOptionExplicit = this.evaluateHasOptionExplicit(ctx
 			.proceduralModuleBody()
@@ -142,6 +144,7 @@ export class ModuleElement extends BaseModuleElement<ProceduralModuleContext> {
 export class ClassElement extends BaseModuleElement<ClassModuleContext> {
 	diagnosticCapability: DiagnosticCapability;
 	identifierCapability: IdentifierCapability;
+	scopeItemCapability: ScopeItemCapability;
 
 	attrubutes: ParserRuleContext[];
 	hasOptionExplicit: boolean;
@@ -154,6 +157,7 @@ export class ClassElement extends BaseModuleElement<ClassModuleContext> {
 			ctx.classModuleHeader().ignoredClassAttr()
 		].flat();
 		this.diagnosticCapability = new DiagnosticCapability(this);
+		this.scopeItemCapability = new ScopeItemCapability(this, ItemType.CLASS);
 
 		this.hasOptionExplicit = this.evaluateHasOptionExplicit(ctx
 			.classModuleBody()
