@@ -1,0 +1,37 @@
+{
+  "name": "vscode-theme-seti-vba",
+  "private": true,
+  "version": "1.1.0-vba",
+  "displayName": "%displayName%",
+  "description": "%description%",
+  "publisher": "vscode",
+  "license": "MIT",
+  "icon": "icons/seti-circular-128x128.png",
+  "scripts": {
+    "update": "node ./build/update-icon-theme.js",
+    "build": "vsce package"
+  },
+  "engines": {
+    "vscode": "*"
+  },
+  "categories": [
+    "Themes"
+  ],
+  "contributes": {
+    "iconThemes": [
+      {
+        "id": "vs-seti-vba",
+        "label": "%themeLabel%",
+        "path": "./icons/vs-seti-icon-theme.json"
+      }
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/microsoft/vscode.git"
+  },
+  "devDependencies": {
+    "minimatch": "^3.0.4",
+    "vsce": "^2.15.0"
+  }
+}
