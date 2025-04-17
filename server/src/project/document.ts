@@ -173,14 +173,14 @@ export abstract class BaseProjectDocument {
 
 	async formatParseVisit(token: CancellationToken): Promise<VbaFmtListener> {
 		try {
-			return await (new SyntaxParser(Services.logger)).formatParseAsync(token, this);
+			return await (new SyntaxParser(Services.logger)).formatParse(token, this);
 		} catch (e) {
 			Services.logger.debug('caught doc');
 			throw e;
 		}
 	}
 
-	async parseAsync(token: CancellationToken): Promise<void> {
+	async parse(token: CancellationToken): Promise<void> {
 		// Don't parse oversize documents.
 		if (await this.isOversize) {
 			Services.logger.debug(`Document oversize: ${this.textDocument.lineCount} lines.`);
@@ -190,7 +190,7 @@ export abstract class BaseProjectDocument {
 		}
 
 		// Parse the document.
-		await (new SyntaxParser(Services.logger)).parseAsync(token, this);
+		await (new SyntaxParser(Services.logger)).parse(token, this);
 		const projectScope = this.currentScope.project;
 		const buildScope = projectScope?.isDirty ? projectScope : this.currentScope;
 		buildScope.build();
@@ -203,7 +203,7 @@ export abstract class BaseProjectDocument {
 		this._isBusy = false;
 	};
 
-	async formatParseAsync(token: CancellationToken): Promise<VbaFmtListener | undefined> {
+	async formatParse(token: CancellationToken): Promise<VbaFmtListener | undefined> {
 		// Don't parse oversize documents.
 		if (await this.isOversize) {
 			Services.logger.debug(`Document oversize: ${this.textDocument.lineCount} lines.`);
@@ -212,7 +212,7 @@ export abstract class BaseProjectDocument {
 		}
 
 		// Parse the document.
-		return await (new SyntaxParser(Services.logger)).formatParseAsync(token, this);
+		return await (new SyntaxParser(Services.logger)).formatParse(token, this);
 	}
 
 	/**
