@@ -20,13 +20,14 @@ import {
 	SymbolInformation,
 	TextDocuments,
 	TextEdit,
+	WorkspaceFolder,
 	WorkspaceFoldersChangeEvent,
 	_Connection
 } from 'vscode-languageserver';
 
 import { BaseProjectDocument } from './document';
 import { hasWorkspaceConfigurationCapability } from '../capabilities/workspaceFolder';
-import { sleep } from '../utils/helpers';
+import { sleep, walk } from '../utils/helpers';
 import { ParseCancellationException } from 'antlr4ng';
 import { getFormattingEdits } from './formatter';
 import { VbaFmtListener } from './parser/vbaListener';
@@ -35,6 +36,7 @@ import { inject, injectable } from 'tsyringe';
 import { Logger, ILanguageServer, IWorkspace } from '../injection/interface';
 import { Services } from '../injection/services';
 import { ItemType, ScopeItemCapability } from '../capabilities/capabilities';
+import { SyntaxParser } from './parser/vbaParser';
 
 export interface ExtensionConfiguration {
 	maxDocumentLines: number;
@@ -93,6 +95,52 @@ export class Workspace implements IWorkspace {
 		const applicationScope = new ScopeItemCapability(undefined, ItemType.APPLICATION, undefined, languageScope);
 		const projectScope = new ScopeItemCapability(undefined, ItemType.PROJECT, undefined, applicationScope);
 		Services.registerProjectScope(projectScope);
+	}
+
+	// Initially parse everything in the folder.
+	// ToDo: Handle removal of a workspace folder.
+	async addWorkspaceFolder(params: WorkspaceFolder): Promise<void> {
+		this.logger.info(`Adding workspace: ${params.name}`);
+		const workspaceFiles = walk(params.uri, /\.(cls|bas|frm)$/i);
+
+		// No need to continue if we have no files.
+		if (workspaceFiles.size === 0) {
+			return;
+		}
+
+		// Set up parser and dummy token because we won't cancel this.
+		const parser = new SyntaxParser(this.logger);
+		const token = new CancellationTokenSource().token;
+		
+		// Handle each file in the workspace.
+		for (const [uri, file] of workspaceFiles) {
+			// Don't parse files that we're already tracking.
+			if (this.projectDocuments.has(uri)) {
+				this.logger.debug(`Skipping file: ${uri}`, 1);
+				continue;
+			}
+
+			try {
+				// Read and parse the project document.
+				this.logger.debug(`Reading file: ${uri}`, 1);
+				const textDocument = TextDocument.create(`${uri}`, 'vba', 1, file);
+				const projectDocument = BaseProjectDocument.create(textDocument);
+				await parser.parse(token, projectDocument);
+				this.projectDocuments.set(uri, projectDocument);
+				this.logger.info(`Parsed ${projectDocument.name}`, 1);
+			} catch (e) {
+				// Log errors and anything else without failing.
+				this.logger.warn(`Failed to parse ${uri}`);
+				if (e instanceof Error) {
+					this.logger.stack(e);
+				} else {
+					this.logger.error(`Something went wrong: ${e}`);
+				}
+			}
+		}
+
+		// Rebuild scopes from Project level.
+		Services.projectScope.build();
 	}
 
 	async parseDocument(document: BaseProjectDocument) {
@@ -361,6 +409,11 @@ class WorkspaceEvents {
 			);
 			connection.client.register(DidChangeConfigurationNotification.type, undefined);
 		}
+
+		// Read workspace folders if we have them.
+		Services.server.configuration?.params
+			.workspaceFolders?.forEach(folder => setImmediate(() =>
+				Services.workspace.addWorkspaceFolder(folder)));
 	}
 
 	private async onDocumentFormatting(params: DocumentFormattingParams, token: CancellationToken): Promise<TextEdit[]> {
