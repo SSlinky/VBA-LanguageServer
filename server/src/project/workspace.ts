@@ -280,7 +280,7 @@ class WorkspaceEvents {
 		connection.onHover(params => this.onHover(params));
 		connection.onDocumentFormatting(async (params, token) => await this.onDocumentFormatting(params, token));
 		connection.onDidCloseTextDocument(params => { Services.logger.debug('[event] onDidCloseTextDocument'); Services.logger.debug(JSON.stringify(params), 1); });
-		connection.onCodeAction((params, token) => this.onCodeActionRequest(params, token));
+		connection.onCodeAction(async (params, token) => this.onCodeActionRequest(params, token));
 
 		if (hasWorkspaceConfigurationCapability(Services.server)) {
 			connection.onFoldingRanges(async (params, token) => await cancellableOnFoldingRanges(params, token));
