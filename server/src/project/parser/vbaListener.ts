@@ -91,7 +91,7 @@ export class VbaListener extends vbaListener {
         this.document = document;
     }
 
-    static async createAsync(document: VbaClassDocument | VbaModuleDocument): Promise<VbaListener> {
+    static async create(document: VbaClassDocument | VbaModuleDocument): Promise<VbaListener> {
         const result = new VbaListener(document);
         await result.ensureHasSettingsAsync();
         return result;
@@ -207,7 +207,7 @@ export class VbaPreListener extends vbapreListener {
         this.common = new CommonParserCapability(document);
     }
 
-    static async createAsync(document: VbaClassDocument | VbaModuleDocument): Promise<VbaPreListener> {
+    static async create(document: VbaClassDocument | VbaModuleDocument): Promise<VbaPreListener> {
         const result = new VbaPreListener(document);
         await result.common.ensureHasSettingsAsync();
         return result;
@@ -277,7 +277,7 @@ export class VbaFmtListener extends vbafmtListener {
         this.indentationKeys = new Array(document.textDocument.lineCount);
     }
 
-    static async createAsync(document: VbaClassDocument | VbaModuleDocument): Promise<VbaFmtListener> {
+    static async create(document: VbaClassDocument | VbaModuleDocument): Promise<VbaFmtListener> {
         const result = new VbaFmtListener(document);
         await result.common.ensureHasSettingsAsync();
         return result;
