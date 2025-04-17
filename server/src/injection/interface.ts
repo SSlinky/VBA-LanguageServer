@@ -2,7 +2,7 @@ import { LanguageServerConfiguration } from '../server';
 import { BaseProjectDocument } from '../project/document';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { VbaFmtListener } from '../project/parser/vbaListener';
-import { CancellationToken } from 'vscode-languageserver';
+import { CancellationToken, WorkspaceFolder } from 'vscode-languageserver';
 
 export interface Logger {
 	error(msg: string, lvl?: number): void;
@@ -40,4 +40,5 @@ export interface IWorkspace {
 	parseDocument(projectDocument: BaseProjectDocument): Promise<void>;
 	openDocument(document: TextDocument): void;
 	closeDocument(document: TextDocument): void;
+	addWorkspaceFolder(params: WorkspaceFolder): void;
 }
