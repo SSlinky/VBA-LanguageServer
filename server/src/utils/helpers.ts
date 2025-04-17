@@ -1,3 +1,8 @@
+import * as fs from 'fs';
+import * as path from 'path';
+import { Services } from '../injection/services';
+import { fileURLToPath } from 'url';
+
 export class Dictionary<K, V> extends Map<K, V> {
 	private defaultFactory: (...args: any) => V;
 
@@ -34,4 +39,22 @@ export function ioEvents(): Promise<void> {
 
 export function sleep(ms: number): Promise<unknown> {
 	return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+export function walk(uri: string, pattern?: RegExp, files?: Map<string, string>): Map<string, string>
+export function walk(dir: string, pattern?: RegExp, files?: Map<string, string>): Map<string, string>
+export function walk(dirOrUri: string, pattern?: RegExp, files: Map<string, string> = new Map()): Map<string, string> {
+	Services.logger.debug(`Walking ${dirOrUri}`);
+	const dir = dirOrUri.startsWith('file://') ? fileURLToPath(dirOrUri) : dirOrUri;
+
+	for (const name of fs.readdirSync(dir)) {
+		const p = path.join(dir, name);
+		if (fs.statSync(p).isDirectory()) {
+			walk(p, pattern, files);
+		} else if (pattern?.test(name) ?? true) {
+			Services.logger.debug(`Found ${p}`, 1);
+			files.set(p, fs.readFileSync(p, 'utf-8'));
+		}
+	}
+	return files;
 }
