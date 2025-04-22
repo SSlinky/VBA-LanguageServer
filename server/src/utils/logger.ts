@@ -28,7 +28,7 @@ export class LspLogger implements Logger {
 	info = (msg: string, lvl?: number) => this.emit(LogLevel.info, msg, lvl);
 	log = (msg: string, lvl?: number) => this.emit(LogLevel.log, msg, lvl);
 	debug = (msg: string, lvl?: number) => this.emit(LogLevel.debug, msg, lvl);
-	stack = (e: Error) => this.emit(LogLevel.error, `${e.name}: ${e.message}\n${e.stack}`);
+	stack = (e: Error, onlyWarn?: boolean) => this.emit(onlyWarn ? LogLevel.warn : LogLevel.error, `${e.name}: ${e.message}\n${e.stack}`);
 
 	private emit(logLevel: LogLevel, msgText: string, msgLevel?: number): void {
 		// Async get the configuration and then emit.

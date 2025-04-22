@@ -10,7 +10,7 @@ export interface Logger {
 	info(msg: string, lvl?: number): void;
 	log(msg: string, lvl?: number): void;
 	debug(msg: string, lvl?: number): void;
-	stack(e: Error): void;
+	stack(e: Error, onlyWarn?: boolean): void;
 }
 
 export interface ClientConfiguration {
