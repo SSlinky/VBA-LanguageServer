@@ -8,7 +8,7 @@ import * as assert from 'assert';
 import { getDocUri, activate, runOnActivate } from './helper';
 import { toRange } from './util';
 
-suite('Should get code actions', () => {
+suite('Should get module code actions', () => {
 	test('actions.module.missingOptionExplicitCodeAction', async () => {
 		const docUri = getDocUri('EmptyModule.bas');
 		const edits = new vscode.WorkspaceEdit();
