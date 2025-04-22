@@ -5,12 +5,12 @@ import { VbaFmtListener } from '../project/parser/vbaListener';
 import { CancellationToken, WorkspaceFolder } from 'vscode-languageserver';
 
 export interface Logger {
-	error(msg: string, lvl?: number): void;
-	warn(msg: string, lvl?: number): void;
-	info(msg: string, lvl?: number): void;
-	log(msg: string, lvl?: number): void;
-	debug(msg: string, lvl?: number): void;
-	stack(e: Error, onlyWarn?: boolean): void;
+	error(msg: string, lvl?: number, e?: unknown): void;
+	warn(msg: string, lvl?: number, e?: unknown): void;
+	info(msg: string, lvl?: number, e?: unknown): void;
+	log(msg: string, lvl?: number, e?: unknown): void;
+	debug(msg: string, lvl?: number, e?: unknown): void;
+	stack(e: Error): void;
 }
 
 export interface ClientConfiguration {

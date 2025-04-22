@@ -66,13 +66,7 @@ export function walk(dirOrUri: string, pattern?: RegExp, files: Map<string, stri
 		// Check if we have a directory. This can occasionally throw at an OS level.
 		let pIsDirectory: boolean | undefined;
 		try { pIsDirectory = fs.statSync(p).isDirectory(); }
-		catch (e) {
-			Services.logger.warn(`The OS threw an exception checking whether ${p} is a directory.`);
-			if (e instanceof Error) {
-				Services.logger.stack(e, true);
-				continue;
-			}
-		}
+		catch (e) { Services.logger.warn(`The OS threw an exception checking whether ${p} is a directory.`, 0, e); }
 		if (pIsDirectory) {
 			// Recursive call for directories.
 			walk(p, pattern, files, shouldConvertUri);
@@ -81,12 +75,7 @@ export function walk(dirOrUri: string, pattern?: RegExp, files: Map<string, stri
 			Services.logger.debug(`Found ${p}`, 1);
 			let fileContent = '';
 			try { fileContent = fs.readFileSync(p, 'utf-8'); }
-			catch (e) {
-				Services.logger.error(`The OS threw an exception reading ${p}.`);
-				if (e instanceof Error) {
-					Services.logger.stack(e);
-				}
-			}
+			catch (e) { Services.logger.error(`The OS threw an exception reading ${p}.`, 0, e); }
 			files.set(shouldConvertUri ? pathToFileURL(p).href : p, fileContent);
 		}
 	}
