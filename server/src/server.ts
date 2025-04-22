@@ -45,6 +45,10 @@ export class LanguageServer implements ILanguageServer {
 			activateSemanticTokenProvider(result);
 			return result;
 		});
+		// Register shutdown actions
+		this.connection.onShutdown(() => {});
+		this.connection.onExit(() => process.exit(0));
+
 		// Register for client configuration notification changes.
 		this.connection.onInitialized(() => { this.connection.client.register(DidChangeConfigurationNotification.type, undefined); });
 		this.connection.onDidChangeConfiguration(() => this._clientConfiguration = undefined);
