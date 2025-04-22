@@ -8,35 +8,13 @@ import * as assert from 'assert';
 import { getDocUri, activate, runOnActivate } from './helper';
 import { toRange } from './util';
 
-suite('Should get diagnostics', () => {
-	test('diagnostics.class.missingNameAttributeError', async () => {
-		await testDiagnostics(getDocUri('DiagnosticsMissingAttributeClass.cls'), [
-			{
-				message: 'Module missing attribute VB_NAME.',
-				range: toRange(4, 3, 4, 3),
-				severity: vscode.DiagnosticSeverity.Error,
-				source: 'ex'
-			}
-		]);
-	});
-
+suite('Should get module diagnostics', () => {
 	test('diagnostics.module.missingNameAttributeError', async () => {
 		await testDiagnostics(getDocUri('DiagnosticsMissingAttributeModule.bas'), [
 			{
 				message: 'Module missing attribute VB_NAME.',
 				range: toRange(1, 0, 1, 0),
 				severity: vscode.DiagnosticSeverity.Error,
-				source: 'ex'
-			}
-		]);
-	});
-
-	test('diagnostics.class.noOptionExplicitWarning', async () => {
-		await testDiagnostics(getDocUri('EmptyClass.cls'), [
-			{
-				message: 'Option Explicit is missing from module header.',
-				range: toRange(11, 1, 11, 1),
-				severity: vscode.DiagnosticSeverity.Warning,
 				source: 'ex'
 			}
 		]);
@@ -96,6 +74,30 @@ suite('Should get diagnostics', () => {
 				message: 'Invalid syntax: InvalidSubCall(arg)',
 				range: toRange(43, 4, 43, 23),
 				severity: vscode.DiagnosticSeverity.Error,
+				source: 'ex'
+			}
+		]);
+	});
+});
+
+suite('Should get class diagnostics', () => {
+	test('diagnostics.class.missingNameAttributeError', async () => {
+		await testDiagnostics(getDocUri('DiagnosticsMissingAttributeClass.cls'), [
+			{
+				message: 'Module missing attribute VB_NAME.',
+				range: toRange(4, 3, 4, 3),
+				severity: vscode.DiagnosticSeverity.Error,
+				source: 'ex'
+			}
+		]);
+	});
+
+	test('diagnostics.class.noOptionExplicitWarning', async () => {
+		await testDiagnostics(getDocUri('EmptyClass.cls'), [
+			{
+				message: 'Option Explicit is missing from module header.',
+				range: toRange(11, 1, 11, 1),
+				severity: vscode.DiagnosticSeverity.Warning,
 				source: 'ex'
 			}
 		]);

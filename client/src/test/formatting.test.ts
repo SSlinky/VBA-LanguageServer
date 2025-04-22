@@ -3,7 +3,7 @@ import * as assert from 'assert';
 import { getDocUri, activate, runOnActivate } from './helper';
 import { toRange } from './util';
 
-suite('Should get text edits', () => {
+suite('Should get class text edits', () => {
 	test('formatting.class.template', async () => {
 		await testTextEdits(getDocUri('FormatTemplateClass.cls'), [
 			{range: toRange(3, 0, 3, 0), newText: '  '},
@@ -12,7 +12,9 @@ suite('Should get text edits', () => {
 			{range: toRange(8, 0, 8, 8), newText: ''}
 		]);
 	});
+});
 
+suite('Should get module text edits', () => {
 	test('formatting.module.directives', async () => {
 		await testTextEdits(getDocUri('FormatPrecompilerDirectives.bas'), [
 			// Staggered (half) indentation.
