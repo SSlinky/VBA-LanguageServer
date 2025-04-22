@@ -41,20 +41,53 @@ export function sleep(ms: number): Promise<unknown> {
 	return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-export function walk(uri: string, pattern?: RegExp, files?: Map<string, string>): Map<string, string>
-export function walk(dir: string, pattern?: RegExp, files?: Map<string, string>): Map<string, string>
-export function walk(dirOrUri: string, pattern?: RegExp, files: Map<string, string> = new Map()): Map<string, string> {
+/**
+ * Recursively walks a directory structure and returns a map of file path to string content.
+ * @param dirOrUri A directory as a path or 'file://' uri.
+ * @param pattern A predicate to filter results.
+ * @param files Used for internal recursive calls.
+ * @param wasUriConverted Used for internal recursive calls.
+ */
+export function walk(uri: string, pattern?: RegExp, files?: Map<string, string>, wasUriConverted?: boolean): Map<string, string>
+export function walk(dir: string, pattern?: RegExp, files?: Map<string, string>, wasUriConverted?: boolean): Map<string, string>
+export function walk(dirOrUri: string, pattern?: RegExp, files: Map<string, string> = new Map(), wasUriConverted?: boolean): Map<string, string> {
 	Services.logger.debug(`Walking ${dirOrUri}`);
-	const isUri = dirOrUri.startsWith('file://');
-	const dir = isUri ? fileURLToPath(dirOrUri) : dirOrUri;
 
+	// Check whether the original directory was a dir or uri and convert as required.
+	const shouldConvertUri = wasUriConverted || (wasUriConverted === undefined && dirOrUri.startsWith('file://'));
+	const dir = (wasUriConverted === undefined && shouldConvertUri)
+		? fileURLToPath(dirOrUri)
+		: dirOrUri;
+
+	// Walk the contents of the directory.
 	for (const name of fs.readdirSync(dir)) {
 		const p = path.join(dir, name);
-		if (fs.statSync(p).isDirectory()) {
-			walk(p, pattern, files);
+
+		// Check if we have a directory. This can occasionally throw at an OS level.
+		let pIsDirectory: boolean | undefined;
+		try { pIsDirectory = fs.statSync(p).isDirectory(); }
+		catch (e) {
+			Services.logger.warn(`The OS threw an exception checking whether ${p} is a directory.`);
+			if (e instanceof Error) {
+				Services.logger.stack(e, true);
+				continue;
+			}
+		}
+		if (pIsDirectory) {
+			// Recursive call for directories.
+			walk(p, pattern, files, shouldConvertUri);
 		} else if (pattern?.test(name) ?? true) {
+			// Track files that match the pattern.
 			Services.logger.debug(`Found ${p}`, 1);
-			files.set(isUri ? pathToFileURL(p).href : p, fs.readFileSync(p, 'utf-8'));
+			let fileContent = '';
+			try { fileContent = fs.readFileSync(p, 'utf-8'); }
+			catch (e) {
+				Services.logger.error(`The OS threw an exception reading ${p}.`);
+				if (e instanceof Error) {
+					Services.logger.stack(e);
+				}
+			}
+			files.set(shouldConvertUri ? pathToFileURL(p).href : p, fileContent);
 		}
 	}
 	return files;
