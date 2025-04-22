@@ -130,12 +130,7 @@ export class Workspace implements IWorkspace {
 				this.logger.info(`Parsed ${projectDocument.name}`, 1);
 			} catch (e) {
 				// Log errors and anything else without failing.
-				this.logger.warn(`Failed to parse ${uri}`);
-				if (e instanceof Error) {
-					this.logger.stack(e);
-				} else {
-					this.logger.error(`Something went wrong: ${e}`);
-				}
+				this.logger.error(`Failed to parse ${uri}`, 0, e);
 			}
 		}
 
@@ -156,10 +151,8 @@ export class Workspace implements IWorkspace {
 		} catch (e) {
 			if (e instanceof ParseCancellationException) {
 				// Swallow cancellation exceptions. They're good. We like these.
-			} else if (e instanceof Error) {
-				this.logger.stack(e);
 			} else {
-				this.logger.error('Something went wrong.');
+				this.logger.error('Something went wrong.', 0, e);
 			}
 		}
 
@@ -177,10 +170,8 @@ export class Workspace implements IWorkspace {
 		catch (e) {
 			if (e instanceof ParseCancellationException) {
 				this.logger.debug('Parse cancelled successfully.');
-			} else if (e instanceof Error) {
-				this.logger.stack(e);
 			} else {
-				this.logger.error(`Parse failed: ${e}`);
+				this.logger.error(`Parse failed.`, 0, e);
 			}
 		}
 
