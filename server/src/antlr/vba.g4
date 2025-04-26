@@ -42,7 +42,10 @@ classBeginBlock
     ;
 
 beginBlockConfigElement
-    : endOfLine+ (OBJECT '.')? '_'? ambiguousIdentifier WS? eqOperator WS? (expression | FILEOFFSET)
+    : endOfLine+ (OBJECT '.')? '_'? ambiguousIdentifier WS? eqOperator WS? (
+        expression
+        | FILEOFFSET
+    )
     | formBeginBlock
     | beginPropertyBlock
     ;
