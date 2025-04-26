@@ -82,6 +82,7 @@ repository:
       - include: "#vbaBuiltIns"
       - include: "#literals"
       - include: "#operators"
+      - include: "#forLoop"
       - include: "#keywords"
       - include: "#functionCall"
       - include: "#subCall"
@@ -168,7 +169,6 @@ repository:
           - include: "#inlineIfElse"
           - include: "#inlineIf"
           - include: "#blockIf"
-          - include: "#forEachLoop"
           - include: "#flowLoop"
           - include: "#flowCall"
           - include: "#methodClose"
@@ -247,20 +247,8 @@ repository:
 
           flowLoop:
             name: keyword.control.flow.loop.vba
-            match: (?i)\b(do|exit\s+do|while|wend|until|loop|for|each|in|to|exit\s+for|next|with)\b
+            match: (?i)\b(do|exit\s+do|while|wend|until|loop|exit\s+for|with)\b
 
-          forEachLoop:
-            name: meta.flow.foreach.vba
-            match: (?i)\b(for\s+each)\s+(.+?)\s+(in)
-            captures:
-              1:
-                name: keyword.control.flow.loop.vba
-              2:
-                patterns:
-                  - include: "#expression"
-                  - include: "#functionCall"
-              3:
-                name: keyword.control.flow.loop.vba
           
           inlineIfElse:
             name: meta.flow.inline-if-else.vba
@@ -413,6 +401,161 @@ repository:
             name: invalid.illegal.vba
             match: "^#.*"
 
+  forLoop:
+    name: meta.flow.for-loop.vba
+    begin: (?i)\bfor\s+(?=[^'\n])
+        # end: (?i)(next)(\s*['\n]|\s+[a-z][a-z_0-9]*)
+
+    end: (?i)(next)(\s+[a-z]\w*)?
+    beginCaptures:
+      0:
+        name: keyword.control.flow.loop.vba
+    endCaptures:
+      1:
+        name: keyword.control.flow.loop.vba
+      2:
+        patterns:
+          - include: "#variable"
+    patterns:
+      - include: "#forLoopEach"
+      - include: "#forLoopIter"
+      - include: "#lineContinuation"
+
+
+  forLoopEach:
+    name: meta.for-each-loop.vba
+    begin: (?i)each\s+(?=[^'\n])
+    end: (?i)(?=(next)(['\n]|\s+[a-z][a-z_0-9]*|\s+_))
+    beginCaptures:
+      0:
+        name: keyword.control.flow.loop.vba
+    patterns:
+      - include: "#forLoopEachVar"
+      - include: "#lineContinuation"
+
+  forLoopEachVar:
+    name: meta.forLoopEachVar.vba
+    begin: (?i)[\w]*
+    end: (?i)(?=(next)(['\n]|\s+[a-z][a-z_0-9]*|\s+_))
+    beginCaptures:
+      0:
+        patterns:
+          - include: "#variable"
+    patterns:
+      - include: "#lineContinuation"
+      - include: "#forLoopEachIn"
+      - include: "#variable"
+
+  forLoopEachIn:
+    name: meta.forLoopEachIn.vba
+    begin: (?i)in\s+
+    end: (?i)(?=(next)(['\n]|\s+[a-z][a-z_0-9]*|\s+_))
+    beginCaptures:
+      0:
+        name: keyword.control.flow.loop.vba
+    patterns:
+      - include: "#lineContinuation"
+      - include: "#forLoopEachSet"
+
+  forLoopEachSet:
+    name: meta.forLoopEachSet.vba
+    begin: (?i)[.\w()]*
+    end: (?i)(?=(next)(['\n]|\s+[a-z][a-z_0-9]*|\s+_))
+    beginCaptures:
+      0:
+        patterns:
+          - include: "#functionCall"
+          - include: "#variable"
+    patterns:
+      - include: "#block"
+
+  forLoopIter:
+    name: meta.for-iterator-loop.vba
+    begin: (?i)[a-z][\w]*
+    end: (?i)(?=(next)(['\n]|\s+[a-z][a-z_0-9]*|\s+_))
+    beginCaptures:
+      0:
+        patterns:
+          - include: "#variable"
+    patterns:
+      - include: "#lineContinuation"
+      - include: "#forLoopIterAssignment"
+
+  forLoopIterAssignment:
+    name: meta.forLoopIterAssignment.vba
+    begin: =
+    end: (?i)(?=(next)(['\n]|\s+[a-z][a-z_0-9]*|\s+_))
+    beginCaptures:
+      0:
+        name: keyword.operator.assignment.vba
+    patterns:
+      - include: "#lineContinuation"
+      - include: "#forLoopIterAssignRangeFrom"
+
+  forLoopIterAssignRangeFrom:
+    name: meta.forLoopIterAssignRangeFrom.vba
+    begin: (?i)[-.\w()]+
+    end: (?i)(?=(next)(['\n]|\s+[a-z][a-z_0-9]*|\s+_))
+    beginCaptures:
+      0:
+        patterns:
+          - include: "#functionCall"
+          - include: "#variable"
+          - include: "#literals"
+    patterns:
+      - include: "#lineContinuation"
+      - include: "#forLoopIterAssignTo"
+    
+  forLoopIterAssignTo:
+    name: meta.forLoopIterAssignTo.vba
+    begin: (?i)to
+    end: (?i)(?=(next)(['\n]|\s+[a-z][a-z_0-9]*|\s+_))
+    beginCaptures:
+      0:
+        name: keyword.control.flow.loop.vba
+    patterns:
+      - include: "#lineContinuation"
+      - include: "#forLoopIterAssignRangeTo"
+
+  forLoopIterAssignRangeTo:
+    name: meta.forLoopIterAssignRangeTo.vba
+    begin: (?i)[-.\w()]+
+    end: (?i)(?=(next)(['\n]|\s+[a-z][a-z_0-9]*|\s+_))
+    beginCaptures:
+      0:
+        patterns:
+          - include: "#functionCall"
+          - include: "#variable"
+          - include: "#literals"
+    patterns:
+      - include: "#lineContinuation"
+      - include: "#forLoopIterRangeStep"
+      - include: "#block"
+
+  forLoopIterRangeStep:
+    name: meta.forLoopIterRangeStep.vba
+    begin: (?i)step
+    end: (?i)(?=(next)(['\n]|\s+[a-z][a-z_0-9]*|\s+_))
+    beginCaptures:
+      0:
+        name: keyword.control.flow.loop.vba
+    patterns:
+      - include: "#lineContinuation"
+      - include: "#forLoopIterRangeStepAmount"
+
+  forLoopIterRangeStepAmount:
+    name: meta.forLoopIterRangeStepAmount.vba
+    begin: (?i)[-.\w()]+
+    end: (?i)(?=(next)(['\n]|\s+[a-z][a-z_0-9]*|\s+_))
+    beginCaptures:
+      0:
+        patterns:
+          - include: "#functionCall"
+          - include: "#variable"
+          - include: "#literals"
+    patterns:
+      - include: "#block"
+
   flowCase:
     begin: (?i)case(\s+else)?
     end: (?=[\n:'])
@@ -423,7 +566,6 @@ repository:
       - include: "#expressionList"
 
   labels:
-    # name: variable.other.constant.label.vba
     match: '(?i)^(\s*[a-z][a-z0-9_]*|\d+):'
     captures:
       1:
@@ -990,21 +1132,27 @@ repository:
       - include: "#language"
       - include: "#lineContinuation"
 
+  accessorPunctuation:
+    name: punctuation.accessor.vba
+    match: (?i)\.
+
   propertyChain:
     match: (?i)(\.)([a-z][a-z0-9_]*)*
     captures:
       1:
-        name: punctuation.accessor.vba
+        patterns:
+          - include: "#accessorPunctuation"
       2:
         name: support.variable.property.vba
 
   variable:
     name: meta.variable-or-property.vba
-    match: (?i)(?:(?:(\bMe\b)|([a-z][a-z0-9_]*)))((?:\.(?:[a-z][a-z0-9_]*))+)?
+    match: (?i)(?:(?:(\bMe\b|\.)|([a-z][a-z0-9_]*)))((?:\.(?:[a-z][a-z0-9_]*))+)?
     captures:
       1:
         patterns:
           - include: "#keywords"
+          - include: "#accessorPunctuation"
       2:
         patterns:
           - name: variable.other.constant
