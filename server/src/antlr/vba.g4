@@ -42,7 +42,10 @@ classBeginBlock
     ;
 
 beginBlockConfigElement
-    : endOfLine+ (OBJECT '.')? '_'? ambiguousIdentifier WS? eqOperator WS? (expression | FILEOFFSET)
+    : endOfLine+ (OBJECT '.')? '_'? ambiguousIdentifier WS? eqOperator WS? (
+        expression
+        | FILEOFFSET
+    )
     | formBeginBlock
     | beginPropertyBlock
     ;
@@ -858,6 +861,10 @@ identifierStatementLabel
     : ambiguousIdentifier
     ;
 
+resetNumberLable
+    : MINUS INTEGERLITERAL
+    ;
+
 lineNumberLabel
     : INTEGERLITERAL
     ;
@@ -1305,6 +1312,7 @@ onErrorStatement
 errorBehavior
     : RESUME wsc NEXT
     | GOTO wsc? statementLabel
+    | GOTO wsc? resetNumberLable
     ;
 
 // 5.4.4.2 Resume Statement
