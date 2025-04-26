@@ -40,7 +40,7 @@ Public Type MyFooType 'Comment
  'Comment
     Length As Long 'Comment
      'Comment
-     
+
     Length As Long 'Comment
      'Comment
 End Type 'Comment
@@ -679,7 +679,7 @@ Attribute TestDictionary_RemoveRemovesKey.VB_Description = "Test that remove rem
     d.Add INPKEYB, Nothing
 
 '   Act
-    d.Remove(INPKEYA)
+    d.Remove INPKEYA
 
 '   Assert
     On Error Resume Next
