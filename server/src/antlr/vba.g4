@@ -861,7 +861,7 @@ identifierStatementLabel
     : ambiguousIdentifier
     ;
 
-resetNumberLable
+resetNumberLabel
     : MINUS INTEGERLITERAL
     ;
 
@@ -1312,7 +1312,7 @@ onErrorStatement
 errorBehavior
     : RESUME wsc NEXT
     | GOTO wsc? statementLabel
-    | GOTO wsc? resetNumberLable
+    | GOTO wsc? resetNumberLabel
     ;
 
 // 5.4.4.2 Resume Statement
