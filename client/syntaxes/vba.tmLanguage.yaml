@@ -83,6 +83,7 @@ repository:
       - include: "#vbaBuiltIns"
       - include: "#literals"
       - include: "#operators"
+      - include: "#openStatement"
       - include: "#forLoop"
       - include: "#keywords"
       - include: "#functionCall"
@@ -401,6 +402,190 @@ repository:
           directiveIllegal:
             name: invalid.illegal.vba
             match: "^#.*"
+
+  openStatement:
+    name: meta.open-statement.vba
+    begin: (?i)open\b
+    end: (?i)(?<!_)(?=\n|:|\s*')
+    beginCaptures:
+      0:
+        name: keyword.control.open.vba
+    patterns:
+      - include: "#openStatementPath"
+      - include: "#lineContinuation"
+
+  openStatementPath:
+    name: meta.openStatementPath.vba
+    begin: (?i)[a-z\."]\S*\s+
+    end: (?i)(?<!_)(?=\n|:|\s*')
+    beginCaptures:
+      0:
+        patterns:
+          - include: "#functionCall"
+          - include: "#variable"
+          - include: "#literals"
+    patterns:
+      - include: "#openStatementFor"
+      - include: "#lineContinuation"
+
+  openStatementFor:
+    name: meta.openStatementFor.vba
+    begin: (?i)for(?=[^\S\n])
+    end: (?i)(?<!_)(?=\n|:|\s*')
+    beginCaptures:
+      0:
+        name: keyword.control.vba
+    patterns:
+      - include: "#openStatementMode"
+      - include: "#lineContinuation"
+
+  openStatementMode:
+    name: meta.openStatementMode.vba
+    begin: (?i)(append|binary|input|output|random)(?=[^\S\r\n]|$)
+    end: (?i)(?i)(?<!_)(?=\n|:|\s*')
+    beginCaptures:
+      0:
+        name: storage.type.vba
+    patterns:
+      - include: "#openStatementAccess"
+      - include: "#openStatementShared"
+      - include: "#openStatementLock"
+      - include: "#openStatementAs"
+      - include: "#lineContinuation"
+
+  openStatementAccess:
+    name: meta.openStatementAccess.vba
+    begin: (?i)(access)(?=[^\S\r\n]|$)
+    end: (?i)(?i)(?<!_)(?=\n|:|\s*')
+    beginCaptures:
+      0:
+        name: keyword.control.vba
+    patterns:
+      - include: "#openStatementAccessRead"
+      - include: "#openStatementAccessWrite"
+      - include: "#lineContinuation"
+
+  openStatementAccessRead:
+    name: meta.openStatementAccessRead.vba
+    begin: (?i)read(?=[^\S\r\n]|$)
+    end: (?i)(?i)(?<!_)(?=\n|:|\s*')
+    beginCaptures:
+      0:
+        name: storage.type.vba
+    patterns:
+      - include: "#openStatementAccessWrite"
+      - include: "#openStatementShared"
+      - include: "#openStatementLock"
+      - include: "#openStatementAs"
+      - include: "#lineContinuation"
+
+  openStatementAccessWrite:
+    name: meta.openStatementAccessWrite.vba
+    begin: (?i)write(?=[^\S\r\n]|$)
+    end: (?i)(?i)(?<!_)(?=\n|:|\s*')
+    beginCaptures:
+      0:
+        name: storage.type.vba
+    patterns:
+      - include: "#openStatementShared"
+      - include: "#openStatementLock"
+      - include: "#openStatementAs"
+      - include: "#lineContinuation"
+
+  openStatementShared:
+    name: meta.openStatementShared.vba
+    begin: (?i)shared
+    end: (?i)(?i)(?<!_)(?=\n|:|\s*')
+    beginCaptures:
+      0:
+        name: keyword.control.vba
+    patterns:
+      - include: "#openStatementAs"
+      - include: "#lineContinuation"
+
+  openStatementLock:
+    name: meta.openStatementLock.vba
+    begin: (?i)lock
+    end: (?i)(?i)(?<!_)(?=\n|:|\s*')
+    beginCaptures:
+      0:
+        name: keyword.control.vba
+    patterns:
+      - include: "#openStatementRead"
+      - include: "#openStatementWrite"
+      - include: "#lineContinuation"
+
+  openStatementRead:
+    name: meta.openStatementRead.vba
+    begin: (?i)read
+    end: (?i)(?i)(?<!_)(?=\n|:|\s*')
+    beginCaptures:
+      0:
+        name: keyword.control.vba
+    patterns:
+      - include: "#openStatementWrite"
+      - include: "#openStatementAs"
+      - include: "#lineContinuation"
+
+  openStatementWrite:
+    name: meta.openStatementWrite.vba
+    begin: (?i)write
+    end: (?i)(?i)(?<!_)(?=\n|:|\s*')
+    beginCaptures:
+      0:
+        name: keyword.control.vba
+    patterns:
+      - include: "#openStatementAs"
+      - include: "#lineContinuation"
+
+  openStatementAs:
+    name: meta.openStatementAs.vba
+    begin: (?i)as
+    end: (?i)(?i)(?<!_)(?=\n|:|\s*')
+    beginCaptures:
+      0:
+        name: keyword.control.vba
+    patterns:
+      - include: "#openStatementFileNumber"
+      - include: "#lineContinuation"
+
+  openStatementFileNumber:
+    name: meta.openStatementFileNumber.vba
+    begin: (?i)(#)(\w+)
+    end: (?i)(?i)(?<!_)(?=\n|:|\s*')
+    beginCaptures:
+      1:
+        name: support.type.primitive.vba
+      2:
+        patterns:
+          - include: "#functionCall"
+          - include: "#variable"
+          - include: "#literals"
+    patterns:
+      - include: "#openStatementLen"
+      - include: "#lineContinuation"
+
+  openStatementLen:
+    name: meta.openStatementLen.vba
+    begin: (?i)len
+    end: (?i)(?i)(?<!_)(?=\n|:|\s*')
+    beginCaptures:
+      0:
+        name: keyword.control.vba
+    patterns:
+      - include: "#openStatementLenEquals"
+      - include: "#lineContinuation"
+
+  openStatementLenEquals:
+    name: meta.openStatementLenEquals.vba
+    begin: (?i)\s+=\s+
+    end: (?i)(?i)(?<!_)(?=\n|:|\s*')
+    beginCaptures:
+      0:
+        name: keyword.operator.assignment.vba
+    patterns:
+      - include: "#expression"
+      - include: "#lineContinuation"
 
   forLoop:
     name: meta.flow.for-loop.vba
