@@ -1,8 +1,8 @@
-'  SYNTAX TEST "source.vba" "logic flow inline"
+'  SYNTAX TEST "source.vba" "logic inline"
 
 Attribute VB_Name = "Logic inline"
 
-Public Sub Foo()
+Sub Foo()
 
 ''''''''''''''''''''''''''''''''
 ' 1. Inline Ifs (without nesting)
