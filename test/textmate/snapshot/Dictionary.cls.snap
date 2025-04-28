@@ -326,7 +326,7 @@
 #^^^^ source.vba
 #    ^^^^^^^^^ source.vba meta.variable-assignment.vba meta.variable-or-property.vba variable.other.readwrite.vba
 #             ^ source.vba meta.variable-assignment.vba meta.variable-or-property.vba punctuation.accessor.vba
-#              ^^^^^^^^^^^ source.vba meta.variable-assignment.vba meta.variable-or-property.vba support.variable.property.vba
+#              ^^^^^^^^^^^ source.vba meta.variable-assignment.vba meta.variable-or-property.vba variable.other.property
 #                         ^^^ source.vba meta.variable-assignment.vba keyword.operator.assignment.vba
 #                            ^^^ source.vba meta.variable-assignment.vba meta.expression.vba meta.variable-or-property.vba variable.other.readwrite.vba
 >End Property
@@ -348,7 +348,7 @@
 #               ^^^ source.vba meta.variable-assignment.vba keyword.operator.assignment.vba
 #                  ^^^^^^^^^ source.vba meta.variable-assignment.vba meta.expression.vba meta.variable-or-property.vba variable.other.readwrite.vba
 #                           ^ source.vba meta.variable-assignment.vba meta.expression.vba meta.variable-or-property.vba punctuation.accessor.vba
-#                            ^^^^^^^^^^^ source.vba meta.variable-assignment.vba meta.expression.vba meta.variable-or-property.vba support.variable.property.vba
+#                            ^^^^^^^^^^^ source.vba meta.variable-assignment.vba meta.expression.vba meta.variable-or-property.vba variable.other.property
 >End Property
 #^^^^^^^^^^^^ source.vba storage.type.method.close.vba
 >
@@ -379,7 +379,7 @@
 #         ^^^ source.vba meta.variable-assignment.vba keyword.operator.assignment.vba
 #            ^^^^^^^^^ source.vba meta.variable-assignment.vba meta.expression.vba meta.variable-or-property.vba variable.other.readwrite.vba
 #                     ^ source.vba meta.variable-assignment.vba meta.expression.vba meta.variable-or-property.vba punctuation.accessor.vba
-#                      ^^^^^ source.vba meta.variable-assignment.vba meta.expression.vba meta.variable-or-property.vba support.variable.property.vba
+#                      ^^^^^ source.vba meta.variable-assignment.vba meta.expression.vba meta.variable-or-property.vba variable.other.property
 >End Property
 #^^^^^^^^^^^^ source.vba storage.type.method.close.vba
 >
@@ -899,13 +899,13 @@
 #                                                                   ^ source.vba meta.variable-assignment.vba meta.expression.vba meta.function.call.vba meta.arguments.vba meta.expression.vba meta.function.call.vba meta.arguments.vba
 #                                                                    ^^ source.vba meta.variable-assignment.vba meta.expression.vba meta.function.call.vba meta.arguments.vba meta.expression.vba meta.function.call.vba meta.arguments.vba meta.expression.vba meta.variable-or-property.vba variable.language.me.vba
 #                                                                      ^ source.vba meta.variable-assignment.vba meta.expression.vba meta.function.call.vba meta.arguments.vba meta.expression.vba meta.function.call.vba meta.arguments.vba meta.expression.vba meta.variable-or-property.vba punctuation.accessor.vba
-#                                                                       ^^^^^ source.vba meta.variable-assignment.vba meta.expression.vba meta.function.call.vba meta.arguments.vba meta.expression.vba meta.function.call.vba meta.arguments.vba meta.expression.vba meta.variable-or-property.vba support.variable.property.vba
+#                                                                       ^^^^^ source.vba meta.variable-assignment.vba meta.expression.vba meta.function.call.vba meta.arguments.vba meta.expression.vba meta.function.call.vba meta.arguments.vba meta.expression.vba meta.variable-or-property.vba variable.other.property
 #                                                                            ^ source.vba meta.variable-assignment.vba meta.expression.vba meta.function.call.vba meta.arguments.vba meta.expression.vba meta.function.call.vba
 #                                                                             ^ source.vba meta.variable-assignment.vba meta.expression.vba meta.function.call.vba meta.arguments.vba punctuation.separator.vba
 #                                                                              ^ source.vba meta.variable-assignment.vba meta.expression.vba meta.function.call.vba meta.arguments.vba
 #                                                                               ^^ source.vba meta.variable-assignment.vba meta.expression.vba meta.function.call.vba meta.arguments.vba meta.expression.vba meta.variable-or-property.vba variable.language.me.vba
 #                                                                                 ^ source.vba meta.variable-assignment.vba meta.expression.vba meta.function.call.vba meta.arguments.vba meta.expression.vba meta.variable-or-property.vba punctuation.accessor.vba
-#                                                                                  ^^^^^ source.vba meta.variable-assignment.vba meta.expression.vba meta.function.call.vba meta.arguments.vba meta.expression.vba meta.variable-or-property.vba support.variable.property.vba
+#                                                                                  ^^^^^ source.vba meta.variable-assignment.vba meta.expression.vba meta.function.call.vba meta.arguments.vba meta.expression.vba meta.variable-or-property.vba variable.other.property
 #                                                                                       ^ source.vba meta.variable-assignment.vba meta.expression.vba meta.function.call.vba
 >End Property
 #^^^^^^^^^^^^ source.vba storage.type.method.close.vba
@@ -959,7 +959,7 @@
 #                                    ^ source.vba meta.variable-assignment.vba meta.expression.vba meta.function.call.vba meta.arguments.vba
 #                                     ^^ source.vba meta.variable-assignment.vba meta.expression.vba meta.function.call.vba meta.arguments.vba meta.expression.vba meta.variable-or-property.vba variable.language.me.vba
 #                                       ^ source.vba meta.variable-assignment.vba meta.expression.vba meta.function.call.vba meta.arguments.vba meta.expression.vba meta.variable-or-property.vba punctuation.accessor.vba
-#                                        ^^^^^ source.vba meta.variable-assignment.vba meta.expression.vba meta.function.call.vba meta.arguments.vba meta.expression.vba meta.variable-or-property.vba support.variable.property.vba
+#                                        ^^^^^ source.vba meta.variable-assignment.vba meta.expression.vba meta.function.call.vba meta.arguments.vba meta.expression.vba meta.variable-or-property.vba variable.other.property
 #                                             ^ source.vba meta.variable-assignment.vba meta.expression.vba meta.function.call.vba meta.arguments.vba punctuation.separator.vba
 #                                              ^ source.vba meta.variable-assignment.vba meta.expression.vba meta.function.call.vba meta.arguments.vba
 #                                               ^^^^^^^^^^^^^^^^^ source.vba meta.variable-assignment.vba meta.expression.vba meta.function.call.vba meta.arguments.vba meta.expression.vba meta.variable-or-property.vba variable.other.readwrite.vba
@@ -973,7 +973,7 @@
 #                                                                             ^ source.vba meta.variable-assignment.vba meta.expression.vba meta.function.call.vba meta.arguments.vba meta.expression.vba meta.function.call.vba meta.arguments.vba
 #                                                                              ^^ source.vba meta.variable-assignment.vba meta.expression.vba meta.function.call.vba meta.arguments.vba meta.expression.vba meta.function.call.vba meta.arguments.vba meta.expression.vba meta.variable-or-property.vba variable.language.me.vba
 #                                                                                ^ source.vba meta.variable-assignment.vba meta.expression.vba meta.function.call.vba meta.arguments.vba meta.expression.vba meta.function.call.vba meta.arguments.vba meta.expression.vba meta.variable-or-property.vba punctuation.accessor.vba
-#                                                                                 ^^^^^ source.vba meta.variable-assignment.vba meta.expression.vba meta.function.call.vba meta.arguments.vba meta.expression.vba meta.function.call.vba meta.arguments.vba meta.expression.vba meta.variable-or-property.vba support.variable.property.vba
+#                                                                                 ^^^^^ source.vba meta.variable-assignment.vba meta.expression.vba meta.function.call.vba meta.arguments.vba meta.expression.vba meta.function.call.vba meta.arguments.vba meta.expression.vba meta.variable-or-property.vba variable.other.property
 #                                                                                      ^ source.vba meta.variable-assignment.vba meta.expression.vba meta.function.call.vba meta.arguments.vba meta.expression.vba meta.function.call.vba
 #                                                                                       ^ source.vba meta.variable-assignment.vba meta.expression.vba meta.function.call.vba
 >End Property
@@ -1870,7 +1870,7 @@
 #         ^^^ source.vba meta.variable-assignment.vba keyword.operator.assignment.vba
 #            ^^^^^^^^^ source.vba meta.variable-assignment.vba meta.expression.vba meta.variable-or-property.vba variable.other.readwrite.vba
 #                     ^ source.vba meta.variable-assignment.vba meta.expression.vba meta.variable-or-property.vba punctuation.accessor.vba
-#                      ^^^^^ source.vba meta.variable-assignment.vba meta.expression.vba meta.variable-or-property.vba support.variable.property.vba
+#                      ^^^^^ source.vba meta.variable-assignment.vba meta.expression.vba meta.variable-or-property.vba variable.other.property
 >End Function
 #^^^^^^^^^^^^ source.vba storage.type.method.close.vba
 >
@@ -1910,7 +1910,7 @@
 #        ^^^ source.vba meta.variable-assignment.vba keyword.operator.assignment.vba
 #           ^^^^^^^^^ source.vba meta.variable-assignment.vba meta.expression.vba meta.variable-or-property.vba variable.other.readwrite.vba
 #                    ^ source.vba meta.variable-assignment.vba meta.expression.vba meta.variable-or-property.vba punctuation.accessor.vba
-#                     ^^^^ source.vba meta.variable-assignment.vba meta.expression.vba meta.variable-or-property.vba support.variable.property.vba
+#                     ^^^^ source.vba meta.variable-assignment.vba meta.expression.vba meta.variable-or-property.vba variable.other.property
 >End Function
 #^^^^^^^^^^^^ source.vba storage.type.method.close.vba
 >
@@ -2811,7 +2811,7 @@
 #                 ^^^ source.vba meta.flow.for-loop.vba meta.for-iterator-loop.vba meta.forLoopIterAssignment.vba meta.forLoopIterAssignRangeFrom.vba meta.forLoopIterAssignTo.vba meta.forLoopIterAssignRangeTo.vba meta.block-if-else.vba meta.block-if.condition.vba meta.block-if.then.vba meta.flow.for-loop.vba meta.for-each-loop.vba meta.forLoopEachVar.vba meta.forLoopEachIn.vba keyword.control.flow.loop.vba
 #                    ^^ source.vba meta.flow.for-loop.vba meta.for-iterator-loop.vba meta.forLoopIterAssignment.vba meta.forLoopIterAssignRangeFrom.vba meta.forLoopIterAssignTo.vba meta.forLoopIterAssignRangeTo.vba meta.block-if-else.vba meta.block-if.condition.vba meta.block-if.then.vba meta.flow.for-loop.vba meta.for-each-loop.vba meta.forLoopEachVar.vba meta.forLoopEachIn.vba meta.forLoopEachSet.vba meta.variable-or-property.vba variable.language.me.vba
 #                      ^ source.vba meta.flow.for-loop.vba meta.for-iterator-loop.vba meta.forLoopIterAssignment.vba meta.forLoopIterAssignRangeFrom.vba meta.forLoopIterAssignTo.vba meta.forLoopIterAssignRangeTo.vba meta.block-if-else.vba meta.block-if.condition.vba meta.block-if.then.vba meta.flow.for-loop.vba meta.for-each-loop.vba meta.forLoopEachVar.vba meta.forLoopEachIn.vba meta.forLoopEachSet.vba meta.variable-or-property.vba punctuation.accessor.vba
-#                       ^^^^^ source.vba meta.flow.for-loop.vba meta.for-iterator-loop.vba meta.forLoopIterAssignment.vba meta.forLoopIterAssignRangeFrom.vba meta.forLoopIterAssignTo.vba meta.forLoopIterAssignRangeTo.vba meta.block-if-else.vba meta.block-if.condition.vba meta.block-if.then.vba meta.flow.for-loop.vba meta.for-each-loop.vba meta.forLoopEachVar.vba meta.forLoopEachIn.vba meta.forLoopEachSet.vba meta.variable-or-property.vba support.variable.property.vba
+#                       ^^^^^ source.vba meta.flow.for-loop.vba meta.for-iterator-loop.vba meta.forLoopIterAssignment.vba meta.forLoopIterAssignRangeFrom.vba meta.forLoopIterAssignTo.vba meta.forLoopIterAssignRangeTo.vba meta.block-if-else.vba meta.block-if.condition.vba meta.block-if.then.vba meta.flow.for-loop.vba meta.for-each-loop.vba meta.forLoopEachVar.vba meta.forLoopEachIn.vba meta.forLoopEachSet.vba meta.variable-or-property.vba variable.other.property
 >        valSize = GetValueOrArraySize(val)
 #^^^^^^^^ source.vba meta.flow.for-loop.vba meta.for-iterator-loop.vba meta.forLoopIterAssignment.vba meta.forLoopIterAssignRangeFrom.vba meta.forLoopIterAssignTo.vba meta.forLoopIterAssignRangeTo.vba meta.block-if-else.vba meta.block-if.condition.vba meta.block-if.then.vba meta.flow.for-loop.vba meta.for-each-loop.vba meta.forLoopEachVar.vba meta.forLoopEachIn.vba meta.forLoopEachSet.vba
 #        ^^^^^^^ source.vba meta.flow.for-loop.vba meta.for-iterator-loop.vba meta.forLoopIterAssignment.vba meta.forLoopIterAssignRangeFrom.vba meta.forLoopIterAssignTo.vba meta.forLoopIterAssignRangeTo.vba meta.block-if-else.vba meta.block-if.condition.vba meta.block-if.then.vba meta.flow.for-loop.vba meta.for-each-loop.vba meta.forLoopEachVar.vba meta.forLoopEachIn.vba meta.forLoopEachSet.vba meta.variable-assignment.vba meta.variable-or-property.vba variable.other.readwrite.vba
