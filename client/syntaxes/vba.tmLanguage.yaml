@@ -587,10 +587,10 @@ repository:
       - include: "#lineContinuation"
 
   forLoop:
+    # TODO: Switch to lookbehind end pattern to handle
+    # different end scenarios similar to Open statements.
     name: meta.flow.for-loop.vba
     begin: (?i)\bfor\s+(?=[^'\n])
-        # end: (?i)(next)(\s*['\n]|\s+[a-z][a-z_0-9]*)
-
     end: (?i)(next)(\s+[a-z]\w*)?
     beginCaptures:
       0:
