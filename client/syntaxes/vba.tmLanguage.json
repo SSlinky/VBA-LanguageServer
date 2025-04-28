@@ -645,7 +645,7 @@
       "end": "(?i)(?<!_)(?=\\n|:|\\s*')",
       "beginCaptures": {
         "0": {
-          "name": "keyword.control.open.vba"
+          "name": "keyword.control.vba"
         }
       },
       "patterns": [
