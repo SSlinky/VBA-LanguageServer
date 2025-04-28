@@ -1143,7 +1143,7 @@ repository:
         patterns:
           - include: "#accessorPunctuation"
       2:
-        name: support.variable.property.vba
+        name: variable.other.property
 
   variable:
     name: meta.variable-or-property.vba
