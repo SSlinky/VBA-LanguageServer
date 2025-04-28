@@ -125,8 +125,8 @@ export class Workspace implements IWorkspace {
 				this.logger.debug(`Reading file: ${uri}`, 1);
 				const textDocument = TextDocument.create(`${uri}`, 'vba', 1, file);
 				const projectDocument = BaseProjectDocument.create(textDocument);
-				await parser.parse(token, projectDocument);
 				this.projectDocuments.set(uri, projectDocument);
+				await parser.parse(token, projectDocument);
 				this.logger.info(`Parsed ${projectDocument.name}`, 1);
 			} catch (e) {
 				// Log errors and anything else without failing.
