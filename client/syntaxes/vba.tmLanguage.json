@@ -900,7 +900,7 @@
     },
     "openStatementFileNumber": {
       "name": "meta.openStatementFileNumber.vba",
-      "begin": "(?i)(#)(\\w+)",
+      "begin": "(?i)(#)?(\\w+)",
       "end": "(?i)(?i)(?<!_)(?=\\n|:|\\s*')",
       "beginCaptures": {
         "1": {
