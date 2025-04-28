@@ -550,7 +550,7 @@ repository:
 
   openStatementFileNumber:
     name: meta.openStatementFileNumber.vba
-    begin: (?i)(#)?(\w+)
+    begin: (?i)(#)?([.a-z0-9]\w*)
     end: (?i)(?i)(?<!_)(?=\n|:|\s*')
     beginCaptures:
       1:
