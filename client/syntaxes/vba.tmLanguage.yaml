@@ -1217,12 +1217,14 @@ repository:
   testing:
     name: meta.test$1.vba
     begin: ^!test([A-Z]+)$
+    end: (?=.)(?!.)
     patterns:
       - include: "#testGRUVBOX"
       - include: "#testGENERAL"
 
   testGENERAL:
     begin: (?<=GENERAL)
+    end: (?=.)(?!.)
     patterns:
       - name: keyword.control
         match: ^keyword.control$
@@ -1456,6 +1458,7 @@ repository:
 
   testGRUVBOX:
     begin: (?<=GRUVBOX)
+    end: (?=.)(?!.)
     patterns:
       - name: comment
         match: ^comment$
