@@ -208,12 +208,29 @@ export class ScopeItemCapability {
 
 	// Technical
 	isDirty: boolean = true;
+	isInvalidated = false;
 	private get isMethodScope(): boolean {
 		return [
 			ItemType.SUBROUTINE,
 			ItemType.FUNCTION,
 			ItemType.PROPERTY,
 		].includes(this.type);
+	}
+	get maps() {
+		const result: Map<string, ScopeItemCapability[]>[] = [];
+		const addToResult = (map: Map<string, ScopeItemCapability[]> | undefined) => {
+			if (map) result.push(map);
+		};
+		addToResult(this.types);
+		addToResult(this.modules);
+		addToResult(this.functions);
+		addToResult(this.subroutines);
+		addToResult(this.properties?.getters);
+		addToResult(this.properties?.letters);
+		addToResult(this.properties?.setters);
+		addToResult(this.references);
+
+		return result;
 	}
 
 	// Item Properties
@@ -232,6 +249,27 @@ export class ScopeItemCapability {
 	 * Recursively build from this node down.
 	 */
 	build(): void {
+		// Remove children that are invalidated.
+		this.maps.forEach(map => {
+			for (const [key, items] of map) {
+				const keep = items.filter(x => !x.isInvalidated);
+				if (keep.length === 0) map.delete(key);
+				else map.set(key, keep);
+			}
+		});
+
+		// Clean invalidated links.
+		if (this.link?.isInvalidated) this.link = undefined;
+		if (this.backLinks) {
+			const keep = this.backLinks.filter(x => !x.isInvalidated);
+			this.backLinks = keep.length > 0 ? keep : undefined;
+		}
+
+		// Don't build self if invalidated.
+		if (this.isInvalidated) {
+			return;
+		}
+
 		if (this.type === ItemType.REFERENCE) {
 			// Link to declaration if it exists.
 			this.resolveLinks();
@@ -251,8 +289,9 @@ export class ScopeItemCapability {
 			}
 		} else {
 			// Diagnostic checks on declarations.
-			this.resolveDuplicateDeclarations();
-			this.resolveShadowedDeclarations();
+			const ancestors = this.getParentChain();
+			this.resolveDuplicateDeclarations(ancestors);
+			this.resolveShadowedDeclarations(ancestors);
 		}
 
 		// Call build on children.
@@ -267,8 +306,26 @@ export class ScopeItemCapability {
 		this.isDirty = false;
 	}
 
+	/** Returns the chain of parents for bottom up name resolution. */
+	getParentChain(items: ScopeItemCapability[] = []): ScopeItemCapability[] {
+		items.push(this);
+		return this.parent?.getParentChain(items) ?? items;
+	}
+
+	/** Prints the hierarchy of scopes from this node down. */
+	printToDebug(level: number = 0) {
+		const p = this.isPublicScope ? '[P] ' : '    ';
+		Services.logger.debug(`${p}${this.name}`, level);
+
+		this.maps.forEach(
+			maps => maps.forEach(
+				items => items.forEach(
+					item => item.printToDebug(level + 1)
+				)));
+	}
+
 	/** Resolves for the current scope, i.e., children of the current item. */
-	private resolveDuplicateDeclarations() {
+	private resolveDuplicateDeclarations(ancestors: ScopeItemCapability[]) {
 		// Reference types are never relevant.
 		if (this.type == ItemType.REFERENCE) {
 			return;
@@ -349,39 +406,48 @@ export class ScopeItemCapability {
 		}
 	}
 
-	private resolveShadowedDeclarations() {
-		// Get the parent of the scope where this element is registered.
-		const parent = this.parent?.parent;
-		if (!parent) {
+	private resolveShadowedDeclarations(ancestors: ScopeItemCapability[]) {
+		// Don't check for shadowed declarations if we're above project level.
+		if (ancestors.length < 3) {
 			return;
 		}
 
-		// All declaration types check for modules.
-		this.resolveShadowedDeclaration(parent.findType(this.identifier));
-		this.resolveShadowedDeclaration(parent.findModule(this.identifier));
-		this.resolveShadowedDeclaration(parent.findFunction(this.identifier));
-		this.resolveShadowedDeclaration(parent.findSubroutine(this.identifier));
+		for (let i = 2; i < ancestors.length; i++) {
+			const ancestor = ancestors[i];
+			const shadowing = ancestor.getAccessibleScopes(this.name);
 
-		// Properties care about everything except properties that
-		// aren't the same type. Everything else cares about everything.
+			if (shadowing) {
+				const diagnostic = this.pushDiagnostic(ShadowDeclarationDiagnostic);
+				shadowing.forEach(item => this.addDiagnosticReference(diagnostic, item));
+			}
 
-		// ToDo:
-		// Variables are registered as props so should also squash their
-		// get/set/let diagnostics into one single diagnostic.
+			// // All declaration types check for modules.
+			// this.resolveShadowedDeclaration(parent.findType(this.identifier));
+			// this.resolveShadowedDeclaration(parent.findModule(this.identifier));
+			// this.resolveShadowedDeclaration(parent.findFunction(this.identifier));
+			// this.resolveShadowedDeclaration(parent.findSubroutine(this.identifier));
 
-		// Check get properties.
-		if (this.assignmentType & AssignmentType.GET) {
-			this.resolveShadowedDeclaration(parent.findPropertyGetter(this.identifier));
-		}
+			// // Properties care about everything except properties that
+			// // aren't the same type. Everything else cares about everything.
 
-		// Check let properties.
-		if (this.assignmentType & AssignmentType.LET) {
-			this.resolveShadowedDeclaration(parent.findPropertyLetter(this.identifier));
-		}
+			// // ToDo:
+			// // Variables are registered as props so should also squash their
+			// // get/set/let diagnostics into one single diagnostic.
 
-		// Check set properties.
-		if (this.assignmentType & AssignmentType.SET) {
-			this.resolveShadowedDeclaration(parent.findPropertySetter(this.identifier));
+			// // Check get properties.
+			// if (this.assignmentType & AssignmentType.GET) {
+			// 	this.resolveShadowedDeclaration(parent.findPropertyGetter(this.identifier));
+			// }
+
+			// // Check let properties.
+			// if (this.assignmentType & AssignmentType.LET) {
+			// 	this.resolveShadowedDeclaration(parent.findPropertyLetter(this.identifier));
+			// }
+
+			// // Check set properties.
+			// if (this.assignmentType & AssignmentType.SET) {
+			// 	this.resolveShadowedDeclaration(parent.findPropertySetter(this.identifier));
+			// }
 		}
 	}
 
@@ -478,6 +544,33 @@ export class ScopeItemCapability {
 			?? this.parent?.findType(identifier);
 	}
 
+	/** Get accessible declarations */
+	getAccessibleScopes(identifier: string, results: ScopeItemCapability[] = []): ScopeItemCapability[] {
+		// Add any non-public items we find at this level.
+		this.maps.forEach(map => {
+			map.get(identifier)?.forEach(item => {
+				if (!item.isPublicScope) {
+					results.push(item);
+				}
+			});
+		});
+
+		// Get all public scope types if we're at the project level.
+		if (this.type === ItemType.PROJECT) {
+			this.modules?.forEach(modules => modules.forEach(
+				module => module.maps.forEach(map => {
+					map.get(identifier)?.forEach(item => {
+						if (item.isPublicScope) {
+							results.push(item);
+						}
+					});
+				})
+			));
+		}
+
+		return this.parent?.getAccessibleScopes(identifier, results) ?? results;
+	}
+
 	findModule(identifier: string): ScopeItemCapability | undefined {
 		return this.modules?.get(identifier)?.[0]
 			?? this.parent?.findModule(identifier);
@@ -525,24 +618,29 @@ export class ScopeItemCapability {
 		 * Only MODULE scoped items are accessible implicitly in PROJECT scope and therefore
 		 * only they should be 'escalated' to that scope.
 		 */
-		const getParent = (item: ScopeItemCapability): ScopeItemCapability =>
-			(item.isPublicScope && this.type === ItemType.MODULE ? this.project : this) ?? this;
+		// const getParent = (item: ScopeItemCapability): ScopeItemCapability =>
+		// 	(item.isPublicScope && this.type === ItemType.MODULE ? this.project : this) ?? this;
 
-		// Method-scoped variables are always private. 
-		if (this.isMethodScope && item.type === ItemType.VARIABLE && item.isPublicScope) {
-			item.isPublicScope = false;
-			if (item.visibilityModifierContext && item.element) {
-				const ctx = item.visibilityModifierContext;
-				const diagnostic = new MethodVariableIsPublicDiagnostic(
-					ctx.toRange(item.element.context.document),
-					ItemType[this.type]
-				);
-				item.element?.diagnosticCapability?.diagnostics.push(diagnostic);
-			}
+		// // Method-scoped variables are always private. 
+		// if (this.isMethodScope && item.type === ItemType.VARIABLE && item.isPublicScope) {
+		// 	item.isPublicScope = false;
+		// 	if (item.visibilityModifierContext && item.element) {
+		// 		const ctx = item.visibilityModifierContext;
+		// 		const diagnostic = new MethodVariableIsPublicDiagnostic(
+		// 			ctx.toRange(item.element.context.document),
+		// 			ItemType[this.type]
+		// 		);
+		// 		item.element?.diagnosticCapability?.diagnostics.push(diagnostic);
+		// 	}
+		// }
+
+		// Immediately invalidate if we're an Unknown Module
+		if (item.type === ItemType.MODULE && item.name === 'Unknown Module') {
+			item.isInvalidated = true;
 		}
 
 		// Set the parent for the item.
-		item.parent = getParent(item);
+		item.parent = this; // getParent(item);
 		item.parent.isDirty = true;
 
 		// Get the scope level for logging.
@@ -608,9 +706,23 @@ export class ScopeItemCapability {
 		return item;
 	}
 
+	invalidate(uri: string): void {
+		if (this.type !== ItemType.PROJECT) {
+			this.isInvalidated = true;
+		}
+		this.types?.forEach(items => items.forEach(item => item.invalidate(uri)));
+		this.modules?.forEach(items => items.forEach(item => item.invalidate(uri)));
+		this.functions?.forEach(items => items.forEach(item => item.invalidate(uri)));
+		this.subroutines?.forEach(items => items.forEach(item => item.invalidate(uri)));
+		this.properties?.getters?.forEach(items => items.forEach(item => item.invalidate(uri)));
+		this.properties?.letters?.forEach(items => items.forEach(item => item.invalidate(uri)));
+		this.properties?.setters?.forEach(items => items.forEach(item => item.invalidate(uri)));
+		this.references?.forEach(items => items.forEach(item => item.invalidate(uri)));
+	}
+
 	// Would be relatively simple to also do this via a "dirty" flag.
 	/** Removes all elements with references to the document uri. */
-	invalidate(uri: string): void {
+	invalidate2(uri: string): void {
 		const unlink = (item: ScopeItemCapability): void => {
 			// Remove backlink from linked item.
 			item.link?.removeBacklink(item);
