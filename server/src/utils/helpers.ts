@@ -46,37 +46,31 @@ export function sleep(ms: number): Promise<unknown> {
  * @param dirOrUri A directory as a path or 'file://' uri.
  * @param pattern A predicate to filter results.
  * @param files Used for internal recursive calls.
- * @param wasUriConverted Used for internal recursive calls.
  */
-export function walk(uri: string, pattern?: RegExp, files?: Map<string, string>, wasUriConverted?: boolean): Map<string, string>
-export function walk(dir: string, pattern?: RegExp, files?: Map<string, string>, wasUriConverted?: boolean): Map<string, string>
-export function walk(dirOrUri: string, pattern?: RegExp, files: Map<string, string> = new Map(), wasUriConverted?: boolean): Map<string, string> {
-	Services.logger.debug(`Walking ${dirOrUri}`);
-
-	// Check whether the original directory was a dir or uri and convert as required.
-	const shouldConvertUri = wasUriConverted || (wasUriConverted === undefined && dirOrUri.startsWith('file://'));
-	const dir = (wasUriConverted === undefined && shouldConvertUri)
-		? fileURLToPath(dirOrUri)
-		: dirOrUri;
+export function walk(dirOrUri: string, pattern?: RegExp, files: Map<string, string> = new Map()): Map<string, string> {
+	const logger = Services.logger;
+	logger.debug(`Walking ${dirOrUri}`);
 
 	// Walk the contents of the directory.
+	const dir = dirOrUri.toFilePath();
 	for (const name of fs.readdirSync(dir)) {
 		const p = path.join(dir, name);
 
 		// Check if we have a directory. This can occasionally throw at an OS level.
 		let pIsDirectory: boolean | undefined;
 		try { pIsDirectory = fs.statSync(p).isDirectory(); }
-		catch (e) { Services.logger.warn(`The OS threw an exception checking whether ${p} is a directory.`, 0, e); }
+		catch (e) { logger.warn(`The OS threw an exception checking whether ${p} is a directory.`, 0, e); }
 		if (pIsDirectory) {
 			// Recursive call for directories.
-			walk(p, pattern, files, shouldConvertUri);
+			walk(p, pattern, files);
 		} else if (pattern?.test(name) ?? true) {
 			// Track files that match the pattern.
-			Services.logger.debug(`Found ${p}`, 1);
+			logger.debug(`Found ${p}`, 1);
+			logger.debug(`href: ${pathToFileURL(p).href}`);
 			let fileContent = '';
 			try { fileContent = fs.readFileSync(p, 'utf-8'); }
-			catch (e) { Services.logger.error(`The OS threw an exception reading ${p}.`, 0, e); }
-			files.set(shouldConvertUri ? pathToFileURL(p).href : p, fileContent);
+			catch (e) { logger.error(`The OS threw an exception reading ${p}.`, 0, e); }
+			files.set(p, fileContent);
 		}
 	}
 	return files;
