@@ -111,7 +111,7 @@ export class Workspace implements IWorkspace {
 		// Set up parser and dummy token because we won't cancel this.
 		const parser = new SyntaxParser(this.logger);
 		const token = new CancellationTokenSource().token;
-		
+
 		// Handle each file in the workspace.
 		for (const [uri, file] of workspaceFiles) {
 			// Don't parse files that we're already tracking.
@@ -136,6 +136,7 @@ export class Workspace implements IWorkspace {
 
 		// Rebuild scopes from Project level.
 		Services.projectScope.build();
+		Services.projectScope.printToDebug();
 	}
 
 	async parseDocument(document: BaseProjectDocument) {
@@ -468,10 +469,10 @@ class WorkspaceEvents {
 	onDidOpen(document: TextDocument) {
 		const logger = Services.logger;
 		logger.debug('[event] onDidOpen');
-		logger.debug(`uri: ${document.uri}`, 1);
+		logger.debug(`uri: ${document.uri.toFilePath()}`, 1);
 		logger.debug(`languageId: ${document.languageId}`, 1);
 		logger.debug(`version: ${document.version}`, 1);
-		const projectDocument = this.projectDocuments.get(document.uri);
+		const projectDocument = this.projectDocuments.get(document.uri.toFilePath());
 		if (projectDocument) {
 			Services.workspace.openDocument(document);
 		}
@@ -483,22 +484,25 @@ class WorkspaceEvents {
 	 */
 	onDidChangeContent(document: TextDocument): void {
 		const logger = Services.logger;
-		logger.debug('[event] onDidChangeContentAsync');
-		logger.debug(`uri: ${document.uri}`, 1);
+		logger.debug('[event] onDidChangeContent');
+		logger.debug(`uri: ${document.uri.toFilePath()}`, 1);
 		logger.debug(`languageId: ${document.languageId}`, 1);
 		logger.debug(`version: ${document.version}`, 1);
 
 		// If the event is fired for the same version of the document, don't reparse.
-		const existingDocument = this.projectDocuments.get(document.uri);
-		if ((existingDocument?.version ?? -1) >= document.version) {
+		const docPath = document.uri.toFilePath();
+		const existingDocument = this.projectDocuments.get(docPath);
+		const existingVersion = existingDocument?.version ?? -1;
+		logger.debug(`existing: ${existingVersion}`, 1);
+		if (existingVersion >= document.version) {
 			logger.debug('Document already parsed.');
 			return;
 		}
 
 		// The document is new or a new version that we should parse.
 		const projectDocument = BaseProjectDocument.create(document);
-		this.projectDocuments.set(document.uri, projectDocument);
-		Services.projectScope.invalidate(document.uri);
+		this.projectDocuments.set(docPath, projectDocument);
+		Services.projectScope.invalidate(docPath);
 		Services.workspace.parseDocument(projectDocument);
 	}
 
