@@ -7,6 +7,7 @@ import { VbaFmtListener, VbaListener, VbaPreListener } from './vbaListener';
 import { VbaClassDocument, VbaModuleDocument } from '../document';
 import { CancellationToken, Range } from 'vscode-languageserver';
 import { Logger } from '../../injection/interface';
+import { VbaDeclarationVisitor } from './vbaVisitor';
 
 
 export class SyntaxParser {
@@ -31,6 +32,12 @@ export class SyntaxParser {
         const parser = VbaParser.create(docText);
         await this.parseDocumentAsync(token, listener, parser);
         this.logger.debug(`Completed main parse.`);
+
+        // Perform visit.
+        const visitor = new VbaDeclarationVisitor();
+        const vparser = VbaParser.create(docText);
+        const tree = vparser.startRule();
+        visitor.visit(tree);
     }
 
     async formatParseAsync(token: CancellationToken, document: VbaClassDocument | VbaModuleDocument, range?: Range): Promise<VbaFmtListener> {
