@@ -71,3 +71,12 @@ export function deactivate(): Thenable<void> | undefined {
 	}
 	return client.stop();
 }
+
+export function isExtensionInDebugMode(): boolean {
+	// process.execArgv contains arguments specific to the Node.js executable itself.
+	// When debugging, VS Code launches the extension host with flags like
+	// '--inspect-brk' or '--inspect'.
+	return process.execArgv.some(arg =>
+		arg.startsWith('--inspect') || arg.startsWith('--debug') // '--debug' is older, but good to include
+	);
+}
