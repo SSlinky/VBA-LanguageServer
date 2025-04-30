@@ -148,7 +148,11 @@ export class IdentifierCapability extends BaseCapability {
 			this.range = this.nameContext.toRange(args.element.context.document);
 		} else {
 			// Use the defaults to set the values.
-			if (!args.defaultRange) throw new Error("Default range not optional where name context not found.");
+			if (!args.defaultRange) {
+				const msg = 'No default or name context for identifier at';
+				const rng = JSON.stringify(args.element.context.range);
+				throw new Error(`${msg} ${rng}.`);
+			}
 			this.name = (args.defaultName ?? "Unknown Element");
 			this.range = args.defaultRange ? args.defaultRange() : args.element.context.range;
 		}

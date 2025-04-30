@@ -23,11 +23,11 @@ export class LspLogger implements Logger {
 		@inject("_Connection") public connection: _Connection,
 		@inject("ILanguageServer") private server: ILanguageServer) { }
 
-	error = (msg: string, lvl?: number, e?: unknown) => this.emit(LogLevel.error, msg, lvl);
-	warn = (msg: string, lvl?: number, e?: unknown) => this.emit(LogLevel.warn, msg, lvl);
-	info = (msg: string, lvl?: number, e?: unknown) => this.emit(LogLevel.info, msg, lvl);
-	log = (msg: string, lvl?: number, e?: unknown) => this.emit(LogLevel.log, msg, lvl);
-	debug = (msg: string, lvl?: number, e?: unknown) => this.emit(LogLevel.debug, msg, lvl);
+	error = (msg: string, lvl?: number, e?: unknown) => this.emit(LogLevel.error, msg, lvl, e);
+	warn = (msg: string, lvl?: number, e?: unknown) => this.emit(LogLevel.warn, msg, lvl, e);
+	info = (msg: string, lvl?: number, e?: unknown) => this.emit(LogLevel.info, msg, lvl, e);
+	log = (msg: string, lvl?: number, e?: unknown) => this.emit(LogLevel.log, msg, lvl, e);
+	debug = (msg: string, lvl?: number, e?: unknown) => this.emit(LogLevel.debug, msg, lvl, e);
 	stack = (e: Error, logLevel?: LogLevel) => this.emit(logLevel ?? LogLevel.error, `${e.name}: ${e.message}\n${e.stack}`);
 
 	private emit(logLevel: LogLevel, msgText: string, msgLevel?: number, e?: unknown): void {

@@ -153,7 +153,7 @@ export class Workspace implements IWorkspace {
 			if (e instanceof ParseCancellationException) {
 				// Swallow cancellation exceptions. They're good. We like these.
 			} else {
-				this.logger.error('Something went wrong.', 0, e);
+				this.logger.debug('Parser did not cancel or complete.', 0, e);
 			}
 		}
 
