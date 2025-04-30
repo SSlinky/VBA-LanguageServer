@@ -121,41 +121,49 @@ export class SymbolInformationCapability extends BaseCapability {
 	}
 }
 
-interface IdentifierArgs {
-	element: BaseRuleSyntaxElement<ParserRuleContext>,
-	getNameContext?: () => ParserRuleContext | TerminalNode | null | undefined,
-	formatName?: (name: string) => string,
-	defaultName?: string;
-	defaultRange?: () => Range;
-}
-
 
 export class IdentifierCapability extends BaseCapability {
-	nameContext: ParserRuleContext | TerminalNode;
-	range: Range;
-	name: string;
-	isDefaultMode: boolean;
+	private get unformattedName(): string {
+		return this.nameContext?.getText() ?? this.defaultName ?? "Unknown Element";
+	}
 
-	constructor(args: IdentifierArgs) {
-		super(args.element);
+	get name(): string {
+		return this.formatName
+			? this.formatName(this.unformattedName)
+			: this.unformattedName;
+	}
 
-		this.nameContext = ((args.getNameContext ?? (() => args.element.context.rule))() ?? args.element.context.rule);
-		this.isDefaultMode = !(!!args.getNameContext && !!args.getNameContext());
-
-		if (!this.isDefaultMode) {
-			// Use the context to set the values.
-			this.name = (args.formatName ?? ((name: string) => name))(this.nameContext.getText());
-			this.range = this.nameContext.toRange(args.element.context.document);
-		} else {
-			// Use the defaults to set the values.
-			if (!args.defaultRange) {
-				const msg = 'No default or name context for identifier at';
-				const rng = JSON.stringify(args.element.context.range);
-				throw new Error(`${msg} ${rng}.`);
+	get range(): Range {
+		if (this.getNameContext) {
+			const ctx = this.getNameContext();
+			if (ctx) {
+				return ctx.toRange(this.element.context.document);
+			} else if (this.defaultRange) {
+				return this.defaultRange();
 			}
-			this.name = (args.defaultName ?? "Unknown Element");
-			this.range = args.defaultRange ? args.defaultRange() : args.element.context.range;
+			Services.logger.warn(`Unable to get name context or default for ${this.name}`);
 		}
+		return this.element.context.range;
+	}
+
+	get nameContext(): ParserRuleContext | TerminalNode {
+		return this.getNameContext
+			? this.getNameContext() ?? this.element.context.rule
+			: this.element.context.rule;
+	}
+
+	get isDefaultMode(): boolean {
+		return !(!!this.getNameContext && !!this.getNameContext());
+	}
+
+	constructor(
+		readonly element: BaseRuleSyntaxElement<ParserRuleContext>,
+		private getNameContext?: () => ParserRuleContext | TerminalNode | null | undefined,
+		private formatName?: (name: string) => string,
+		private defaultName?: string,
+		private defaultRange?: () => Range
+	) {
+		super(element);
 	}
 }
 

@@ -61,10 +61,9 @@ export class EnumDeclarationElement extends BaseTypeDeclarationElement<EnumDecla
 
 	constructor(ctx: EnumDeclarationContext, doc: TextDocument, isAfterProcedure: boolean) {
 		super(ctx, doc, SymbolKind.Enum, SemanticTokenTypes.enum);
-		this.identifierCapability = new IdentifierCapability({
-			element: this,
-			getNameContext: () => ctx.untypedName().ambiguousIdentifier()
-		});
+
+		const getIdentifierNameContext = () => ctx.untypedName().ambiguousIdentifier();
+		this.identifierCapability = new IdentifierCapability(this, getIdentifierNameContext);
 		if (isAfterProcedure) this.diagnosticCapability.diagnostics.push(
 			new ElementOutOfPlaceDiagnostic(this.context.range, "Enum declaration")
 		);
@@ -81,10 +80,8 @@ export class EnumMemberDeclarationElement extends BaseRuleSyntaxElement<EnumMemb
 	constructor(ctx: EnumMemberContext, doc: TextDocument) {
 		super(ctx, doc);
 		this.diagnosticCapability = new DiagnosticCapability(this);
-		this.identifierCapability = new IdentifierCapability({
-			element: this,
-			getNameContext: () => ctx.untypedName()
-		});
+		const getIdentifierNameContext = () => ctx.untypedName();
+		this.identifierCapability = new IdentifierCapability(this, getIdentifierNameContext);
 		this.scopeItemCapability = new ScopeItemCapability(this, ItemType.VARIABLE, AssignmentType.GET);
 	}
 }
@@ -99,10 +96,8 @@ export class TypeDeclarationElement extends BaseTypeDeclarationElement<UdtDeclar
 
 	constructor(ctx: UdtDeclarationContext, doc: TextDocument) {
 		super(ctx, doc, SymbolKind.Struct, SemanticTokenTypes.struct);
-		this.identifierCapability = new IdentifierCapability({
-			element: this,
-			getNameContext: () => ctx.untypedName()
-		});
+		const getIdentifierNameContext = () => ctx.untypedName();
+		this.identifierCapability = new IdentifierCapability(this, getIdentifierNameContext);
 	}
 }
 
@@ -166,8 +161,9 @@ export class VariableDeclarationElement extends BaseRuleSyntaxElement<VariableDc
 		this.diagnosticCapability = new DiagnosticCapability(this);
 		this.symbolInformationCapability = new SymbolInformationCapability(this, ctx.toSymbolKind());
 		// this.semanticTokenCapability = new SemanticTokenCapability(this, SemanticTokenTypes.variable, isConst ? [SemanticTokenModifiers.declaration, SemanticTokenModifiers.readonly] : [SemanticTokenModifiers.declaration]);
-		this.identifierCapability = new IdentifierCapability({ element: this, getNameContext: () => ctx.ambiguousIdentifier() });
-		
+		const getIdentifierNameContext = () => ctx.ambiguousIdentifier();
+		this.identifierCapability = new IdentifierCapability(this, getIdentifierNameContext);
+
 		// VariableDcl > TypedVariableDcl > TypedName > TypeSuffix
 		//			   > UntypedVariableDcl > AsClause
 
@@ -286,7 +282,7 @@ class VariableTypeInformation extends BaseRuleSyntaxElement<TypeSuffixContext | 
 	}
 
 	constructor(ctx: TypeSuffixContext | AsClauseContext, doc: TextDocument, private readonly arrayCtx?: ArrayDimContext) {
-			super(ctx, doc);
+		super(ctx, doc);
 	}
 }
 

@@ -120,18 +120,22 @@ export class ModuleElement extends BaseModuleElement<ProceduralModuleContext> {
 			.proceduralModuleCode()
 			.proceduralModuleCodeElement());
 
-		this.identifierCapability = new IdentifierCapability({
-			element: this,
-			formatName: (x: string) => x.stripQuotes(),
-			defaultName: 'Unknown Module',
-			defaultRange: () => Range.create(this.context.range.start, this.context.range.start),
-			getNameContext: () => ctx
-				.proceduralModuleHeader()
-				.proceduralModuleAttr()
-				.map(x => x.nameAttr())
-				.filter(x => !!x)[0]
-				?.STRINGLITERAL()
-		});
+		const getIdentifierNameContext = () => this.context.rule
+			.proceduralModuleHeader()
+			.proceduralModuleAttr()
+			.map(x => x.nameAttr())
+			.filter(x => !!x)[0]
+			?.STRINGLITERAL();
+		const getIdentifierFormattedName = (x: string) => x.stripQuotes();
+		const getIdentifierDefaultRange = () => Range.create(this.context.range.start, this.context.range.start);
+
+		this.identifierCapability = new IdentifierCapability(
+			this,
+			getIdentifierNameContext,
+			getIdentifierFormattedName,
+			'Unknown Module',
+			getIdentifierDefaultRange
+		);
 
 		this.resolveConfiguration(
 			this.diagnosticCapability.diagnostics,
@@ -164,20 +168,23 @@ export class ClassElement extends BaseModuleElement<ClassModuleContext> {
 			.classModuleCode()
 			.classModuleCodeElement());
 
-		let nameContextGetter;
+		let getIdentifierNameContext;
 		if (ctx.classModuleHeader().nameAttr().length > 0) {
-			nameContextGetter = () => ctx
+			getIdentifierNameContext = () => ctx
 				.classModuleHeader()
 				.nameAttr()[0]
 				.STRINGLITERAL();
 		}
-		this.identifierCapability = new IdentifierCapability({
-			element: this,
-			formatName: (x: string) => x.stripQuotes(),
-			defaultName: 'Unknown Class',
-			defaultRange: () => Range.create(this.context.range.start, this.context.range.start),
-			getNameContext: nameContextGetter
-		});
+		const getIdentifierFormattedName = (x: string) => x.stripQuotes();
+		const getIdentifierDefaultRange = () => Range.create(this.context.range.start, this.context.range.start);
+
+		this.identifierCapability = new IdentifierCapability(
+			this,
+			getIdentifierNameContext,
+			getIdentifierFormattedName,
+			'Unknown Class',
+			getIdentifierDefaultRange
+		);
 
 		this.resolveConfiguration(
 			this.diagnosticCapability.diagnostics,

@@ -55,13 +55,9 @@ export class SubDeclarationElement extends BaseProcedureElement<SubroutineDeclar
 
 	constructor(ctx: SubroutineDeclarationContext, doc: TextDocument) {
 		super(ctx, doc, SymbolKind.Method);
-		this.identifierCapability = new IdentifierCapability({
-			element: this,
-			getNameContext: () => ctx.subroutineName()?.ambiguousIdentifier(),
-			// For some reason the IdentifierCapability throws if no default is given
-			// despite it not actually ever needing it. Most unusual.
-			defaultRange: () => this.context.range
-		});
+
+		const getIdentifierNameContext = () => ctx.subroutineName()?.ambiguousIdentifier();
+		this.identifierCapability = new IdentifierCapability(this, getIdentifierNameContext);
 		this.foldingRangeCapability.openWord = `Sub ${this.identifierCapability.name}`;
 		this.foldingRangeCapability.closeWord = 'End Sub';
 		this.scopeItemCapability.type = ItemType.SUBROUTINE;
@@ -74,10 +70,8 @@ export class FunctionDeclarationElement extends BaseProcedureElement<FunctionDec
 
 	constructor(ctx: FunctionDeclarationContext, doc: TextDocument) {
 		super(ctx, doc, SymbolKind.Method);
-		this.identifierCapability = new IdentifierCapability({
-			element: this,
-			getNameContext: () => ctx.functionName()?.ambiguousIdentifier(),
-		});
+		const getIdentifierNameContext = () => ctx.functionName()?.ambiguousIdentifier();
+		this.identifierCapability = new IdentifierCapability(this, getIdentifierNameContext);
 		this.foldingRangeCapability.openWord = `Function ${this.identifierCapability.name}`;
 		this.foldingRangeCapability.closeWord = 'End Function';
 		this.scopeItemCapability.type = ItemType.FUNCTION;
@@ -117,11 +111,13 @@ abstract class BasePropertyDeclarationElement<T extends ParserRuleContext & HasP
 		super(ctx, doc, SymbolKind.Property);
 		this.nameContext = nameCtx;
 		this.propertyType = propertyType;
-		this.identifierCapability = new IdentifierCapability({
-			element: this,
-			getNameContext: () => this.nameContext,
-			formatName: (x: string) => `${this.propertyType} ${x}`
-		});
+		const getIdentifierNameContext = () => this.nameContext;
+		const getIdentifierFormattedName = (x: string) => `${this.propertyType} ${x}`;
+		this.identifierCapability = new IdentifierCapability(
+			this,
+			getIdentifierNameContext,
+			getIdentifierFormattedName
+		);
 	}
 }
 
