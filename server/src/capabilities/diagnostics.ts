@@ -89,26 +89,25 @@ export class DuplicateDeclarationDiagnostic extends BaseDiagnostic {
 
 // test
 export class ShadowDeclarationDiagnostic extends BaseDiagnostic {
-	message = "Declaration is shadowed in the local scope.";
 	severity = DiagnosticSeverity.Warning;
-	constructor(range: Range) {
+	constructor(range: Range, message: string) {
 		super(range);
+		this.message = `${message} is shadowed in the local scope.`;
 	}
 }
 
 export class VariableNotDefinedDiagnostic extends BaseDiagnostic {
-	message = "Variable not defined.";
-	severity = DiagnosticSeverity.Error;
-	constructor(range: Range) {
+	constructor(range: Range, message: string, public severity: DiagnosticSeverity) {
 		super(range);
+		this.message = `Variable ${message} not defined.`;
 	}
 }
 
 export class SubOrFunctionNotDefinedDiagnostic extends BaseDiagnostic {
-	message = "Sub or Function not defined.";
 	severity = DiagnosticSeverity.Error;
-	constructor(range: Range) {
+	constructor(range: Range, message: string) {
 		super(range);
+		this.message = `Method ${message} not defined.`;
 	}
 }
 
