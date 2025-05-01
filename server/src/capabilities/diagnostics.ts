@@ -32,6 +32,15 @@ export abstract class BaseDiagnostic implements Diagnostic {
 		}
 		this.relatedInformation.push(information);
 	}
+
+	equals(diagnostic: Diagnostic) {
+		return this.severity === diagnostic.severity
+			&& this.message === diagnostic.message
+			&& this.range.end.line === diagnostic.range.end.line
+			&& this.range.start.line === diagnostic.range.start.line
+			&& this.range.end.character === diagnostic.range.end.character
+			&& this.range.start.character === diagnostic.range.start.character;
+	}
 }
 
 
