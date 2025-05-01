@@ -136,7 +136,7 @@ export class Workspace implements IWorkspace {
 
 		// Rebuild scopes from Project level.
 		Services.projectScope.build();
-		Services.projectScope.printToDebug();
+		// Services.projectScope.printToDebug();
 	}
 
 	async parseDocument(document: BaseProjectDocument) {
@@ -439,8 +439,6 @@ class WorkspaceEvents {
 		}
 
 		try {
-			// We don't actually need the document but await to ensure it's parsed.
-			await this.getParsedProjectDocument(params.textDocument.uri, 0, token);
 			const uri = params.textDocument.uri;
 			const result: (Command | CodeAction)[] = [];
 			const codeActionRegistry = Services.codeActionsRegistry;
