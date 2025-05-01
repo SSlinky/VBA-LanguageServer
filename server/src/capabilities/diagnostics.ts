@@ -158,7 +158,7 @@ export class IgnoredAttributeDiagnostic extends BaseDiagnostic {
 
 export class MissingOptionExplicitDiagnostic extends BaseDiagnostic {
 	message = "Option Explicit is missing from module header.";
-	severity = DiagnosticSeverity.Warning;
+	severity = DiagnosticSeverity.Hint;
 	constructor(range: Range) {
 		super(range);
 
@@ -167,10 +167,14 @@ export class MissingOptionExplicitDiagnostic extends BaseDiagnostic {
 		this.actionFactory = (diagnostic: Diagnostic, uri: string) =>
 			CodeAction.create(
 				"Insert Option Explicit",
-				{ changes: { [uri]: [{
-					range: diagnostic.range,
-					newText: "\nOption Explicit"
-				}]}},
+				{
+					changes: {
+						[uri]: [{
+							range: diagnostic.range,
+							newText: "\nOption Explicit"
+						}]
+					}
+				},
 				CodeActionKind.QuickFix
 			);
 

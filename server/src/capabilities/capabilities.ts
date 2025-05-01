@@ -1,6 +1,6 @@
 // Core
 import {
-	Diagnostic,
+	DiagnosticSeverity,
 	Range,
 	SemanticTokenModifiers,
 	SemanticTokenTypes,
@@ -12,6 +12,7 @@ import {
 import { ParserRuleContext, TerminalNode } from 'antlr4ng';
 
 // Project
+import { BaseModuleElement } from '../project/elements/module';
 import { SemanticToken } from '../capabilities/semanticTokens';
 import { FoldingRange, FoldingRangeKind } from '../capabilities/folding';
 import { BaseRuleSyntaxElement, BaseIdentifyableSyntaxElement, BaseSyntaxElement, Context, HasSemanticTokenCapability } from '../project/elements/base';
@@ -294,10 +295,12 @@ export class ScopeItemCapability {
 				// References to function or sub calls should raise an error if they aren't declared.
 				//	-- Must always throw even when option explicit not present.
 				//	-- Nothing required on first reference as declaration may come later.
-				const diagnosticType = this.assignmentType & AssignmentType.CALL
-					? SubOrFunctionNotDefinedDiagnostic
-					: VariableNotDefinedDiagnostic;
-				this.pushDiagnostic(diagnosticType);
+				const severity = (this.module?.element as BaseModuleElement<ParserRuleContext>).hasOptionExplicit
+					? DiagnosticSeverity.Error
+					: DiagnosticSeverity.Warning;
+				const _ = this.assignmentType & AssignmentType.CALL
+					? this.pushDiagnostic(SubOrFunctionNotDefinedDiagnostic, this, this.name)
+					: this.pushDiagnostic(VariableNotDefinedDiagnostic, this, this.name, severity);
 			}
 		} else {
 			// Diagnostic checks on declarations.
