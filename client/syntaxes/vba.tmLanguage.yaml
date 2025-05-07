@@ -1299,7 +1299,7 @@ repository:
 
   valueAssignment:
     name: meta.variable-assignment.vba
-    begin: (?i)(?:(Let|Set)\s+)?((?:[a-z][a-z0-9_]*)?(?:\.(?:(?:[a-z][a-z0-9_]*)?\.)*)?(?:[a-z][a-z0-9_]*)?)(\s*=\s*)
+    begin: (?i)(?:(Let|Set)\s+)?((?:[a-z][a-z0-9_]*)?(?:[.!](?:(?:[a-z][a-z0-9_]*)?[.!])*)?(?:[a-z][a-z0-9_]*)?)(\s*=\s*)
     end: (?=[',:)\n])
     beginCaptures:
       1: # Let|Set
@@ -1321,7 +1321,7 @@ repository:
     match: (?i)\.
 
   propertyChain:
-    match: (?i)(\.)([a-z][a-z0-9_]*)*
+    match: (?i)([.!])([a-z][a-z0-9_]*)*
     captures:
       1:
         patterns:
@@ -1331,7 +1331,7 @@ repository:
 
   variable:
     name: meta.variable-or-property.vba
-    match: (?i)(?:(?:(\bMe\b|\.)|([a-z][a-z0-9_]*)))((?:\.(?:[a-z][a-z0-9_]*))+)?
+    match: (?i)(?:(?:(\bMe\b|[.!])|([a-z][a-z0-9_]*)))((?:[.!](?:[a-z][a-z0-9_]*))+)?
     captures:
       1:
         patterns:
