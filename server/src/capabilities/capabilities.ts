@@ -56,10 +56,10 @@ export class FoldingRangeCapability extends BaseCapability {
 
 
 export class DiagnosticCapability extends BaseCapability {
-	diagnostics: Diagnostic[] = [];
-	evaluate: (...args: any[]) => Diagnostic[];
+	diagnostics: BaseDiagnostic[] = [];
+	evaluate: (...args: any[]) => BaseDiagnostic[];
 
-	constructor(element: BaseSyntaxElement, evaluate?: (...args: any[]) => Diagnostic[]) {
+	constructor(element: BaseSyntaxElement, evaluate?: (...args: any[]) => BaseDiagnostic[]) {
 		super(element);
 		this.evaluate = evaluate ?? (() => this.diagnostics);
 	}
