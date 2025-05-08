@@ -317,6 +317,7 @@ export class ScopeItemCapability {
 		this.properties?.getters?.forEach(items => items.forEach(item => item.build()));
 		this.properties?.letters?.forEach(items => items.forEach(item => item.build()));
 		this.properties?.setters?.forEach(items => items.forEach(item => item.build()));
+		this.references?.forEach(items => items.forEach(item => item.build()));
 
 		this.isDirty = false;
 	}
