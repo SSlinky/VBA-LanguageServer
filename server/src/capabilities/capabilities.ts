@@ -737,9 +737,23 @@ export class ScopeItemCapability {
 		target.set(item.identifier, items);
 	}
 
+	private hasDiagnostic(diagnostic: BaseDiagnostic): boolean {
+		const diagnostics = this.element?.diagnosticCapability?.diagnostics;
+		if (!diagnostics || diagnostics.length === 0) {
+			return false;
+		}
+
+		for (const pushedDiagnostic of diagnostics) {
+			if (diagnostic.equals(pushedDiagnostic)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	/**
 	 * Generates and pushes a diagnostic to the underlying element on the scope item.
-	 * No diagnostic is created unless we have both a range and the capability on the element.
+	 * No diagnostic is created unless we have a range, the capability on the element, and no duplicate exists.
 	 * Range is automatically injected into the constructor but arguments can't be verified at compile time, so it's on you to check.
 	 * @param ctor The diagnostic we're creating.
 	 * @param item The scope item to get the range from.
@@ -751,6 +765,9 @@ export class ScopeItemCapability {
 		const diagnostics = (item ?? this).element?.diagnosticCapability?.diagnostics;
 		if (range && diagnostics) {
 			const diagnostic = new ctor(...[range, args].flat());
+			if (this.hasDiagnostic(diagnostic)) {
+				return;
+			}
 			diagnostics.push(diagnostic);
 			return diagnostic;
 		}
