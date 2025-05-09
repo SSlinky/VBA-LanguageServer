@@ -12,7 +12,7 @@ import {
 import { ParserRuleContext, TerminalNode } from 'antlr4ng';
 
 // Project
-import { BaseModuleElement } from '../project/elements/module';
+import { ModuleElement } from '../project/elements/module';
 import { SemanticToken } from '../capabilities/semanticTokens';
 import { FoldingRange, FoldingRangeKind } from '../capabilities/folding';
 import { BaseRuleSyntaxElement, BaseIdentifyableSyntaxElement, BaseSyntaxElement, Context, HasSemanticTokenCapability } from '../project/elements/base';
@@ -295,7 +295,7 @@ export class ScopeItemCapability {
 				// References to function or sub calls should raise an error if they aren't declared.
 				//	-- Must always throw even when option explicit not present.
 				//	-- Nothing required on first reference as declaration may come later.
-				const severity = (this.module?.element as BaseModuleElement<ParserRuleContext>).hasOptionExplicit
+				const severity = (this.module?.element as ModuleElement).hasOptionExplicit
 					? DiagnosticSeverity.Error
 					: DiagnosticSeverity.Warning;
 				const _ = this.assignmentType & AssignmentType.CALL
