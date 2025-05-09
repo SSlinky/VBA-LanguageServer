@@ -726,69 +726,9 @@ export class ScopeItemCapability {
 		if (this.type !== ItemType.PROJECT) {
 			this.isInvalidated = true;
 		}
-		this.types?.forEach(items => items.forEach(item => item.invalidate(uri)));
-		this.modules?.forEach(items => items.forEach(item => item.invalidate(uri)));
-		this.functions?.forEach(items => items.forEach(item => item.invalidate(uri)));
-		this.subroutines?.forEach(items => items.forEach(item => item.invalidate(uri)));
-		this.properties?.getters?.forEach(items => items.forEach(item => item.invalidate(uri)));
-		this.properties?.letters?.forEach(items => items.forEach(item => item.invalidate(uri)));
-		this.properties?.setters?.forEach(items => items.forEach(item => item.invalidate(uri)));
-		this.references?.forEach(items => items.forEach(item => item.invalidate(uri)));
-	}
-
-	// Would be relatively simple to also do this via a "dirty" flag.
-	/** Removes all elements with references to the document uri. */
-	invalidate2(uri: string): void {
-		const unlink = (item: ScopeItemCapability): void => {
-			// Remove backlink from linked item.
-			item.link?.removeBacklink(item);
-			// Remove link from any backlinked items.
-			item.backLinks?.forEach(node => node.link = undefined);
-		};
-
-		const scan = (map: Map<string, ScopeItemCapability[]> | undefined, uri: string) => {
-			if (map === undefined) {
-				return;
-			}
-
-			const keys = Array.from(map.keys());
-			keys.forEach(key => {
-				const items = map.get(key)!;
-				const keep = items.filter(item => item.element?.context.document.uri !== uri);
-				const remove = items.filter(item => item.element?.context.document.uri === uri);
-
-				// Sever links for items to be removed.
-				remove.forEach(x => unlink(x));
-
-				// Update the map.
-				if (keep.length === 0) {
-					map.delete(key);
-				} else {
-					map.set(key, keep);
-				}
-			});
-		};
-
-		// Invalidate and unlink items.
-		scan(this.types, uri);
-		scan(this.modules, uri);
-		scan(this.functions, uri);
-		scan(this.subroutines, uri);
-		if (this.properties !== undefined) {
-			scan(this.properties.getters, uri);
-			scan(this.properties.letters, uri);
-			scan(this.properties.setters, uri);
-		}
-		scan(this.references, uri);
-
-		// Call invalidate on children.
-		this.types?.forEach(items => items.forEach(item => item.invalidate(uri)));
-		this.modules?.forEach(items => items.forEach(item => item.invalidate(uri)));
-		this.functions?.forEach(items => items.forEach(item => item.invalidate(uri)));
-		this.subroutines?.forEach(items => items.forEach(item => item.invalidate(uri)));
-		this.properties?.getters?.forEach(items => items.forEach(item => item.invalidate(uri)));
-		this.properties?.letters?.forEach(items => items.forEach(item => item.invalidate(uri)));
-		this.properties?.setters?.forEach(items => items.forEach(item => item.invalidate(uri)));
+		this.maps.forEach(map => map.forEach(items =>
+			items.forEach(item => item.invalidate(uri))
+		));
 	}
 
 	private addItem(target: Map<string, ScopeItemCapability[]>, item: ScopeItemCapability): void {
