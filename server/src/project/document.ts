@@ -13,7 +13,6 @@ import { SemanticTokensManager } from '../capabilities/semanticTokens';
 import {
 	BaseRuleSyntaxElement,
 	BaseSyntaxElement,
-	DeclarableElement,
 	HasDiagnosticCapability,
 	HasFoldingRangeCapability,
 	HasScopeItemCapability,
@@ -31,6 +30,7 @@ import { VbaFmtListener } from './parser/vbaListener';
 import { Services } from '../injection/services';
 import { IWorkspace } from '../injection/interface';
 import { ScopeItemCapability } from '../capabilities/capabilities';
+import { BaseDiagnostic } from '../capabilities/diagnostics';
 
 
 // TODO ---------------------------------------------
@@ -196,9 +196,17 @@ export abstract class BaseProjectDocument {
 		buildScope.build();
 
 		// Evaluate the diagnostics.
-		this.diagnostics = this.hasDiagnosticElements
+		const diagnostics = this.hasDiagnosticElements
 			.map(e => e.diagnosticCapability.evaluate())
 			.flat();
+
+		// Ensure diagnostics aren't reported twice.
+		// TODO: Redesign diagnostics so this isn't required.
+		diagnostics.forEach(diagnostic => {
+			if (!this.hasDiagnostic(diagnostic)) {
+				this.diagnostics.push(diagnostic);
+			}
+		});
 
 		this._isBusy = false;
 	};
@@ -315,6 +323,15 @@ export abstract class BaseProjectDocument {
 			);
 			return result.join('\r\n');
 		}
+	}
+
+	private hasDiagnostic(diagnostic: BaseDiagnostic): boolean {
+		for (const pushedDiagnostic of this.diagnostics) {
+			if (diagnostic.equals(pushedDiagnostic)) {
+				return true;
+			}
+		}
+		return false;
 	}
 }
 
