@@ -46,7 +46,7 @@ export class LanguageServer implements ILanguageServer {
 			return result;
 		});
 		// Register shutdown actions
-		this.connection.onShutdown(() => {});
+		this.connection.onShutdown(() => { });
 		this.connection.onExit(() => process.exit(0));
 
 		// Register for client configuration notification changes.
@@ -104,7 +104,7 @@ export class LanguageServerConfiguration {
 		documentFormattingProvider: true,
 		documentRangeFormattingProvider: false,
 		documentOnTypeFormattingProvider: undefined,
-		renameProvider: false,
+		renameProvider: true,
 		selectionRangeProvider: false,
 		executeCommandProvider: undefined,
 		callHierarchyProvider: false,

@@ -16,10 +16,12 @@ import {
 	FoldingRangeParams,
 	Hover,
 	HoverParams,
+	RenameParams,
 	SemanticTokensRangeParams,
 	SymbolInformation,
 	TextDocuments,
 	TextEdit,
+	WorkspaceEdit,
 	WorkspaceFolder,
 	WorkspaceFoldersChangeEvent,
 	_Connection
@@ -293,16 +295,17 @@ class WorkspaceEvents {
 		const cancellableOnFoldingRanges = returnDefaultOnCancelClientRequest(
 			(p: FoldingRangeParams, t) => this.onFoldingRangesAsync(p, t), [], 'Folding Range');
 
-		connection.onInitialized(() => this.onInitialized());
+		connection.onCodeAction(async (params, token) => this.onCodeActionRequest(params, token));
 		connection.onCompletion(params => this.onCompletion(params));
 		connection.onCompletionResolve(item => this.onCompletionResolve(item));
 		connection.onDidChangeConfiguration(() => Services.workspace.clearDocumentsConfiguration());
 		connection.onDidChangeWatchedFiles(params => this.onDidChangeWatchedFiles(params));
+		connection.onDidCloseTextDocument(params => { Services.logger.debug('[event] onDidCloseTextDocument'); Services.logger.debug(JSON.stringify(params), 1); });
+		connection.onDocumentFormatting(async (params, token) => await this.onDocumentFormatting(params, token));
 		connection.onDocumentSymbol(async (params, token) => await cancellableOnDocSymbol(params, token));
 		connection.onHover(params => this.onHover(params));
-		connection.onDocumentFormatting(async (params, token) => await this.onDocumentFormatting(params, token));
-		connection.onDidCloseTextDocument(params => { Services.logger.debug('[event] onDidCloseTextDocument'); Services.logger.debug(JSON.stringify(params), 1); });
-		connection.onCodeAction(async (params, token) => this.onCodeActionRequest(params, token));
+		connection.onInitialized(() => this.onInitialized());
+		connection.onRenameRequest((params, token) => this.onRenameRequest(params, token));
 
 		if (hasWorkspaceConfigurationCapability(Services.server)) {
 			connection.onFoldingRanges(async (params, token) => await cancellableOnFoldingRanges(params, token));
@@ -456,6 +459,44 @@ class WorkspaceEvents {
 			}
 			return;
 		}
+	}
+
+	private async onRenameRequest(params: RenameParams, token: CancellationToken): Promise<WorkspaceEdit | undefined | null> {
+		Services.logger.debug(`[event] onRenameRequest: ${JSON.stringify(params)}`);
+		if (token.isCancellationRequested) {
+			Services.logger.debug(`onRenameRequest cancelled before start.`);
+			return;
+		}
+
+		const renameItems = Services.projectScope.getRenameItems(params.textDocument.uri, params.position);
+		const workspaceEdit: { changes: { [uri: string]: TextEdit[] }; } = { changes: {} };
+
+		for (const renameItem of renameItems) {
+			const uri = renameItem.element?.context.document.uri;
+			if (!uri) {
+				Services.logger.warn('Scope item has no element to rename');
+				continue;
+			}
+
+			const range = renameItem.element.identifierCapability?.range;
+			if (!range) {
+				Services.logger.warn('Scope item has no identifier to rename');
+				continue;
+			}
+
+			workspaceEdit.changes[uri] ??= [];
+			workspaceEdit.changes[uri].push(TextEdit.replace(range, params.newName));
+		}
+
+		Services.logger.debug(`resolved onRenameRequest: returning\n${JSON.stringify(workspaceEdit)}`);
+
+		// Allow a cancellation to be processed if we have one.
+		await new Promise(resolve => setTimeout(resolve, 0));
+		if (token.isCancellationRequested) {
+			Services.logger.debug(`onRenameRequest cancelled during run.`);
+			return;
+		}
+		return workspaceEdit;
 	}
 
 	/** Documents event handlers */

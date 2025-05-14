@@ -731,6 +731,62 @@ export class ScopeItemCapability {
 		));
 	}
 
+	getRenameItems(uri: string, position: { line: number, character: number }): ScopeItemCapability[] {
+		const moduleName = uri.split('/').at(-1)?.split('.').slice(0, -1).join('.');
+		if (!moduleName) {
+			Services.logger.error(`Bad URI or name: ${moduleName} from ${uri}`);
+			return [];
+		}
+
+		const modules = this.modules?.get(moduleName);
+		if (!modules) {
+			Services.logger.error(`No such module: ${moduleName}`);
+			return [];
+		}
+
+		if (modules.length > 1) {
+			Services.logger.error(`Module name ambiguity: ${modules.length} found.`);
+			return [];
+		}
+
+		const module = modules[0];
+		const itemsAtPosition: ScopeItemCapability[] = [];
+		module.maps.map(m => m.forEach(items => items.forEach(item => {
+			if (item.isAtPosition(position)) {
+				itemsAtPosition.push(item);
+			}
+		})));
+		if (itemsAtPosition.length === 0) {
+			Services.logger.warn(`Nothing to rename.`);
+			return [];
+		}
+
+		if (itemsAtPosition.length > 1) {
+			Services.logger.warn(`Ambiguity detected: ${itemsAtPosition.length} overlapping names.`);
+			return [];
+		}
+
+		const declarationItem = itemsAtPosition[0].link ? itemsAtPosition[0].link : itemsAtPosition[0];
+		const result = [declarationItem, ...declarationItem.backLinks ?? []];
+
+		return result;
+	}
+
+	isAtPosition(position: { line: number, character: number }): boolean {
+		const range = this.element?.context.range;
+		if (!range) {
+			return false;
+		}
+
+		if (range.start.line !== range.end.line) {
+			return position.line >= range.start.line
+				&& position.line <= range.end.line;
+		}
+
+		return position.character >= range.start.character
+			&& position.character <= range.end.character;
+	}
+
 	private addItem(target: Map<string, ScopeItemCapability[]>, item: ScopeItemCapability): void {
 		const items = target.get(item.identifier) ?? [];
 		items.push(item);
