@@ -1,7 +1,8 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { Services } from '../injection/services';
-import { fileURLToPath, pathToFileURL } from 'url';
+import { pathToFileURL } from 'url';
+import { Position, Range } from 'vscode-languageserver';
 
 export class Dictionary<K, V> extends Map<K, V> {
 	private defaultFactory: (...args: any) => V;
@@ -74,4 +75,15 @@ export function walk(dirOrUri: string, pattern?: RegExp, files: Map<string, stri
 		}
 	}
 	return files;
+}
+
+export function isPositionInsideRange(position: Position, range: Range): boolean {
+	if (range.start.line !== range.end.line) {
+		return position.line >= range.start.line
+			&& position.line <= range.end.line;
+	}
+
+	return position.line === range.start.line
+		&& position.character >= range.start.character
+		&& position.character <= range.end.character;
 }
