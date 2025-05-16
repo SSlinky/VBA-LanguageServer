@@ -16,8 +16,10 @@ import { Services } from './injection/services';
 
 // Ensures globally available type extensions.
 import './extensions/stringExtensions';
-import './extensions/parserExtensions';
 import './extensions/numberExtensions';
+import './extensions/antlrCoreExtensions';
+import './extensions/antlrVbaParserExtensions';
+import './extensions/antlrVbaPreParserExtensions';
 import { Workspace } from './project/workspace';
 import { activateSemanticTokenProvider } from './capabilities/semanticTokens';
 import { activateWorkspaceFolderCapability } from './capabilities/workspaceFolder';
