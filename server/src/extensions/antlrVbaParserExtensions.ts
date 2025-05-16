@@ -7,7 +7,6 @@ import {
     BuiltinTypeContext,
     ClassTypeNameContext,
     ConstItemContext,
-    LExpressionContext,
     TypeSpecContext,
     TypeSuffixContext,
     VariableDclContext,
@@ -43,16 +42,7 @@ declare module '../antlr/out/vbaParser' {
         /** Extension method to get the symbol kind. */
         toSymbolKind(): SymbolKind;
     }
-
-    interface LExpressionContext {
-        /** Recursive search for LPAREN terminal node. */
-        hasParenthesis(): boolean;
-    }
 }
-
-LExpressionContext.prototype.hasParenthesis = function (): boolean {
-    return !!this.LPAREN() || (this.lExpression()?.hasParenthesis() ?? false);
-};
 
 VariableDclContext.prototype.ambiguousIdentifier = function (): AmbiguousIdentifierContext {
     // A variable will always be typed or untyped.
