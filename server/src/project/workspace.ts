@@ -183,7 +183,7 @@ export class Workspace implements IWorkspace {
 	}
 
 	openDocument(document: TextDocument): void {
-		const projectDocument = this.projectDocuments.get(document.uri);
+		const projectDocument = this.projectDocuments.get(document.uri.toFilePath());
 		if (document.version === projectDocument?.version) {
 			projectDocument.open();
 			this.parseDocument(projectDocument);
@@ -192,7 +192,7 @@ export class Workspace implements IWorkspace {
 	}
 
 	closeDocument(document: TextDocument): void {
-		const projectDocument = this.projectDocuments.get(document.uri);
+		const projectDocument = this.projectDocuments.get(document.uri.toFilePath());
 		if (!projectDocument) {
 			Services.logger.warn(`Failed to get document to close: ${document.uri}`);
 			return;
@@ -511,8 +511,7 @@ class WorkspaceEvents {
 		logger.debug(`uri: ${document.uri.toFilePath()}`, 1);
 		logger.debug(`languageId: ${document.languageId}`, 1);
 		logger.debug(`version: ${document.version}`, 1);
-		const projectDocument = this.projectDocuments.get(document.uri.toFilePath());
-		if (projectDocument) {
+		if (this.projectDocuments.has(document.uri.toFilePath())) {
 			Services.workspace.openDocument(document);
 		}
 	}
@@ -555,8 +554,7 @@ class WorkspaceEvents {
 		logger.debug(`uri: ${document.uri}`, 1);
 		logger.debug(`languageId: ${document.languageId}`, 1);
 		logger.debug(`version: ${document.version}`, 1);
-		const projectDocument = this.projectDocuments.get(document.uri);
-		if (projectDocument) {
+		if (this.projectDocuments.has(document.uri.toFilePath())) {
 			Services.workspace.closeDocument(document);
 		}
 	}
