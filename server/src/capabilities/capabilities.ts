@@ -299,7 +299,7 @@ export class ScopeItemCapability {
 				//	-- Nothing required on first reference as declaration may come later.
 				const severity = this.isOptionExplicitScope
 					? DiagnosticSeverity.Error
-					: DiagnosticSeverity.Warning;
+					: DiagnosticSeverity.Hint;
 				const _ = this.assignmentType & AssignmentType.CALL
 					? this.pushDiagnostic(SubOrFunctionNotDefinedDiagnostic, this, this.name)
 					: this.pushDiagnostic(VariableNotDefinedDiagnostic, this, this.name, severity);
