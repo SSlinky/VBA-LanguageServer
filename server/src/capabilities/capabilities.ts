@@ -324,6 +324,39 @@ export class ScopeItemCapability {
 		this.isDirty = false;
 	}
 
+	resolveUnused(): void {
+		// Don't diagnose projects, classes or modules.
+		// Don't diagnose publically declared items.
+		// Don't diagnose if we have backlinks.
+		const isUsed: boolean = this.type === ItemType.CLASS
+			|| this.type === ItemType.MODULE
+			|| this.isPublicScope
+			|| (!!this.backlinks && this.backlinks.length > 0)
+			|| !this.element
+			|| !this.element.identifierCapability;
+
+		if (!isUsed) {
+			const identifier = this.element?.identifierCapability;
+			const diagnostics = this.element?.diagnosticCapability?.diagnostics;
+			if (identifier && diagnostics) {
+				diagnostics.push(new UnusedDiagnostic(identifier.range));
+			}
+		}
+
+		if (!this.hasScopeBody) {
+			return;
+		}
+
+		// Recursively call this method on child declarations.
+		this.types?.forEach(items => items.forEach(item => item.resolveUnused()));
+		this.modules?.forEach(items => items.forEach(item => item.resolveUnused()));
+		this.functions?.forEach(items => items.forEach(item => item.resolveUnused()));
+		this.subroutines?.forEach(items => items.forEach(item => item.resolveUnused()));
+		this.properties?.getters?.forEach(items => items.forEach(item => item.resolveUnused()));
+		this.properties?.letters?.forEach(items => items.forEach(item => item.resolveUnused()));
+		this.properties?.setters?.forEach(items => items.forEach(item => item.resolveUnused()));
+	}
+
 	/** Returns the chain of parents for bottom up name resolution. */
 	getParentChain(items: ScopeItemCapability[] = []): ScopeItemCapability[] {
 		items.push(this);

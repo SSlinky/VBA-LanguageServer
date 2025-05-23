@@ -147,6 +147,15 @@ export class UnreachableCodeDiagnostic extends BaseDiagnostic {
 	}
 }
 
+// test
+export class UnusedDiagnostic extends BaseDiagnostic {
+	severity = DiagnosticSeverity.Hint;
+	tags = [DiagnosticTag.Unnecessary];
+	constructor(range: Range) {
+		super(range);
+	}
+}
+
 
 export class UnknownAttributeDiagnostic extends BaseDiagnostic {
 	severity = DiagnosticSeverity.Error;

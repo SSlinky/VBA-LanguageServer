@@ -194,6 +194,7 @@ export abstract class BaseProjectDocument {
 		const projectScope = this.currentScope.project;
 		const buildScope = projectScope?.isDirty ? projectScope : this.currentScope;
 		buildScope.build();
+		buildScope.resolveUnused();
 
 		// Evaluate the diagnostics.
 		const diagnostics = this.hasDiagnosticElements
