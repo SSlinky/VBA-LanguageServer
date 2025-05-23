@@ -8,24 +8,42 @@ import { vbapreListener } from '../../antlr/out/vbapreListener';
 import { vbafmtListener } from '../../antlr/out/vbafmtListener';
 import { CompilerIfBlockContext } from '../../antlr/out/vbapreParser';
 import {
+    AmbiguousIdentifierContext,
     AnyOperatorContext,
+    ArgumentListContext,
+    CallStatementContext,
     ClassModuleContext,
+    DictionaryAccessExpressionContext,
     EnumDeclarationContext,
     EnumMemberContext,
     FunctionDeclarationContext,
     IfStatementContext,
     IgnoredClassAttrContext,
     IgnoredProceduralAttrContext,
+    IndexExpressionContext,
+    LetStatementContext,
+    LExpressionContext,
+    MemberAccessExpressionContext,
+    OptionalParamContext,
+    ParamArrayContext,
+    PositionalParamContext,
     ProceduralModuleContext,
     ProcedureDeclarationContext,
     PropertyGetDeclarationContext,
     PropertySetDeclarationContext,
+    SetStatementContext,
+    SimpleNameExpressionContext,
     SubroutineDeclarationContext,
+    TypeExpressionContext,
     TypeSuffixContext,
     UdtDeclarationContext,
     UnexpectedEndOfLineContext,
+    UnrestrictedNameContext,
     VariableDeclarationContext,
-    WhileStatementContext
+    WhileStatementContext,
+    WithExpressionContext,
+    WithMemberAccessExpressionContext,
+    WithStatementContext
 } from '../../antlr/out/vbaParser';
 import {
     AttributeStatementContext,
@@ -53,11 +71,23 @@ import { UnexpectedEndOfLineElement } from '../elements/utils';
 import { DuplicateOperatorElement, IfElseBlock as IfStatementElement, WhileLoopElement } from '../elements/flow';
 import { VbaClassDocument, VbaModuleDocument } from '../document';
 import { ClassElement, ModuleElement, ModuleIgnoredAttributeElement } from '../elements/module';
-import { VariableDeclarationStatementElement, EnumDeclarationElement, EnumMemberDeclarationElement, TypeDeclarationElement, TypeSuffixElement } from '../elements/typing';
+import { VariableDeclarationStatementElement, EnumDeclarationElement, EnumMemberDeclarationElement, TypeDeclarationElement, TypeSuffixElement, PositionalParamElement } from '../elements/typing';
 import { FunctionDeclarationElement, PropertyGetDeclarationElement, PropertyLetDeclarationElement, PropertySetDeclarationElement, SubDeclarationElement } from '../elements/procedure';
 import { ExtensionConfiguration } from '../workspace';
 import { Services } from '../../injection/services';
 import { ErrorRuleElement } from '../elements/generic';
+import { NameExpressionContext, NameExpressionElement, WithStatementElement } from '../elements/naming';
+import { FunctionOrArray } from '../elements/expression';
+import { AssignmentType } from '../../capabilities/capabilities';
+
+
+enum ParserAssignmentState {
+    NONE,
+    LET,
+    SET,
+    CALL
+}
+
 
 export class CommonParserCapability {
     document: VbaClassDocument | VbaModuleDocument;
@@ -80,14 +110,47 @@ export class CommonParserCapability {
     }
 }
 
+type ParserState = {
+    inCallExp: boolean
+    isWithExp: boolean;
+    isWithStmt: boolean;
+    isDictAccess: boolean;
+    assignment: ParserAssignmentState;
+    nameElements: NameExpressionElement[];
+    callMembers?: number;
+};
 
 export class VbaListener extends vbaListener {
     document: VbaClassDocument | VbaModuleDocument;
     protected documentSettings?: ExtensionConfiguration;
     protected isAfterMethodDeclaration = false;
+    private withStatementStack: WithStatementElement[] = [];
+    private functionOrArrayStack: FunctionOrArray[] = [];
+    private parserStateStack: ParserState[] = [];
+
+    private readonly verbose = false;
+
+    private get parserState(): ParserState {
+        if (this.parserStateStack.length === 0) {
+            Services.logger.error('State stack is empty.');
+            this.pushNewState();
+        }
+        return this.parserStateStack.at(-1)!;
+    }
+
+    private pushNewState = () =>
+        this.parserStateStack.push({
+            inCallExp: false,
+            isWithExp: false,
+            isWithStmt: false,
+            isDictAccess: false,
+            nameElements: [],
+            assignment: ParserAssignmentState.NONE
+        });
 
     constructor(document: VbaClassDocument | VbaModuleDocument) {
         super();
+        this.pushNewState();
         this.document = document;
     }
 
@@ -169,6 +232,358 @@ export class VbaListener extends vbaListener {
     enterUdtDeclaration = (ctx: UdtDeclarationContext) => {
         const element = new TypeDeclarationElement(ctx, this.document.textDocument);
         this.document.registerElement(element);
+    };
+
+    enterArgumentList = (_: ArgumentListContext) => this.pushNewState();
+    exitArgumentList = (_: ArgumentListContext) => this.parserStateStack.pop();
+
+    // enterLExpression = (ctx: LExpressionContext) => {
+    //     // We're already dealing with an expression.
+    //     if (this.parserState.nameElement) {
+    //         return;
+    //     }
+
+    //     // We have a function call or array.
+    //     if (ctx.hasParenthesis()) {
+    //         this.functionOrArrayStack.push(new FunctionOrArray(ctx, this.document.textDocument));
+    //         Services.logger.debug(`Push function or array (${this.functionOrArrayStack.length}): ${ctx.getText()}`);
+    //         return;
+    //     }
+
+    //     // All other cases, start an expression.
+    //     Services.logger.debug(`Start expression: ${ctx.getText()}`);
+    //     const element = new NameExpressionElement(ctx, this.document.textDocument);
+    //     this.parserState.nameElement = element;
+    //     const funcOrArray = this.functionOrArrayStack.at(-1);
+    //     if (funcOrArray && !funcOrArray.nameExpressionElement) {
+    //         funcOrArray.nameExpressionElement = element;
+    //     }
+
+    //     // Handle assignment type
+    //     if (this.parserState.assignment !== ParserAssignmentState.NONE) {
+    //         if (this.parserState.assignment === ParserAssignmentState.LET) {
+    //             element.setAsLetType();
+    //         } else {
+    //             element.setAsSetType();
+    //         }
+    //         this.parserState.assignment = ParserAssignmentState.NONE;
+    //     }
+    // };
+
+    // exitLExpression = (ctx: LExpressionContext) => {
+    //     if (this.functionOrArrayStack.at(-1)?.context.rule === ctx) {
+    //         Services.logger.debug(`Pop function or array (${this.functionOrArrayStack.length}): ${ctx.getText()}`);
+    //         this.functionOrArrayStack.pop();
+    //         return;
+    //     }
+    //     this.handleExitCallOrExpression(ctx);
+    // };
+
+    enterLetStatement = (_: LetStatementContext) => {
+        if (this.verbose) Services.logger.debug(`enterLetStatement`, this.parserStateStack.length);
+        this.parserState.assignment = ParserAssignmentState.LET;
+    };
+
+    enterSetStatement = (_: SetStatementContext) => {
+        if (this.verbose) Services.logger.debug(`enterSetStatement`, this.parserStateStack.length);
+        this.parserState.assignment = ParserAssignmentState.SET;
+    };
+
+    // enterCallStatement = (ctx: CallStatementContext) => {
+    //     // We shouldn't be dealing with an expression.
+    //     const state = this.parserState;
+    //     if (state.nameElement) {
+    //         Services.logger.error('Call statement in expression?');
+    //     }
+    //     Services.logger.debug(`Start call expression: ${ctx.getText()}`);
+    //     state.nameElement = new NameExpressionElement(ctx, this.document.textDocument);
+    // };
+
+    enterCallStatement = (ctx: CallStatementContext) => {
+        if (this.verbose) Services.logger.debug(`enterCallStatement: ${ctx.getText()}`, this.parserStateStack.length);
+        this.parserState.inCallExp = true;
+
+        // Sometimes a call statement does not have the normal trigger context to add a name expression.
+        const simpleNameCtx = ctx.simpleNameExpression();
+        if (!ctx.memberAccessExpression() && !ctx.indexExpression() && simpleNameCtx) {
+            this.pushNameElement(simpleNameCtx);
+        }
+    };
+
+    exitCallStatement = (ctx: CallStatementContext) => {
+        if (this.verbose) Services.logger.debug(`exitCallStatement: ${ctx.getText()}`, this.parserStateStack.length);
+
+        // Sometimes a call statement does not have the normal trigger context to exit a name expression.
+        const simpleNameCtx = ctx.simpleNameExpression();
+        if (!ctx.memberAccessExpression() && !ctx.indexExpression() && simpleNameCtx) {
+            this.parserState.assignment = ParserAssignmentState.CALL;
+            this.registerNameElement();
+        }
+        this.parserState.inCallExp = false;
+    };
+
+    enterMemberAccessExpression = (ctx: MemberAccessExpressionContext) => {
+        if (this.verbose) Services.logger.debug(`enterMemberAccessExpression: ${ctx.getText()}`, this.parserStateStack.length);
+        this.pushNameElement(ctx);
+    };
+
+    enterDictionaryAccessExpression = (ctx: DictionaryAccessExpressionContext) => {
+        if (this.verbose) Services.logger.debug(`enterDictionaryAccessExpression: ${ctx.getText()}`, this.parserStateStack.length);
+        this.parserState.isDictAccess = true;
+        this.pushNameElement(ctx);
+    };
+
+    exitDictionaryAccessExpression = (ctx: DictionaryAccessExpressionContext) => {
+        if (this.verbose) Services.logger.debug(`exitDictionaryAccessExpression`, this.parserStateStack.length);
+        this.parserState.isDictAccess = false;
+    };
+
+    enterWithMemberAccessExpression = (ctx: WithMemberAccessExpressionContext) => {
+        if (this.verbose) Services.logger.debug(`enterWithMemberAccessExpression: ${ctx.getText()}`, this.parserStateStack.length);
+        this.pushNameElement(ctx);
+    };
+
+    exitMemberAccessExpression = (ctx: MemberAccessExpressionContext) => {
+        if (this.verbose) Services.logger.debug(`exitMemberAccessExpression: ${ctx.getText()}`, this.parserStateStack.length);
+        if (this.parserState.inCallExp) this.parserState.assignment = ParserAssignmentState.CALL;
+        this.registerNameElement();
+    };
+
+    enterIndexExpression = (ctx: IndexExpressionContext) => {
+        if (this.verbose) Services.logger.debug(`enterIndexExpression: ${ctx.getText()}`, this.parserStateStack.length);
+        this.pushNameElement(ctx);
+    };
+
+    exitIndexExpression = (ctx: IndexExpressionContext) => {
+        Services.logger.debug(`exitIndexExpression: ${ctx.getText()}`, this.parserStateStack.length);
+        if (this.parserState.inCallExp) this.parserState.assignment = ParserAssignmentState.CALL;
+        this.registerNameElement();
+    };
+
+    enterLExpression = (ctx: LExpressionContext) => {
+        if (this.verbose) Services.logger.debug(`enterLExpression: ${ctx.getText()}`, this.parserStateStack.length);
+        if (ctx.LPAREN()) {
+            // FIXME: Will need to track function calls properly when we have types... maybe.
+            return;
+        }
+
+        // Will be handled by the WithExpression.
+        if (ctx.withExpression()) {
+            return;
+        }
+        this.pushNameElement(ctx);
+    };
+
+    exitLExpression = (ctx: LExpressionContext) => {
+        if (this.verbose) Services.logger.debug(`exitLExpression: ${ctx.getText()}`, this.parserStateStack.length);
+        if (ctx.LPAREN()) {
+            return;
+        }
+        // Was handled by the WithExpression.
+        if (ctx.withExpression()) {
+            return;
+        }
+        this.registerNameElement();
+    };
+
+    enterPositionalParam = (ctx: PositionalParamContext) => {
+        if (this.verbose) Services.logger.debug(`enterPositionalParam: ${ctx.getText()}`, this.parserStateStack.length);
+        const element = new PositionalParamElement(ctx, this.document.textDocument);
+        this.document.registerElement(element);
+        // this.pushNameElement(ctx);
+
+        // const identifierCtx = ctx.paramDcl().untypedNameParamDcl()?.ambiguousIdentifier()
+        //     ?? ctx.paramDcl().typedNameParamDcl()?.typedName().ambiguousIdentifier();
+
+        // if (identifierCtx) {
+        //     this.addNameElementContext(identifierCtx, 'ambigiousNameContext');
+        // }
+    };
+
+    // enterTypeExpression = (ctx: TypeExpressionContext) =>
+    //     Services.logger.log(`TypeExpressionContext ${ctx.getText()} is primative: ${ctx.isPrimative}`);
+
+    // exitPositionalParam = (ctx: PositionalParamContext) => {
+    //     if (this.verbose) Services.logger.debug(`exitPositionalParam: ${ctx.getText()}`, this.parserStateStack.length);
+    //     this.registerNameElement();
+    // };
+
+    enterOptionalParam = (ctx: OptionalParamContext) => {
+        if (this.verbose) Services.logger.debug(`enterOptionalParam: ${ctx.getText()}`, this.parserStateStack.length);
+        const identifierCtx = ctx.paramDcl().untypedNameParamDcl()?.ambiguousIdentifier()
+            ?? ctx.paramDcl().typedNameParamDcl()?.typedName().ambiguousIdentifier();
+
+        if (identifierCtx) {
+            this.addNameElementContext(identifierCtx, 'ambigiousNameContext');
+        }
+    };
+
+    exitOptionalParam = (ctx: OptionalParamContext) => {
+        if (this.verbose) Services.logger.debug(`exitOptionalParam: ${ctx.getText()}`, this.parserStateStack.length);
+        this.registerNameElement();
+    };
+
+    enterParamArray = (ctx: ParamArrayContext) => {
+        if (this.verbose) Services.logger.debug(`enterParamArray: ${ctx.getText()}`, this.parserStateStack.length);
+        this.addNameElementContext(ctx.ambiguousIdentifier(), 'ambigiousNameContext');
+    };
+
+    exitParamArray = (ctx: ParamArrayContext) => {
+        if (this.verbose) Services.logger.debug(`exitParamArray: ${ctx.getText()}`, this.parserStateStack.length);
+        this.registerNameElement();
+    };
+
+    enterUnrestrictedName = (ctx: UnrestrictedNameContext) => this.addNameElementContext(ctx, 'enterUnrestrictedName');
+    enterSimpleNameExpression = (ctx: SimpleNameExpressionContext) => this.addNameElementContext(ctx, 'enterSimpleNameExpression');
+
+    private addNameElementContext(ctx: UnrestrictedNameContext | SimpleNameExpressionContext | AmbiguousIdentifierContext, source: string) {
+        if (this.verbose) Services.logger.debug(`${source}: ${ctx.getText()}`, this.parserStateStack.length);
+        const nameElement = this.parserState.nameElements.at(-1);
+        if (!nameElement) {
+            Services.logger.error(`Cannot add name ${ctx.getText()}`, this.parserStateStack.length);
+            return;
+        }
+
+        nameElement.addName(ctx);
+    }
+
+    private pushNameElement(ctx: NameExpressionContext): void {
+        if (this.verbose) Services.logger.debug('Pushing name', this.parserStateStack.length);
+        const element = new NameExpressionElement(ctx, this.document.textDocument);
+
+        // Push the name element to the stack.
+        this.parserState.nameElements.push(element);
+
+        // Link to WithStatement if we have one.
+        const withStatement = this.withStatementStack.at(-1);
+        if (withStatement && !withStatement.nameExpressionElement) {
+            withStatement.nameExpressionElement = element;
+        }
+    }
+
+    private registerNameElement(): void {
+        // Pop the current element and return if we don't have one.
+        const nameElement = this.parserState.nameElements.pop();
+        if (!nameElement) {
+            return;
+        }
+
+        // Add with names if we're in a WithExpression
+        if (this.parserState.isWithExp) {
+            nameElement.withStatementElement = this.withStatementStack.at(-1);
+            this.parserState.isWithExp = false;
+        }
+
+        // Set the type based on parser state.
+        switch (this.parserState.assignment) {
+            case ParserAssignmentState.SET:
+                nameElement.setAsSetType();
+                break;
+            case ParserAssignmentState.LET:
+                nameElement.setAsLetType();
+                break;
+            case ParserAssignmentState.CALL:
+                nameElement.setAsCallType();
+                break;
+        }
+        this.parserState.assignment = ParserAssignmentState.NONE;
+
+        // Register this name element.
+        this.document.registerElement(nameElement);
+        if (this.verbose) Services.logger.debug(`Registered ${nameElement.fqName} as ${nameElement.identifierCapability.name}`, this.parserStateStack.length);
+
+        // Add the name(s) to the next element down.
+        const nextElement = this.parserState.nameElements.at(-1);
+        if (nextElement) {
+            nextElement.nameContexts = [
+                nameElement.nameContexts,
+                nextElement.nameContexts
+            ].flat();
+        }
+    }
+
+    // exitCallStatement = (ctx: CallStatementContext) => {
+    //     if (!this.parserState.nameElement) {
+    //         Services.logger.error('No call expression to exit.');
+    //         return;
+    //     }
+    //     this.parserState.nameElement.setAsCallType();
+    //     this.handleExitCallOrExpression(ctx);
+    // };
+
+    // private handleExitCallOrExpression(ctx: LExpressionContext | CallStatementContext) {
+    //     // This isn't the expression we're dealing with.
+    //     const nameExpressionElement = this.parserState.nameElement;
+    //     if (!nameExpressionElement) {
+    //         return;
+    //     }
+
+    //     if (nameExpressionElement.context.rule !== ctx) {
+    //         return;
+    //     }
+
+    //     if (!nameExpressionElement.hasNames) {
+    //         Services.logger.debug(`End expression 0 names: ${ctx.getText()}`);
+    //         this.parserState.nameElement = undefined;
+    //         return;
+    //     }
+
+    //     // Handle when this name is a With statement.
+    //     const withStatement = this.withStatementStack.at(-1);
+    //     if (withStatement && !withStatement.nameExpressionElement) {
+    //         withStatement.nameExpressionElement = nameExpressionElement;
+    //         if (this.isWithExpression) {
+    //             // Attach to the parent when this also uses a With expression.
+    //             const withStatementParent = this.withStatementStack.at(-2);
+    //             if (!withStatementParent) {
+    //                 Services.logger.error(`Not enough ancestors.`);
+    //             } else {
+    //                 nameExpressionElement.withStatementElement = withStatementParent;
+    //             }
+    //             this.isWithExpression = false;
+    //         }
+    //         this.parserState.nameElement = undefined;
+    //         return;
+    //     }
+
+    //     // Attach With statement if we're in a With expression.
+    //     if (this.isWithExpression && withStatement) {
+    //         nameExpressionElement.withStatementElement = withStatement;
+    //         this.isWithExpression = false;
+    //     }
+
+    //     Services.logger.debug(`Registering name: ${nameExpressionElement.fqName}`);
+    //     this.document.registerElement(nameExpressionElement);
+    //     this.parserState.nameElement = undefined;
+
+    //     if (this.isWithExpression) {
+    //         Services.logger.warn('Still within withExpression after exitLExpression');
+    //     }
+    // }
+
+    enterWithStatement = (ctx: WithStatementContext) => {
+        if (this.verbose) Services.logger.debug(`enterWithStatement: ${ctx.getText().split('\n')[0]}...`, this.parserStateStack.length);
+        const element = new WithStatementElement(ctx, this.document.textDocument);
+        this.withStatementStack.push(element);
+    };
+
+    exitWithStatement = (ctx: WithStatementContext) => {
+        if (this.verbose) Services.logger.debug(`exitWithStatement`, this.parserStateStack.length);
+        if (this.withStatementStack.at(-1)?.context.rule === ctx) {
+            this.withStatementStack.pop();
+        } else {
+            Services.logger.error(`Can't exit With`);
+        }
+    };
+
+    enterWithExpression = (_: WithExpressionContext) => {
+        if (this.verbose) Services.logger.debug(`enterWithExpression`, this.parserStateStack.length);
+        this.parserState.isWithExp = true;
+    };
+
+    exitWithExpression = (_: WithExpressionContext) => {
+        if (this.verbose) Services.logger.debug(`exitWithExpression`, this.parserStateStack.length);
+        this.registerNameElement();
     };
 
     enterTypeSuffix = (ctx: TypeSuffixContext) =>

@@ -90,11 +90,11 @@ export class LanguageServerConfiguration {
 		codeActionProvider: true,
 		completionProvider: undefined,
 		hoverProvider: false,
+		definitionProvider: true,
 
 		// Not implemented.		
 		signatureHelpProvider: undefined,
 		declarationProvider: false,
-		definitionProvider: false,
 		typeDefinitionProvider: false,
 		implementationProvider: false,
 		referencesProvider: false,

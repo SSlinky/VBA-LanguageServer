@@ -16,7 +16,7 @@ import {
 
 // Project
 import { BaseRuleSyntaxElement, HasDiagnosticCapability, HasSymbolInformationCapability } from './base';
-import { AssignmentType, DiagnosticCapability, FoldingRangeCapability, IdentifierCapability, ItemType, ScopeItemCapability, SymbolInformationCapability } from '../../capabilities/capabilities';
+import { AssignmentType, DiagnosticCapability, FoldingRangeCapability, IdentifierCapability, ScopeType, ScopeItemCapability, SymbolInformationCapability } from '../../capabilities/capabilities';
 
 interface HasProcedureScope {
 	procedureScope(): ProcedureScopeContext | null
@@ -60,7 +60,7 @@ export class SubDeclarationElement extends BaseProcedureElement<SubroutineDeclar
 		this.identifierCapability = new IdentifierCapability(this, getIdentifierNameContext);
 		this.foldingRangeCapability.openWord = `Sub ${this.identifierCapability.name}`;
 		this.foldingRangeCapability.closeWord = 'End Sub';
-		this.scopeItemCapability.type = ItemType.SUBROUTINE;
+		this.scopeItemCapability.type = ScopeType.SUBROUTINE;
 	}
 }
 
@@ -74,7 +74,7 @@ export class FunctionDeclarationElement extends BaseProcedureElement<FunctionDec
 		this.identifierCapability = new IdentifierCapability(this, getIdentifierNameContext);
 		this.foldingRangeCapability.openWord = `Function ${this.identifierCapability.name}`;
 		this.foldingRangeCapability.closeWord = 'End Function';
-		this.scopeItemCapability.type = ItemType.FUNCTION;
+		this.scopeItemCapability.type = ScopeType.FUNCTION;
 	}
 }
 
@@ -127,7 +127,7 @@ export class PropertyGetDeclarationElement extends BasePropertyDeclarationElemen
 		super(ctx, doc, 'Get', ctx.functionName()?.ambiguousIdentifier() ?? undefined);
 		this.foldingRangeCapability.openWord = `Get Property ${this.identifierCapability.name}`;
 		this.foldingRangeCapability.closeWord = 'End Property';
-		this.scopeItemCapability.type = ItemType.PROPERTY;
+		this.scopeItemCapability.type = ScopeType.PROPERTY;
 		this.scopeItemCapability.assignmentType = AssignmentType.GET;
 	}
 }
@@ -138,7 +138,7 @@ export class PropertySetDeclarationElement extends BasePropertyDeclarationElemen
 		super(ctx, doc, 'Set', ctx.subroutineName()?.ambiguousIdentifier() ?? undefined);
 		this.foldingRangeCapability.openWord = `Set Property ${this.identifierCapability.name}`;
 		this.foldingRangeCapability.closeWord = 'End Property';
-		this.scopeItemCapability.type = ItemType.PROPERTY;
+		this.scopeItemCapability.type = ScopeType.PROPERTY;
 		this.scopeItemCapability.assignmentType = AssignmentType.SET;
 	}
 }
@@ -149,7 +149,7 @@ export class PropertyLetDeclarationElement extends BasePropertyDeclarationElemen
 		super(ctx, doc, 'Let', ctx.subroutineName()?.ambiguousIdentifier() ?? undefined);
 		this.foldingRangeCapability.openWord = `Let Property ${this.identifierCapability.name}`;
 		this.foldingRangeCapability.closeWord = 'End Property';
-		this.scopeItemCapability.type = ItemType.PROPERTY;
+		this.scopeItemCapability.type = ScopeType.PROPERTY;
 		this.scopeItemCapability.assignmentType = AssignmentType.LET;
 	}
 }

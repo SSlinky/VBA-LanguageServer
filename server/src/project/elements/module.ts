@@ -1,4 +1,5 @@
 // Core
+import * as url from 'url';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { Diagnostic, Range, SymbolKind } from 'vscode-languageserver';
 
@@ -17,7 +18,7 @@ import {
 
 // Project
 import { BaseRuleSyntaxElement, BaseIdentifyableSyntaxElement, HasDiagnosticCapability } from './base';
-import { DiagnosticCapability, IdentifierCapability, ItemType, ScopeItemCapability, SymbolInformationCapability } from '../../capabilities/capabilities';
+import { DiagnosticCapability, IdentifierCapability, ScopeType, ScopeItemCapability, SymbolInformationCapability } from '../../capabilities/capabilities';
 import { DuplicateAttributeDiagnostic, UnknownAttributeDiagnostic, MissingAttributeDiagnostic, MissingOptionExplicitDiagnostic } from '../../capabilities/diagnostics';
 
 
@@ -111,7 +112,8 @@ export class ModuleElement extends BaseModuleElement<ProceduralModuleContext> {
 		super(ctx, doc, documentSettings, SymbolKind.File);
 		this.attrubutes = ctx.proceduralModuleHeader().proceduralModuleAttr();
 		this.diagnosticCapability = new DiagnosticCapability(this);
-		this.scopeItemCapability = new ScopeItemCapability(this, ItemType.MODULE);
+		this.scopeItemCapability = new ScopeItemCapability(this, ScopeType.MODULE);
+		this.scopeItemCapability.locationUri = url.pathToFileURL(doc.uri).toString();
 
 		this.scopeItemCapability.isOptionExplicitScope = this.evaluateHasOptionExplicit(ctx
 			.proceduralModuleBody()
@@ -158,7 +160,8 @@ export class ClassElement extends BaseModuleElement<ClassModuleContext> {
 			ctx.classModuleHeader().ignoredClassAttr()
 		].flat();
 		this.diagnosticCapability = new DiagnosticCapability(this);
-		this.scopeItemCapability = new ScopeItemCapability(this, ItemType.CLASS);
+		this.scopeItemCapability = new ScopeItemCapability(this, ScopeType.CLASS);
+		this.scopeItemCapability.locationUri = url.pathToFileURL(doc.uri).toString();
 
 		this.scopeItemCapability.isOptionExplicitScope = this.evaluateHasOptionExplicit(ctx
 			.classModuleBody()

@@ -18,7 +18,7 @@ import {
 
 // Project
 import { BaseRuleSyntaxElement } from "./base";
-import { AssignmentType, IdentifierCapability, ItemType, ScopeItemCapability } from "../../capabilities/capabilities";
+import { AssignmentType, IdentifierCapability, ScopeType, ScopeItemCapability } from "../../capabilities/capabilities";
 
 
 export class WithStatementElement extends BaseRuleSyntaxElement<WithStatementContext> {
@@ -64,7 +64,7 @@ export class NameExpressionElement extends BaseRuleSyntaxElement<NameExpressionC
     constructor(ctx: NameExpressionContext, doc: TextDocument) {
         super(ctx, doc);
         this.identifierCapability = new IdentifierCapability(this, () => this.nameStack.at(-1));
-        this.scopeItemCapability = new ScopeItemCapability(this, ItemType.REFERENCE, AssignmentType.GET);
+        this.scopeItemCapability = new ScopeItemCapability(this, ScopeType.REFERENCE, AssignmentType.GET);
     }
 
     setAsCallType = () => this.scopeItemCapability.assignmentType = AssignmentType.CALL;
@@ -74,4 +74,11 @@ export class NameExpressionElement extends BaseRuleSyntaxElement<NameExpressionC
     addName = (ctx: SimpleNameExpressionContext | UnrestrictedNameContext | AmbiguousIdentifierContext) => {
         this.nameContexts.push(ctx);
     };
+
+    evaluateNameStack(): void {
+        const names = this.nameStack.map(x => x.getText());
+        if (names.length > 0) {
+            this.scopeItemCapability.accessMembers = names;
+        }
+    }
 }

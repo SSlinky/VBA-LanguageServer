@@ -1,9 +1,9 @@
 // Core
 import {
 	DiagnosticSeverity,
+	LocationLink,
+	Position,
 	Range,
-	SemanticTokenModifiers,
-	SemanticTokenTypes,
 	SymbolInformation,
 	SymbolKind
 } from 'vscode-languageserver';
@@ -12,12 +12,12 @@ import {
 import { ParserRuleContext, TerminalNode } from 'antlr4ng';
 
 // Project
-import { ModuleElement } from '../project/elements/module';
-import { SemanticToken } from '../capabilities/semanticTokens';
+import { SemanticToken, SemanticTokenModifiers, SemanticTokenTypes } from '../capabilities/semanticTokens';
 import { FoldingRange, FoldingRangeKind } from '../capabilities/folding';
 import { BaseRuleSyntaxElement, BaseIdentifyableSyntaxElement, BaseSyntaxElement, Context, HasSemanticTokenCapability } from '../project/elements/base';
-import { BaseDiagnostic, DuplicateDeclarationDiagnostic, MethodVariableIsPublicDiagnostic, ShadowDeclarationDiagnostic, SubOrFunctionNotDefinedDiagnostic, VariableNotDefinedDiagnostic } from './diagnostics';
+import { BaseDiagnostic, DuplicateDeclarationDiagnostic, ShadowDeclarationDiagnostic, SubOrFunctionNotDefinedDiagnostic, UnusedDiagnostic, VariableNotDefinedDiagnostic } from './diagnostics';
 import { Services } from '../injection/services';
+import { isPositionInsideRange } from '../utils/helpers';
 
 
 abstract class BaseCapability {
@@ -67,11 +67,6 @@ export class DiagnosticCapability extends BaseCapability {
 
 
 export class SemanticTokenCapability extends BaseCapability {
-	private tokenType: SemanticTokenTypes;
-	private tokenModifiers: SemanticTokenModifiers[];
-	private overrideRange?: Range;
-	private overrideLength?: number;
-
 	get semanticToken(): SemanticToken {
 		const element = this.element as BaseRuleSyntaxElement<ParserRuleContext> & HasSemanticTokenCapability;
 		const context = element.identifierCapability
@@ -93,19 +88,17 @@ export class SemanticTokenCapability extends BaseCapability {
 		);
 	}
 
-	constructor(element: BaseRuleSyntaxElement<ParserRuleContext> & HasSemanticTokenCapability, tokenType: SemanticTokenTypes, tokenModifiers: SemanticTokenModifiers[], overrideRange?: Range, overrideLength?: number) {
+	constructor(element: BaseRuleSyntaxElement<ParserRuleContext>,
+		private tokenType: SemanticTokenTypes,
+		private tokenModifiers: SemanticTokenModifiers[],
+		private overrideRange?: Range,
+		private overrideLength?: number) {
 		super(element);
-		this.tokenType = tokenType;
-		this.tokenModifiers = tokenModifiers;
-		this.overrideRange = overrideRange;
-		this.overrideLength = overrideLength;
 	}
 }
 
 
 export class SymbolInformationCapability extends BaseCapability {
-	private symbolKind: SymbolKind;
-
 	get SymbolInformation(): SymbolInformation {
 		const element = this.element as BaseIdentifyableSyntaxElement<ParserRuleContext>;
 		return SymbolInformation.create(
@@ -116,9 +109,8 @@ export class SymbolInformationCapability extends BaseCapability {
 		);
 	}
 
-	constructor(element: BaseIdentifyableSyntaxElement<ParserRuleContext>, symbolKind: SymbolKind) {
+	constructor(element: BaseIdentifyableSyntaxElement<ParserRuleContext>, private symbolKind: SymbolKind) {
 		super(element);
-		this.symbolKind = symbolKind;
 	}
 }
 
@@ -169,7 +161,7 @@ export class IdentifierCapability extends BaseCapability {
 }
 
 
-export enum ItemType {
+export enum ScopeType {
 	/** Base language. */
 	VBA,
 	/** Application model. */
@@ -190,6 +182,8 @@ export enum ItemType {
 	TYPE,
 	/** Variable declaration. */
 	VARIABLE,
+	/** A variable declaration in a signature */
+	PARAMETER,
 	/** Any reference type that isn't a declaration. */
 	REFERENCE
 }
@@ -199,7 +193,8 @@ export enum AssignmentType {
 	GET = 1 << 0,
 	LET = 1 << 1,
 	SET = 1 << 2,
-	CALL = 1 << 3
+	CALL = 1 << 3,
+	CONST = 1 << 4
 }
 
 export class ScopeItemCapability {
@@ -213,22 +208,20 @@ export class ScopeItemCapability {
 		setters?: Map<string, ScopeItemCapability[]>,
 		letters?: Map<string, ScopeItemCapability[]>
 	};
+	parameters?: Map<string, ScopeItemCapability[]>;
 	references?: Map<string, ScopeItemCapability[]>;
+
+	// Special scope references for easier resolution of names.
+	implicitDeclarations?: Map<string, ScopeItemCapability[]>;
 
 	// Links
 	link?: ScopeItemCapability;
-	backLinks?: ScopeItemCapability[];
+	backlinks?: ScopeItemCapability[];
 
 	// Technical
 	isDirty: boolean = true;
 	isInvalidated = false;
-	private get isMethodScope(): boolean {
-		return [
-			ItemType.SUBROUTINE,
-			ItemType.FUNCTION,
-			ItemType.PROPERTY,
-		].includes(this.type);
-	}
+
 	get maps() {
 		const result: Map<string, ScopeItemCapability[]>[] = [];
 		const addToResult = (map: Map<string, ScopeItemCapability[]> | undefined) => {
@@ -246,16 +239,45 @@ export class ScopeItemCapability {
 		return result;
 	}
 
+	get explicitDeclarations() {
+		const result: Map<string, ScopeItemCapability[]>[] = [];
+		const addToResult = (map: Map<string, ScopeItemCapability[]> | undefined) => {
+			if (map) result.push(map);
+		};
+		addToResult(this.types);
+		addToResult(this.modules);
+		addToResult(this.functions);
+		addToResult(this.subroutines);
+		addToResult(this.properties?.getters);
+		addToResult(this.properties?.letters);
+		addToResult(this.properties?.setters);
+
+		return result;
+	}
+
+	get hasScopeBody(): boolean {
+		return this.type !== ScopeType.VARIABLE
+			&& this.type !== ScopeType.REFERENCE
+			&& this.type !== ScopeType.PARAMETER;
+	}
+
+	get assignmentTypeText(): string {
+		const enumNamesAndValues = Object.values(AssignmentType);
+		const enumValues = enumNamesAndValues.slice(enumNamesAndValues.length / 2 + 1);
+		const result = `${enumValues.map(x => AssignmentType[this.assignmentType & x as number]).filter(x => x !== 'NONE').join('|')}`;
+
+		return result === '' ? 'NONE' : result;
+	}
+
 	// Item Properties
-	explicitSetName?: string;
-	isPublicScope = false;
-	visibilityModifierContext?: ParserRuleContext;
-	qualififications?: BaseIdentifyableSyntaxElement<ParserRuleContext>[];
+	locationUri?: string;
+	isPublicScope?: boolean;
+	accessMembers?: string[];
 	isOptionExplicitScope = false;
 
 	constructor(
 		readonly element?: BaseRuleSyntaxElement<ParserRuleContext>,
-		public type: ItemType = ItemType.REFERENCE,
+		public type: ScopeType = ScopeType.REFERENCE,
 		public assignmentType: AssignmentType = AssignmentType.NONE,
 		public parent?: ScopeItemCapability,
 	) { }
@@ -275,9 +297,9 @@ export class ScopeItemCapability {
 
 		// Clean invalidated links.
 		if (this.link?.isInvalidated) this.link = undefined;
-		if (this.backLinks) {
-			const keep = this.backLinks.filter(x => !x.isInvalidated);
-			this.backLinks = keep.length > 0 ? keep : undefined;
+		if (this.backlinks) {
+			const keep = this.backlinks.filter(x => !x.isInvalidated);
+			this.backlinks = keep.length > 0 ? keep : undefined;
 		}
 
 		// Don't build self if invalidated.
@@ -285,15 +307,18 @@ export class ScopeItemCapability {
 			return;
 		}
 
-		if (this.type === ItemType.REFERENCE) {
+		if (this.type === ScopeType.REFERENCE) {
 			// Link to declaration if it exists.
 			this.resolveLinks();
+			const abc = 0;
 			if (!this.link) {
 				// TODO:
 				// References to variables should get a diagnostic if they aren't declared.
-				//  -- No option explicit: gets a hint with code action to declare.
-				//  -- Option explicit: gets an error with code action to declare.
+				//  -- No option explicit: Hint with code action to declare.
+				//						   GET before declared gets a warning.
+				//  -- Option explicit: Error with code action to declare.
 				//  -- Subsequent explicit declaration should raise duplicate declaration (current bahaviour).
+				// 	-- All declarations with no GET references get a warning.
 				// References to function or sub calls should raise an error if they aren't declared.
 				//	-- Must always throw even when option explicit not present.
 				//	-- Nothing required on first reference as declaration may come later.
@@ -328,8 +353,8 @@ export class ScopeItemCapability {
 		// Don't diagnose projects, classes or modules.
 		// Don't diagnose publically declared items.
 		// Don't diagnose if we have backlinks.
-		const isUsed: boolean = this.type === ItemType.CLASS
-			|| this.type === ItemType.MODULE
+		const isUsed: boolean = this.type === ScopeType.CLASS
+			|| this.type === ScopeType.MODULE
 			|| this.isPublicScope
 			|| (!!this.backlinks && this.backlinks.length > 0)
 			|| !this.element
@@ -378,7 +403,7 @@ export class ScopeItemCapability {
 	/** Resolves for the current scope, i.e., children of the current item. */
 	private resolveDuplicateDeclarations(ancestors: ScopeItemCapability[]) {
 		// Reference types are never relevant.
-		if (this.type == ItemType.REFERENCE) {
+		if (this.type == ScopeType.REFERENCE) {
 			return;
 		}
 
@@ -452,7 +477,7 @@ export class ScopeItemCapability {
 
 	private resolveShadowedDeclaration(item: ScopeItemCapability | undefined): void {
 		if (item) {
-			const diagnostic = this.pushDiagnostic(ShadowDeclarationDiagnostic);
+			const diagnostic = this.pushDiagnostic(ShadowDeclarationDiagnostic, this, this.name);
 			this.addDiagnosticReference(diagnostic, item);
 		}
 	}
@@ -465,10 +490,15 @@ export class ScopeItemCapability {
 
 		for (let i = 2; i < ancestors.length; i++) {
 			const ancestor = ancestors[i];
-			const shadowing = ancestor.getAccessibleScopes(this.name);
+			const shadowing = ancestor
+				.getAccessibleScopes(this.name)
+				.filter(item => item.parent?.name !== this.parent?.name);
 
-			if (shadowing) {
-				const diagnostic = this.pushDiagnostic(ShadowDeclarationDiagnostic);
+			if (shadowing.length > 0) {
+				const diagnostic = this.pushDiagnostic(ShadowDeclarationDiagnostic, this, this.name);
+				if (diagnostic === undefined) {
+					continue;
+				}
 				shadowing.forEach(item => this.addDiagnosticReference(diagnostic, item));
 			}
 
@@ -503,42 +533,9 @@ export class ScopeItemCapability {
 	}
 
 	private resolveLinks() {
-		/**
-		 * Call Foo(bar)
-		 *      ^^^			NONE
-		 * 			^^^		GET
-		 * 
-		 * Let foo = bar
-		 *     ^^^			LET
-		 * 			 ^^^	GET
-		 * 
-		 * Set foo = bar
-		 * 	   ^^^			SET
-		 * 			 ^^^	GET
-		 */
-
-		// Handle calls that aren't assignments.
-		if (this.assignmentType === AssignmentType.CALL) {
-			this.linkThisToItem(this.findFunction(this.identifier));
-			this.linkThisToItem(this.findSubroutine(this.identifier));
-			return;
-		}
-
-		// Handle get/set/let relationships.
-		if (this.assignmentType & AssignmentType.GET) {
-			this.linkThisToItem(this.findFunction(this.identifier));
-			this.linkThisToItem(this.findPropertyGetter(this.identifier));
-			return;
-		}
-
-		if (this.assignmentType & AssignmentType.LET) {
-			this.linkThisToItem(this.findPropertyLetter(this.identifier));
-			return;
-		}
-
-		if (this.assignmentType & AssignmentType.SET) {
-			this.linkThisToItem(this.findPropertySetter(this.identifier));
-			return;
+		const declarations = this.findDeclarations(this.identifier);
+		if (declarations) {
+			this.linkThisToItem(declarations[0]);
 		}
 	}
 
@@ -548,22 +545,22 @@ export class ScopeItemCapability {
 		}
 
 		this.link = linkItem;
-		linkItem.backLinks ??= [];
-		linkItem.backLinks.push(this);
+		linkItem.backlinks ??= [];
+		linkItem.backlinks.push(this);
 	}
 
 	private removeBacklink(backlinkedItem: ScopeItemCapability): void {
-		if (!this.backLinks) {
+		if (!this.backlinks) {
 			return;
 		}
 
-		const keep = this.backLinks.filter(x => x !== backlinkedItem);
-		this.backLinks = keep.length === 0 ? undefined : keep;
+		const keep = this.backlinks.filter(x => x !== backlinkedItem);
+		this.backlinks = keep.length === 0 ? undefined : keep;
 	}
 
 	/** Returns the module this scope item falls under */
 	get module(): ScopeItemCapability | undefined {
-		if (this.type === ItemType.MODULE || this.type === ItemType.CLASS) {
+		if (this.type === ScopeType.MODULE || this.type === ScopeType.CLASS) {
 			return this;
 		}
 		return this.parent?.module;
@@ -571,29 +568,68 @@ export class ScopeItemCapability {
 
 	/** Returns the project this scope item falls under */
 	get project(): ScopeItemCapability | undefined {
-		if (this.type == ItemType.PROJECT) {
+		if (this.type == ScopeType.PROJECT) {
 			return this;
 		}
 		return this.parent?.project;
 	}
 
 	get identifier(): string {
-		if (this.type === ItemType.PROPERTY) {
+		if (this.type === ScopeType.PROPERTY) {
 			return this.name.split(' ')[1];
 		}
 		return this.name;
 	}
 
 	get name(): string {
-		return this.explicitSetName
-			?? this.element?.identifierCapability?.name
-			?? 'Unknown';
+		return this.element?.identifierCapability?.name ?? 'Unknown';
 	}
 
-	findType(identifier: string): ScopeItemCapability | undefined {
-		return this.types?.get(identifier)?.[0]
-			?? this.parent?.findType(identifier);
+	has(identifier: string): boolean {
+		for (const map of this.maps) {
+			if (map.has(identifier)) {
+				return true;
+			}
+		}
+		return false;
 	}
+
+	// findDeclarations(name: string, section?: string): ScopeItemCapability[] {
+	// 	const identifier = section ?? name.split('.')[0];
+	// 	if (this.has(identifier)) {
+	// 		return this.maps.map(x => x.get(identifier) ?? []).flat();
+	// 	}
+
+	// 	// FIXME: Handle publicly accessible names in project scope.
+	// 	return this.parent?.findDeclarations(name, section) ?? [];
+	// }
+
+	// resolvePropertyChain(chain: string) {
+	// 	// Search UP for foo in foo.xx.xx.xx....
+	// 	const declarations = this.findDeclarations(chain);
+
+	// 	// Not found.
+	// 	if (declarations.length === 0) {
+	// 		return { status: 404, scope: undefined };
+	// 	}
+
+	// 	// Conflicting names FIXME: may need to add logic to handle get/set/let.
+	// 	if (declarations.length > 1) {
+	// 		return { status: 409, scope: undefined };
+	// 	}
+
+	// 	// We have exactly one name. Search DOWN the chain.
+	// 	const chainLinks = chain.split('.').slice(1);
+	// 	let declaration = declarations[0];
+	// 	for (const chainLink of chainLinks) {
+	// 		// Assume we're only going to get one result here.
+	// 		// If we get more, we can handle diagnostics elsewhere.
+	// 		declaration = declaration.maps.map(
+	// 			x => x.get(chainLink) ?? []
+	// 		).flat()[0];
+	// 	}
+	// 	return { status: 200, scope: declaration };
+	// }
 
 	/** Get accessible declarations */
 	getAccessibleScopes(identifier: string, results: ScopeItemCapability[] = []): ScopeItemCapability[] {
@@ -607,7 +643,7 @@ export class ScopeItemCapability {
 		});
 
 		// Get all public scope types if we're at the project level.
-		if (this.type === ItemType.PROJECT) {
+		if (this.type === ScopeType.PROJECT) {
 			this.modules?.forEach(modules => modules.forEach(
 				module => module.maps.forEach(map => {
 					map.get(identifier)?.forEach(item => {
@@ -620,6 +656,11 @@ export class ScopeItemCapability {
 		}
 
 		return this.parent?.getAccessibleScopes(identifier, results) ?? results;
+	}
+
+	findType(identifier: string): ScopeItemCapability | undefined {
+		return this.types?.get(identifier)?.[0]
+			?? this.parent?.findType(identifier);
 	}
 
 	findModule(identifier: string): ScopeItemCapability | undefined {
@@ -650,6 +691,26 @@ export class ScopeItemCapability {
 	findPropertySetter(identifier: string): ScopeItemCapability | undefined {
 		return this.properties?.setters?.get(identifier)?.[0]
 			?? this.parent?.findPropertySetter(identifier);
+	}
+
+	findDeclarations(identifier: string): ScopeItemCapability[] | undefined {
+		const explicitResult = this.explicitDeclarations
+			.map(x => x.get(identifier))
+			.filter(x => !!x)
+			.flat();
+
+		if (explicitResult.length > 0) {
+			return explicitResult;
+		}
+
+		const implicitResult = this.implicitDeclarations
+			?.get(identifier);
+
+		if (implicitResult && implicitResult.length > 0) {
+			return implicitResult;
+		}
+
+		return this.parent?.findDeclarations(identifier);
 	}
 
 	/**
@@ -686,7 +747,7 @@ export class ScopeItemCapability {
 		// }
 
 		// Immediately invalidate if we're an Unknown Module
-		if (item.type === ItemType.MODULE && item.name === 'Unknown Module') {
+		if (item.type === ScopeType.MODULE && item.name === 'Unknown Module') {
 			item.isInvalidated = true;
 		}
 
@@ -694,11 +755,21 @@ export class ScopeItemCapability {
 		item.parent = this; // getParent(item);
 		item.parent.isDirty = true;
 
+		// Set the URI from the parent if we don't have one.
+		if (item.locationUri === undefined) {
+			item.locationUri = item.parent.locationUri;
+		}
+
 		// Get the scope level for logging.
 		const getAncestorLevel = (item: ScopeItemCapability, level: number): number =>
 			item.parent ? getAncestorLevel(item.parent, level + 1) : level;
+
+
+		item.isPublicScope = this.getVisibility(item);
+		const visibility = item.isPublicScope ? 'public' : 'private';
+		const assignment = item.assignmentTypeText;
 		const ancestorLevel = getAncestorLevel(this, 0);
-		Services.logger.debug(`Registering [${visibility} ${ItemType[item.type]} ${assignment}] ${item.name}`, ancestorLevel);
+		Services.logger.debug(`Registering [${visibility} ${ScopeType[item.type]} ${assignment}] ${item.name}`, ancestorLevel);
 
 		// Inherit option explicit property.
 		if (item.parent.isOptionExplicitScope) {
@@ -706,35 +777,50 @@ export class ScopeItemCapability {
 		}
 
 		// Reference types are not declarations.
-		if (item.type === ItemType.REFERENCE) {
+		if (item.type === ScopeType.REFERENCE) {
 			item.parent.references ??= new Map();
 			item.parent.addItem(item.parent.references, item);
 			return this;
 		}
 
+		// Add implicitly accessible names to the project scope.
+		if (item.isPublicScope && this.project) {
+			this.project.implicitDeclarations ??= new Map();
+			this.addItem(this.project.implicitDeclarations, item, item.name);
+		}
+
 		// Register functions.
-		if (item.type === ItemType.FUNCTION) {
+		if (item.type === ScopeType.FUNCTION) {
 			item.parent.functions ??= new Map();
 			item.parent.addItem(item.parent.functions, item);
 			return item;
 		}
 
 		// Register subroutine.
-		if (item.type === ItemType.SUBROUTINE) {
+		if (item.type === ScopeType.SUBROUTINE) {
 			item.parent.subroutines ??= new Map();
 			item.parent.addItem(item.parent.subroutines, item);
 			return item;
 		}
 
 		// Register enum or type.
-		if (item.type === ItemType.TYPE) {
+		if (item.type === ScopeType.TYPE) {
 			item.parent.types ??= new Map();
 			item.parent.addItem(item.parent.types, item);
 			return item;
 		}
 
+		// Register parameters.
+		if (item.type === ScopeType.PARAMETER) {
+			item.parent.parameters ??= new Map();
+			item.parent.addItem(item.parent.parameters, item);
+		}
+
 		// Register properties and variables.
-		if (item.type === ItemType.PROPERTY || item.type === ItemType.VARIABLE) {
+		const isGetSetLetType = item.type === ScopeType.PROPERTY
+			|| item.type === ScopeType.VARIABLE
+			|| item.type === ScopeType.PARAMETER;
+		if (isGetSetLetType) {
 			item.parent.properties ??= {};
 			if (item.assignmentType & AssignmentType.GET) {
 				item.parent.properties.getters ??= new Map();
@@ -748,11 +834,11 @@ export class ScopeItemCapability {
 				item.parent.properties.setters ??= new Map();
 				item.parent.addItem(item.parent.properties.setters, item);
 			}
-			return item.type === ItemType.PROPERTY ? item : this;
+			return item.type === ScopeType.PROPERTY ? item : this;
 		}
 
 		// Handle module registration
-		if (item.type === ItemType.MODULE || item.type === ItemType.CLASS) {
+		if (item.type === ScopeType.MODULE || item.type === ScopeType.CLASS) {
 			item.parent.modules ??= new Map();
 			item.parent.addItem(item.parent.modules, item);
 			return item;
@@ -763,7 +849,7 @@ export class ScopeItemCapability {
 	}
 
 	invalidate(uri: string): void {
-		if (this.type !== ItemType.PROJECT) {
+		if (this.type !== ScopeType.PROJECT) {
 			this.isInvalidated = true;
 		}
 		this.maps.forEach(map => map.forEach(items =>
@@ -771,31 +857,74 @@ export class ScopeItemCapability {
 		));
 	}
 
-	getRenameItems(uri: string, position: { line: number, character: number }): ScopeItemCapability[] {
+	/** Returns true for public and false for private */
+	private getVisibility(item: ScopeItemCapability): boolean {
+		// Classes and modules are always public.
+		if (item.parent?.type === ScopeType.PROJECT) {
+			return true;
+		}
+
+		// Module members can explicitly set their access or default
+		// to private. TODO: multi-project requires another scope layer 
+		// to control access between projects.
+		// Public members of Option Private Modules are scoped to project.
+		if (item.parent?.type === ScopeType.MODULE) {
+			// Variables default to private, everything else deafults public.
+			return item.isPublicScope ?? item.type !== ScopeType.VARIABLE;
+		}
+
+		// Everything else is private.
+		return false;
+	}
+
+	private findModuleByUri(uri: string): ScopeItemCapability | undefined {
 		const moduleName = uri.split('/').at(-1)?.split('.').slice(0, -1).join('.');
 		if (!moduleName) {
 			Services.logger.error(`Bad URI or name: ${moduleName} from ${uri}`);
-			return [];
+			return;
 		}
 
 		const modules = this.modules?.get(moduleName);
 		if (!modules) {
 			Services.logger.error(`No such module: ${moduleName}`);
-			return [];
+			return;
 		}
 
 		if (modules.length > 1) {
 			Services.logger.error(`Module name ambiguity: ${modules.length} found.`);
+			return;
+		}
+
+		return modules[0];
+	}
+
+	private getItemsIdentifiedAtPosition(position: Position, results: ScopeItemCapability[] = [], searchItems: ScopeItemCapability[] = []): void {
+		while (searchItems.length > 0) {
+			const scope = searchItems.pop();
+
+			// Check all items for whether they have a name overlap or a scope overlap.
+			scope?.maps.forEach(map => map.forEach(items => items.forEach(item => {
+				const elementRange = item.element?.context.range;
+				const identifierRange = item.element?.identifierCapability?.range;
+				if (identifierRange && isPositionInsideRange(position, identifierRange)) {
+					// Position is inside the identifier, push to results.
+					results.push(item);
+				} else if (elementRange && isPositionInsideRange(position, elementRange)) {
+					// Position is inside element, queue to be searched.
+					searchItems.push(item);
+				}
+			})));
+		}
+	}
+
+	getRenameItems(uri: string, position: Position): ScopeItemCapability[] {
+		const module = this.findModuleByUri(uri);
+		if (!module) {
 			return [];
 		}
 
-		const module = modules[0];
 		const itemsAtPosition: ScopeItemCapability[] = [];
-		module.maps.map(m => m.forEach(items => items.forEach(item => {
-			if (item.isAtPosition(position)) {
-				itemsAtPosition.push(item);
-			}
-		})));
+		this.getItemsIdentifiedAtPosition(position, itemsAtPosition, [module]);
 		if (itemsAtPosition.length === 0) {
 			Services.logger.warn(`Nothing to rename.`);
 			return [];
@@ -807,30 +936,41 @@ export class ScopeItemCapability {
 		}
 
 		const declarationItem = itemsAtPosition[0].link ? itemsAtPosition[0].link : itemsAtPosition[0];
-		const result = [declarationItem, ...declarationItem.backLinks ?? []];
+		const result = [declarationItem, ...declarationItem.backlinks ?? []];
 
 		return result;
 	}
 
-	isAtPosition(position: { line: number, character: number }): boolean {
-		const range = this.element?.context.range;
-		if (!range) {
-			return false;
+	getDeclarationLocation(uri: string, position: Position): LocationLink[] | undefined {
+		const module = this.findModuleByUri(uri);
+		if (!module) {
+			return;
 		}
 
-		if (range.start.line !== range.end.line) {
-			return position.line >= range.start.line
-				&& position.line <= range.end.line;
-		}
-
-		return position.character >= range.start.character
-			&& position.character <= range.end.character;
+		const itemsAtPosition: ScopeItemCapability[] = [];
+		this.getItemsIdentifiedAtPosition(position, itemsAtPosition, [module]);
+		return itemsAtPosition.map(x => x.toLocationLink()).filter(x => !!x);
 	}
 
-	private addItem(target: Map<string, ScopeItemCapability[]>, item: ScopeItemCapability): void {
+	toLocationLink(): LocationLink | undefined {
+		const link = this.link;
+
+		if (!link || !link.locationUri || !link.element || !link.element.identifierCapability) {
+			return;
+		}
+
+		return LocationLink.create(
+			link.locationUri,
+			link.element.context.range,
+			link.element.identifierCapability.range,
+			this.element?.context.range
+		);
+	}
+
+	private addItem(target: Map<string, ScopeItemCapability[]>, item: ScopeItemCapability, name?: string): void {
 		const items = target.get(item.identifier) ?? [];
 		items.push(item);
-		target.set(item.identifier, items);
+		target.set(name ?? item.identifier, items);
 	}
 
 	private hasDiagnostic(diagnostic: BaseDiagnostic): boolean {

@@ -8,6 +8,7 @@ import {
 	Command,
 	CompletionItem,
 	CompletionParams,
+	DefinitionParams,
 	DidChangeConfigurationNotification,
 	DidChangeWatchedFilesParams,
 	DocumentFormattingParams,
@@ -16,6 +17,7 @@ import {
 	FoldingRangeParams,
 	Hover,
 	HoverParams,
+	LocationLink,
 	RenameParams,
 	SemanticTokensRangeParams,
 	SymbolInformation,
@@ -37,7 +39,7 @@ import { returnDefaultOnCancelClientRequest } from '../utils/wrappers';
 import { inject, injectable } from 'tsyringe';
 import { Logger, ILanguageServer, IWorkspace } from '../injection/interface';
 import { Services } from '../injection/services';
-import { ItemType, ScopeItemCapability } from '../capabilities/capabilities';
+import { ScopeType, ScopeItemCapability } from '../capabilities/capabilities';
 import { SyntaxParser } from './parser/vbaParser';
 
 export interface ExtensionConfiguration {
@@ -93,9 +95,9 @@ export class Workspace implements IWorkspace {
 		this._hasConfigurationCapability = hasWorkspaceConfigurationCapability(this.server);
 
 		// Configure scopes
-		const languageScope = new ScopeItemCapability(undefined, ItemType.VBA);
-		const applicationScope = new ScopeItemCapability(undefined, ItemType.APPLICATION, undefined, languageScope);
-		const projectScope = new ScopeItemCapability(undefined, ItemType.PROJECT, undefined, applicationScope);
+		const languageScope = new ScopeItemCapability(undefined, ScopeType.VBA);
+		const applicationScope = new ScopeItemCapability(undefined, ScopeType.APPLICATION, undefined, languageScope);
+		const projectScope = new ScopeItemCapability(undefined, ScopeType.PROJECT, undefined, applicationScope);
 		Services.registerProjectScope(projectScope);
 	}
 
@@ -298,6 +300,7 @@ class WorkspaceEvents {
 		connection.onCodeAction(async (params, token) => this.onCodeActionRequest(params, token));
 		connection.onCompletion(params => this.onCompletion(params));
 		connection.onCompletionResolve(item => this.onCompletionResolve(item));
+		connection.onDefinition(async (params, token) => await this.onDefinition(params, token));
 		connection.onDidChangeConfiguration(() => Services.workspace.clearDocumentsConfiguration());
 		connection.onDidChangeWatchedFiles(params => this.onDidChangeWatchedFiles(params));
 		connection.onDidCloseTextDocument(params => { Services.logger.debug('[event] onDidCloseTextDocument'); Services.logger.debug(JSON.stringify(params), 1); });
@@ -314,12 +317,13 @@ class WorkspaceEvents {
 		connection.onRequest((method: string, params: object | object[] | any) => {
 			switch (method) {
 				case 'textDocument/semanticTokens/full': {
-					const uri: string = params.textDocument.uri;
-					return this.activeDocument?.languageServerSemanticTokens();
+					const uri: string = params.textDocument.uri.toFilePath();
+					return this.projectDocuments.get(uri)?.languageServerSemanticTokens();
 				}
 				case 'textDocument/semanticTokens/range': {
 					const rangeParams = params as SemanticTokensRangeParams;
-					return this.activeDocument?.languageServerSemanticTokens(rangeParams.range);
+					const uri: string = params.textDocument.uri.toFilePath();
+					return this.projectDocuments.get(uri)?.languageServerSemanticTokens(rangeParams.range);
 				}
 				default:
 					Services.logger.error(`Unresolved request path: ${method}`);
@@ -346,6 +350,19 @@ class WorkspaceEvents {
 		Services.logger.debug('[event] onCompletionResolve');
 		Services.logger.debug(JSON.stringify(item), 1);
 		return item;
+	}
+
+	private async onDefinition(params: DefinitionParams, token: CancellationToken): Promise<LocationLink[] | null | undefined> {
+		if (token.isCancellationRequested) {
+			return;
+		}
+
+		const results = Services.projectScope.getDeclarationLocation(params.textDocument.uri, params.position);
+		if (results === undefined) {
+			return null;
+		} else {
+			return results;
+		}
 	}
 
 	private onDidChangeWatchedFiles(params: DidChangeWatchedFilesParams) {
