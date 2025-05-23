@@ -29,7 +29,6 @@ interface DocumentSettings {
 abstract class BaseModuleElement<T extends ParserRuleContext> extends BaseIdentifyableSyntaxElement<T> {
 	abstract attrubutes: ParserRuleContext[];
 	abstract diagnosticCapability: DiagnosticCapability;
-	abstract hasOptionExplicit: boolean;
 	abstract scopeItemCapability: ScopeItemCapability;
 
 	settings: DocumentSettings;
@@ -60,7 +59,7 @@ abstract class BaseModuleElement<T extends ParserRuleContext> extends BaseIdenti
 	}
 
 	protected addOptionExplicitMissingDiagnostic(diagnostics: Diagnostic[], header: ClassModuleHeaderContext | ProceduralModuleHeaderContext): void {
-		if (this.settings.doWarnOptionExplicitMissing && !this.hasOptionExplicit) {
+		if (this.settings.doWarnOptionExplicitMissing && !this.scopeItemCapability.isOptionExplicitScope) {
 			const startLine = header.stop?.line ?? 0 + 1;
 			diagnostics.push(new MissingOptionExplicitDiagnostic(
 				Range.create(startLine, 1, startLine, 1)
@@ -107,7 +106,6 @@ export class ModuleElement extends BaseModuleElement<ProceduralModuleContext> {
 	scopeItemCapability: ScopeItemCapability;
 
 	attrubutes: ParserRuleContext[];
-	hasOptionExplicit: boolean;
 
 	constructor(ctx: ProceduralModuleContext, doc: TextDocument, documentSettings: DocumentSettings) {
 		super(ctx, doc, documentSettings, SymbolKind.File);
@@ -115,7 +113,7 @@ export class ModuleElement extends BaseModuleElement<ProceduralModuleContext> {
 		this.diagnosticCapability = new DiagnosticCapability(this);
 		this.scopeItemCapability = new ScopeItemCapability(this, ItemType.MODULE);
 
-		this.hasOptionExplicit = this.evaluateHasOptionExplicit(ctx
+		this.scopeItemCapability.isOptionExplicitScope = this.evaluateHasOptionExplicit(ctx
 			.proceduralModuleBody()
 			.proceduralModuleCode()
 			.proceduralModuleCodeElement());
@@ -151,7 +149,6 @@ export class ClassElement extends BaseModuleElement<ClassModuleContext> {
 	scopeItemCapability: ScopeItemCapability;
 
 	attrubutes: ParserRuleContext[];
-	hasOptionExplicit: boolean;
 
 	constructor(ctx: ClassModuleContext, doc: TextDocument, documentSettings: DocumentSettings) {
 		super(ctx, doc, documentSettings, SymbolKind.File);
@@ -163,7 +160,7 @@ export class ClassElement extends BaseModuleElement<ClassModuleContext> {
 		this.diagnosticCapability = new DiagnosticCapability(this);
 		this.scopeItemCapability = new ScopeItemCapability(this, ItemType.CLASS);
 
-		this.hasOptionExplicit = this.evaluateHasOptionExplicit(ctx
+		this.scopeItemCapability.isOptionExplicitScope = this.evaluateHasOptionExplicit(ctx
 			.classModuleBody()
 			.classModuleCode()
 			.classModuleCodeElement());

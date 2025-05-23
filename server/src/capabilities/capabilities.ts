@@ -250,6 +250,8 @@ export class ScopeItemCapability {
 	explicitSetName?: string;
 	isPublicScope = false;
 	visibilityModifierContext?: ParserRuleContext;
+	qualififications?: BaseIdentifyableSyntaxElement<ParserRuleContext>[];
+	isOptionExplicitScope = false;
 
 	constructor(
 		readonly element?: BaseRuleSyntaxElement<ParserRuleContext>,
@@ -295,7 +297,7 @@ export class ScopeItemCapability {
 				// References to function or sub calls should raise an error if they aren't declared.
 				//	-- Must always throw even when option explicit not present.
 				//	-- Nothing required on first reference as declaration may come later.
-				const severity = (this.module?.element as ModuleElement).hasOptionExplicit
+				const severity = this.isOptionExplicitScope
 					? DiagnosticSeverity.Error
 					: DiagnosticSeverity.Warning;
 				const _ = this.assignmentType & AssignmentType.CALL
@@ -663,7 +665,12 @@ export class ScopeItemCapability {
 		const getAncestorLevel = (item: ScopeItemCapability, level: number): number =>
 			item.parent ? getAncestorLevel(item.parent, level + 1) : level;
 		const ancestorLevel = getAncestorLevel(this, 0);
-		Services.logger.debug(`Registering [${item.isPublicScope ? 'public' : 'private'} ${ItemType[item.type]}] ${item.name}`, ancestorLevel);
+		Services.logger.debug(`Registering [${visibility} ${ItemType[item.type]} ${assignment}] ${item.name}`, ancestorLevel);
+
+		// Inherit option explicit property.
+		if (item.parent.isOptionExplicitScope) {
+			this.isOptionExplicitScope = true;
+		}
 
 		// Reference types are not declarations.
 		if (item.type === ItemType.REFERENCE) {
