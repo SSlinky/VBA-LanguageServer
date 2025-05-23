@@ -18,7 +18,7 @@ import {
 // Project
 import { BaseRuleSyntaxElement, BaseIdentifyableSyntaxElement, HasDiagnosticCapability } from './base';
 import { DiagnosticCapability, IdentifierCapability, ItemType, ScopeItemCapability, SymbolInformationCapability } from '../../capabilities/capabilities';
-import { DuplicateAttributeDiagnostic, IgnoredAttributeDiagnostic, MissingAttributeDiagnostic, MissingOptionExplicitDiagnostic } from '../../capabilities/diagnostics';
+import { DuplicateAttributeDiagnostic, UnknownAttributeDiagnostic, MissingAttributeDiagnostic, MissingOptionExplicitDiagnostic } from '../../capabilities/diagnostics';
 
 
 interface DocumentSettings {
@@ -197,7 +197,7 @@ export class ModuleIgnoredAttributeElement extends BaseRuleSyntaxElement<ParserR
 	constructor(ctx: IgnoredClassAttrContext | IgnoredProceduralAttrContext, doc: TextDocument) {
 		super(ctx, doc);
 		this.diagnosticCapability = new DiagnosticCapability(this, () => {
-			this.diagnosticCapability.diagnostics.push(new IgnoredAttributeDiagnostic(
+			this.diagnosticCapability.diagnostics.push(new UnknownAttributeDiagnostic(
 				this.context.range, this.context.text.split(' ')[1]
 			));
 			return this.diagnosticCapability.diagnostics;

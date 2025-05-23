@@ -148,8 +148,8 @@ export class UnreachableCodeDiagnostic extends BaseDiagnostic {
 }
 
 
-export class IgnoredAttributeDiagnostic extends BaseDiagnostic {
-	severity = DiagnosticSeverity.Warning;
+export class UnknownAttributeDiagnostic extends BaseDiagnostic {
+	severity = DiagnosticSeverity.Error;
 	constructor(range: Range, attributeName: string) {
 		super(range, `Unknown attribute '${attributeName}' will be ignored.`);
 	}
