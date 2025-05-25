@@ -1,4 +1,7 @@
+// Core
 import { CodeAction, Command, Diagnostic } from "vscode-languageserver";
+
+// Project
 import { BaseDiagnostic } from "./diagnostics";
 import { Services } from "../injection/services";
 
@@ -33,19 +36,19 @@ export class CodeActionsRegistry {
 
 // Example params that are related to a diagnostic.
 const onCodeActionParams = {
-    "textDocument":{
-        "uri":"file:///c%3A/Repos/vba-LanguageServer/sample/b.bas"
+    "textDocument": {
+        "uri": "file:///c%3A/Repos/vba-LanguageServer/sample/b.bas"
     },
-    "range":{"start":{"line":4,"character":1},"end":{"line":4,"character":1}},
-    "context":{
-        "diagnostics":[{
-            "range":{"start":{"line":4,"character":1},"end":{"line":4,"character":1}},
-            "message":"Option Explicit is missing from module header.",
-            "data":{"uri":"file:///c%3A/Repos/vba-LanguageServer/sample/b.bas"},
-            "code":"W001",
-            "severity":2
+    "range": { "start": { "line": 4, "character": 1 }, "end": { "line": 4, "character": 1 } },
+    "context": {
+        "diagnostics": [{
+            "range": { "start": { "line": 4, "character": 1 }, "end": { "line": 4, "character": 1 } },
+            "message": "Option Explicit is missing from module header.",
+            "data": { "uri": "file:///c%3A/Repos/vba-LanguageServer/sample/b.bas" },
+            "code": "W001",
+            "severity": 2
         }],
-        "only":["quickfix"],
-        "triggerKind":1
+        "only": ["quickfix"],
+        "triggerKind": 1
     }
 };

@@ -10,7 +10,7 @@ export let doc: vscode.TextDocument;
 export let editor: vscode.TextEditor;
 export let documentEol: string;
 export let platformEol: string;
-const TIMEOUTMS = 5000;
+const TIMEOUTMS = 10000;
 
 /**
  * Activates the vscode.lsp-sample extension
@@ -35,10 +35,10 @@ async function sleep(ms: number) {
 	return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-export async function runOnActivate<T>(action: () => T|Thenable<T>, test: (result: T) => boolean): Promise<T> {
+export async function runOnActivate<T>(action: () => T | Thenable<T>, test: (result: T) => boolean): Promise<T> {
 	const timeout = getTimeout();
 	while (Date.now() < timeout) {
-		const result = await action(); 
+		const result = await action();
 		if (test(result)) {
 			return result;
 		}

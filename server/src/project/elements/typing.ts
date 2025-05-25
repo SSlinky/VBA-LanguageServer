@@ -1,18 +1,21 @@
 // Core
 import { TextDocument } from 'vscode-languageserver-textdocument';
-import { SemanticTokenModifiers, SemanticTokenTypes, SymbolKind } from 'vscode-languageserver';
+import { SymbolKind } from 'vscode-languageserver';
 
 // Antlr
 import { ParserRuleContext } from 'antlr4ng';
 import {
+	ArrayDesignatorContext,
 	ArrayDimContext,
 	AsClauseContext,
 	ConstDeclarationContext,
 	ConstItemContext,
 	EnumDeclarationContext,
 	EnumMemberContext,
+	PositionalParamContext,
 	PublicEnumDeclarationContext,
 	PublicTypeDeclarationContext,
+	TypeExpressionContext,
 	TypeSuffixContext,
 	UdtDeclarationContext,
 	UnrestrictedNameContext,
@@ -22,9 +25,10 @@ import {
 } from '../../antlr/out/vbaParser';
 
 // Project
-import { ElementOutOfPlaceDiagnostic, LegacyFunctionalityDiagnostic } from '../../capabilities/diagnostics';
+import { ElementOutOfPlaceDiagnostic, LegacyFunctionalityDiagnostic, UnusedDiagnostic } from '../../capabilities/diagnostics';
 import { BaseRuleSyntaxElement, HasDiagnosticCapability, HasSemanticTokenCapability, HasSymbolInformationCapability } from './base';
-import { AssignmentType, DiagnosticCapability, IdentifierCapability, ItemType, ScopeItemCapability, SemanticTokenCapability, SymbolInformationCapability } from '../../capabilities/capabilities';
+import { AssignmentType, DiagnosticCapability, IdentifierCapability, ScopeType, ScopeItemCapability, SemanticTokenCapability, SymbolInformationCapability } from '../../capabilities/capabilities';
+import { SemanticTokenModifiers, SemanticTokenTypes } from '../../capabilities/semanticTokens';
 
 
 abstract class BaseTypeDeclarationElement<T extends ParserRuleContext> extends BaseRuleSyntaxElement<T> implements HasDiagnosticCapability, HasSymbolInformationCapability, HasSemanticTokenCapability {
@@ -42,7 +46,7 @@ abstract class BaseTypeDeclarationElement<T extends ParserRuleContext> extends B
 		this.semanticTokenCapability = new SemanticTokenCapability(this, tokenType, tokenModifiers ?? []);
 
 		// An enum is public unless explicitly set to private.
-		this.scopeItemCapability = new ScopeItemCapability(this, ItemType.TYPE);
+		this.scopeItemCapability = new ScopeItemCapability(this, ScopeType.TYPE);
 		this.scopeItemCapability.isPublicScope = this.isPublicScope;
 	}
 
@@ -61,10 +65,9 @@ export class EnumDeclarationElement extends BaseTypeDeclarationElement<EnumDecla
 
 	constructor(ctx: EnumDeclarationContext, doc: TextDocument, isAfterProcedure: boolean) {
 		super(ctx, doc, SymbolKind.Enum, SemanticTokenTypes.enum);
-		this.identifierCapability = new IdentifierCapability({
-			element: this,
-			getNameContext: () => ctx.untypedName().ambiguousIdentifier()
-		});
+
+		const getIdentifierNameContext = () => ctx.untypedName().ambiguousIdentifier();
+		this.identifierCapability = new IdentifierCapability(this, getIdentifierNameContext);
 		if (isAfterProcedure) this.diagnosticCapability.diagnostics.push(
 			new ElementOutOfPlaceDiagnostic(this.context.range, "Enum declaration")
 		);
@@ -81,11 +84,9 @@ export class EnumMemberDeclarationElement extends BaseRuleSyntaxElement<EnumMemb
 	constructor(ctx: EnumMemberContext, doc: TextDocument) {
 		super(ctx, doc);
 		this.diagnosticCapability = new DiagnosticCapability(this);
-		this.identifierCapability = new IdentifierCapability({
-			element: this,
-			getNameContext: () => ctx.untypedName()
-		});
-		this.scopeItemCapability = new ScopeItemCapability(this, ItemType.VARIABLE, AssignmentType.GET);
+		const getIdentifierNameContext = () => ctx.untypedName();
+		this.identifierCapability = new IdentifierCapability(this, getIdentifierNameContext);
+		this.scopeItemCapability = new ScopeItemCapability(this, ScopeType.VARIABLE, AssignmentType.GET);
 	}
 }
 
@@ -99,10 +100,8 @@ export class TypeDeclarationElement extends BaseTypeDeclarationElement<UdtDeclar
 
 	constructor(ctx: UdtDeclarationContext, doc: TextDocument) {
 		super(ctx, doc, SymbolKind.Struct, SemanticTokenTypes.struct);
-		this.identifierCapability = new IdentifierCapability({
-			element: this,
-			getNameContext: () => ctx.untypedName()
-		});
+		const getIdentifierNameContext = () => ctx.untypedName();
+		this.identifierCapability = new IdentifierCapability(this, getIdentifierNameContext);
 	}
 }
 
@@ -129,7 +128,7 @@ export class VariableDeclarationStatementElement extends BaseRuleSyntaxElement<V
 
 	constructor(ctx: VariableDeclarationContext, doc: TextDocument) {
 		super(ctx, doc);
-		this.scopeItemCapability = new ScopeItemCapability(this, ItemType.VARIABLE);
+		this.scopeItemCapability = new ScopeItemCapability(this, ScopeType.VARIABLE);
 	}
 }
 
@@ -148,7 +147,7 @@ export class ConstDeclarationStatementElement extends BaseRuleSyntaxElement<Cons
 
 	constructor(ctx: ConstDeclarationContext, doc: TextDocument) {
 		super(ctx, doc);
-		this.scopeItemCapability = new ScopeItemCapability(this, ItemType.VARIABLE);
+		this.scopeItemCapability = new ScopeItemCapability(this, ScopeType.VARIABLE);
 	}
 }
 
@@ -166,8 +165,8 @@ export class VariableDeclarationElement extends BaseRuleSyntaxElement<VariableDc
 		this.diagnosticCapability = new DiagnosticCapability(this);
 		this.symbolInformationCapability = new SymbolInformationCapability(this, ctx.toSymbolKind());
 		// this.semanticTokenCapability = new SemanticTokenCapability(this, SemanticTokenTypes.variable, isConst ? [SemanticTokenModifiers.declaration, SemanticTokenModifiers.readonly] : [SemanticTokenModifiers.declaration]);
-		this.identifierCapability = new IdentifierCapability({ element: this, getNameContext: () => ctx.ambiguousIdentifier() });
-		
+		this.identifierCapability = new IdentifierCapability(this, () => ctx.ambiguousIdentifier());
+
 		// VariableDcl > TypedVariableDcl > TypedName > TypeSuffix
 		//			   > UntypedVariableDcl > AsClause
 
@@ -186,29 +185,18 @@ export class VariableDeclarationElement extends BaseRuleSyntaxElement<VariableDc
 				this.variableTypeInformation = new VariableTypeInformation(typeCtx, doc, arrayCtx);
 			}
 		}
-		this.scopeItemCapability = new ScopeItemCapability(this, ItemType.VARIABLE);
+		this.scopeItemCapability = new ScopeItemCapability(this, ScopeType.VARIABLE);
 		this.scopeItemCapability.assignmentType = AssignmentType.GET
 			| (this.hasLetAccessor ? AssignmentType.LET : AssignmentType.NONE)
 			| (this.hasSetAccessor ? AssignmentType.SET : AssignmentType.NONE);
+		this.scopeItemCapability.classTypeName = this.variableTypeInformation?.classTypeName;
 	}
 
 	get hasLetAccessor(): boolean {
-		if (this.context.rule instanceof WitheventsVariableDclContext) {
-			return false;
-		}
-		if (this.context.rule instanceof ConstItemContext) {
-			return false;
-		}
 		return this.variableTypeInformation?.isPrimativeType ?? true;
 	}
 
 	get hasSetAccessor(): boolean {
-		if (this.context.rule instanceof WitheventsVariableDclContext) {
-			return true;
-		}
-		if (this.context.rule instanceof ConstItemContext) {
-			return false;
-		}
 		return this.variableTypeInformation?.isObjectType ?? true;
 	}
 
@@ -223,70 +211,77 @@ export class VariableDeclarationElement extends BaseRuleSyntaxElement<VariableDc
 	}
 }
 
+
+type TypeContext = TypeSuffixContext
+	| AsClauseContext
+	| TypeExpressionContext;
+
 // ToDo: Needs to handle ClassTypeNameContext
-class VariableTypeInformation extends BaseRuleSyntaxElement<TypeSuffixContext | AsClauseContext> {
+class VariableTypeInformation extends BaseRuleSyntaxElement<TypeContext> {
 	get isObjectType(): boolean {
-		// Type hints are never an object.
-		const ctx = this.context.rule;
-		if (ctx instanceof TypeSuffixContext) {
-			return false;
-		}
-
-		// Check builtins for variant type.
-		const builtin = ctx.asType()?.typeSpec().typeExpression()?.builtinType();
-		if (builtin?.reservedTypeIdentifier()?.VARIANT() || builtin?.reservedTypeIdentifierB()?.VARIANT_B()) {
-			return true;
-		}
-
-		// Don't trust anything else. Just check not a primative.
-		return !this.isPrimativeType;
+		return this.context.rule.isObject;
 	}
 
 	get isPrimativeType(): boolean {
-		// Type hints are always primitive.
-		const ctx = this.context.rule;
-		if (ctx instanceof TypeSuffixContext) {
-			return true;
-		}
-
-		// A newed object is always an object.
-		if (ctx.asAutoObject()) {
-			return false;
-		}
-
-		// Fixed length strings are primative.
-		const typeSpec = ctx.asType()!.typeSpec();
-		if (typeSpec.fixedLengthStringSpec()) {
-			return true;
-		}
-
-		// Built ins are primative (or can be in Variant's case) unless object.
-		const builtin = typeSpec.typeExpression()?.builtinType();
-		if (builtin?.reservedTypeIdentifier() || builtin?.reservedTypeIdentifierB()) {
-			return true;
-		} else if (builtin?.OBJECT() || builtin?.OBJECT_B()) {
-			return false;
-		}
-
-		// Defined names can be all sorts of things but if we got here, we're an object.
-		const definedType = typeSpec.typeExpression()?.definedTypeExpression();
-		if (definedType?.simpleNameExpression()) {
-			return false;
-		}
-
-		// If we have a member accessed type, we need to do more digging...
-		const memberAccessed = definedType?.memberAccessExpression()?.unrestrictedName();
-		const isPrimativeMember = (ctx: UnrestrictedNameContext | undefined): boolean => !!memberAccessed?.reservedIdentifier()?.reservedTypeIdentifier();
-		const isTypeSuffixMember = (ctx: UnrestrictedNameContext | undefined): boolean => !!memberAccessed?.name()?.typedName();
-		return isPrimativeMember(memberAccessed) || isTypeSuffixMember(memberAccessed);
+		return this.context.rule.isPrimative;
 	}
 
-	get isFixedArrayType(): boolean {
-		return !this.arrayCtx?.boundsList();
+	get isVariantType(): boolean {
+		return this.context.rule.isVariant;
 	}
 
-	constructor(ctx: TypeSuffixContext | AsClauseContext, doc: TextDocument, private readonly arrayCtx?: ArrayDimContext) {
-			super(ctx, doc);
+	// TODO:
+	// 	- Variables in array bounds should validate they are constants or literals.
+	// 	- Build the capability to evaluate constant expressions.
+	get isResizable(): boolean {
+		return this.arrayCtx?.isResizable ?? false;
+	}
+
+	get classTypeName(): string | undefined {
+		return this.context.rule.classTypeName;
+	}
+
+	constructor(ctx: TypeContext, doc: TextDocument, private readonly arrayCtx?: ArrayDimContext | ArrayDesignatorContext) {
+		super(ctx, doc);
+	}
+}
+
+export class PositionalParamElement extends BaseRuleSyntaxElement<PositionalParamContext> {
+	identifierCapability: IdentifierCapability;
+	diagnosticCapability: DiagnosticCapability;
+
+	private variableTypeInformation?: VariableTypeInformation;
+
+	constructor(ctx: PositionalParamContext, doc: TextDocument) {
+		super(ctx, doc);
+
+		const typeCtx = ctx.paramDcl().untypedNameParamDcl()?.parameterType()?.typeExpression()
+			?? ctx.paramDcl().typedNameParamDcl()?.typedName().typeSuffix();
+
+		const arrayCtx = ctx.paramDcl().untypedNameParamDcl()?.parameterType()?.arrayDesignator()
+			?? ctx.paramDcl().typedNameParamDcl()?.arrayDesignator()
+			?? undefined;
+
+		if (typeCtx) {
+			this.variableTypeInformation = new VariableTypeInformation(typeCtx, doc, arrayCtx);
+		}
+
+		const identifierCtx = ctx.paramDcl().untypedNameParamDcl()?.ambiguousIdentifier()
+			?? ctx.paramDcl().typedNameParamDcl()?.typedName().ambiguousIdentifier();
+		this.identifierCapability = new IdentifierCapability(this, () => identifierCtx);
+		this.diagnosticCapability = new DiagnosticCapability(this);
+		this.scopeItemCapability = new ScopeItemCapability(this, ScopeType.PARAMETER,);
+		this.scopeItemCapability.assignmentType = AssignmentType.GET
+			| (this.hasLetAccessor ? AssignmentType.LET : AssignmentType.NONE)
+			| (this.hasSetAccessor ? AssignmentType.SET : AssignmentType.NONE);
+	}
+
+	get hasLetAccessor(): boolean {
+		return this.variableTypeInformation?.isPrimativeType ?? true;
+	}
+
+	get hasSetAccessor(): boolean {
+		return this.variableTypeInformation?.isObjectType ?? true;
 	}
 }
 

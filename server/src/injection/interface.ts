@@ -1,15 +1,19 @@
+// Core
+import { TextDocument } from 'vscode-languageserver-textdocument';
+import { CancellationToken, WorkspaceFolder } from 'vscode-languageserver';
+
+// Project
 import { LanguageServerConfiguration } from '../server';
 import { BaseProjectDocument } from '../project/document';
-import { TextDocument } from 'vscode-languageserver-textdocument';
 import { VbaFmtListener } from '../project/parser/vbaListener';
-import { CancellationToken } from 'vscode-languageserver';
+
 
 export interface Logger {
-	error(msg: string, lvl?: number): void;
-	warn(msg: string, lvl?: number): void;
-	info(msg: string, lvl?: number): void;
-	log(msg: string, lvl?: number): void;
-	debug(msg: string, lvl?: number): void;
+	error(msg: string, lvl?: number, e?: unknown): void;
+	warn(msg: string, lvl?: number, e?: unknown): void;
+	info(msg: string, lvl?: number, e?: unknown): void;
+	log(msg: string, lvl?: number, e?: unknown): void;
+	debug(msg: string, lvl?: number, e?: unknown): void;
 	stack(e: Error): void;
 }
 
@@ -40,4 +44,5 @@ export interface IWorkspace {
 	parseDocument(projectDocument: BaseProjectDocument): Promise<void>;
 	openDocument(document: TextDocument): void;
 	closeDocument(document: TextDocument): void;
+	addWorkspaceFolder(params: WorkspaceFolder): void;
 }

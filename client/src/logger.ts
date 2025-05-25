@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { isExtensionInDebugMode } from './extension';
 
 enum LogLevel {
 	error = 1,
@@ -15,22 +16,19 @@ export interface LogMessage {
 }
 
 export class VscodeLogger {
-	private static _outputChannel: vscode.OutputChannel;
+	private static _outputChannel: vscode.OutputChannel | undefined;
 	private static get outputChannel(): vscode.OutputChannel {
 		if (!VscodeLogger._outputChannel) {
-			VscodeLogger._outputChannel = vscode.window.createOutputChannel('VBAPro Output');
-			VscodeLogger._outputChannel.show();
+			VscodeLogger.initialiseOutputChannel();
 		}
 		return VscodeLogger._outputChannel;
 	}
+
 	private static get configuredLevel(): LogLevel {
 		const config = vscode.workspace.getConfiguration('vbaLanguageServer');
 		const levelString = config.get<string>('logLevel.outputChannel', 'warning');
 		return LogLevel[levelString as keyof typeof LogLevel];
 	}
-
-	static info = (msg: string, lvl?: number) => this.log(LogLevel.info, msg, lvl)
-	static debug = (msg: string, lvl?: number) => this.log(LogLevel.debug, msg, lvl)
 
 	static logMessage(params: LogMessage): void {
 		this.log(params.type, params.message, params.level);
@@ -44,18 +42,26 @@ export class VscodeLogger {
 		VscodeLogger.outputChannel.appendLine(`${t} [${LogLevel[type]}] ${i}${msg}`);
 	}
 
+	private static initialiseOutputChannel(): void {
+		const channel = vscode.window.createOutputChannel('VBAPro Output');
+		if (isExtensionInDebugMode) {
+			channel.show();
+		}
+		VscodeLogger._outputChannel = channel;
+	}
+
 	private static getFormattedTimestamp(): string {
 		const now = new Date();
-		
+
 		const year = now.getFullYear();
 		const month = (now.getMonth() + 1).toString().padStart(2, "0");
 		const day = now.getDate().toString().padStart(2, "0");
-		
+
 		const hours = now.getHours().toString().padStart(2, "0");
 		const minutes = now.getMinutes().toString().padStart(2, "0");
 		const seconds = now.getSeconds().toString().padStart(2, "0");
 		const milliseconds = now.getMilliseconds().toString().padStart(3, "0");
-	
+
 		return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}.${milliseconds}`;
 	}
 }

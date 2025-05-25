@@ -2,8 +2,6 @@
 import {
 	InitializeResult,
 	Range,
-	SemanticTokenModifiers,
-	SemanticTokenTypes,
 	uinteger,
 	SemanticTokens
 } from 'vscode-languageserver';
@@ -13,6 +11,45 @@ import { ParserRuleContext } from 'antlr4ng/dist/ParserRuleContext';
 
 // Project
 import { BaseRuleSyntaxElement, HasSemanticTokenCapability } from '../project/elements/base';
+
+export enum SemanticTokenTypes {
+	namespace = "namespace",
+	type = "type",
+	class = "class",
+	enum = "enum",
+	interface = "interface",
+	struct = "struct",
+	typeParameter = "typeParameter",
+	parameter = "parameter",
+	variable = "variable",
+	property = "property",
+	enumMember = "enumMember",
+	event = "event",
+	function = "function",
+	method = "method",
+	macro = "macro",
+	keyword = "keyword",
+	modifier = "modifier",
+	comment = "comment",
+	string = "string",
+	number = "number",
+	regexp = "regexp",
+	operator = "operator",
+	decorator = "decorator"
+}
+
+export enum SemanticTokenModifiers {
+	declaration = "declaration",
+	definition = "definition",
+	readonly = "readonly",
+	static = "static",
+	deprecated = "deprecated",
+	abstract = "abstract",
+	async = "async",
+	modification = "modification",
+	documentation = "documentation",
+	defaultLibrary = "defaultLibrary"
+}
 
 const registeredTokenTypes = new Map<string, number>((Object.keys(SemanticTokenTypes) as (keyof typeof SemanticTokenTypes)[]).map((k, i) => ([k, i])));
 const registeredTokenModifiers = new Map<string, number>((Object.keys(SemanticTokenModifiers) as (keyof typeof SemanticTokenModifiers)[]).map((k, i) => ([k, 2 ** i])));
@@ -33,18 +70,17 @@ type SemanticElementType = HasSemanticTokenCapability
 	& BaseRuleSyntaxElement<ParserRuleContext>;
 
 export class SemanticToken {
-	line: uinteger;
-	char: uinteger;
-	length: uinteger;
 	tokenType: uinteger;
 	tokenModifiers: uinteger = 0;
-	element: SemanticElementType;
 
-	constructor(element: SemanticElementType, line: uinteger, startChar: uinteger, length: uinteger, tokenType: SemanticTokenTypes, tokenModifiers: SemanticTokenModifiers[]) {
-		this.element = element;
-		this.line = line;
-		this.char = startChar;
-		this.length = length;
+	constructor(
+		public element: SemanticElementType,
+		public line: uinteger,
+		public char: uinteger,
+		public length: uinteger,
+		tokenType: SemanticTokenTypes,
+		tokenModifiers: SemanticTokenModifiers[]
+	) {
 		this.tokenType = registeredTokenTypes.get(tokenType)!;
 		tokenModifiers.forEach((x) => this.tokenModifiers += registeredTokenModifiers.get(x) ?? 0);
 	}

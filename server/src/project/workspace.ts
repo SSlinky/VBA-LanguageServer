@@ -1,4 +1,5 @@
 // Core
+import { inject, injectable } from 'tsyringe';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import {
 	CancellationToken,
@@ -8,6 +9,7 @@ import {
 	Command,
 	CompletionItem,
 	CompletionParams,
+	DefinitionParams,
 	DidChangeConfigurationNotification,
 	DidChangeWatchedFilesParams,
 	DocumentFormattingParams,
@@ -16,25 +18,32 @@ import {
 	FoldingRangeParams,
 	Hover,
 	HoverParams,
+	LocationLink,
+	RenameParams,
 	SemanticTokensRangeParams,
 	SymbolInformation,
 	TextDocuments,
 	TextEdit,
+	WorkspaceEdit,
+	WorkspaceFolder,
 	WorkspaceFoldersChangeEvent,
 	_Connection
 } from 'vscode-languageserver';
 
-import { BaseProjectDocument } from './document';
-import { hasWorkspaceConfigurationCapability } from '../capabilities/workspaceFolder';
-import { sleep } from '../utils/helpers';
+// Antlr
 import { ParseCancellationException } from 'antlr4ng';
-import { getFormattingEdits } from './formatter';
-import { VbaFmtListener } from './parser/vbaListener';
-import { returnDefaultOnCancelClientRequest } from '../utils/wrappers';
-import { inject, injectable } from 'tsyringe';
-import { Logger, ILanguageServer, IWorkspace } from '../injection/interface';
+
+// Project
+import { sleep, walk } from '../utils/helpers';
 import { Services } from '../injection/services';
-import { ItemType, ScopeItemCapability } from '../capabilities/capabilities';
+import { getFormattingEdits } from './formatter';
+import { BaseProjectDocument } from './document';
+import { SyntaxParser } from './parser/vbaParser';
+import { VbaFmtListener } from './parser/vbaListener';
+import { hasWorkspaceConfigurationCapability } from '../capabilities/workspaceFolder';
+import { Logger, ILanguageServer, IWorkspace } from '../injection/interface';
+import { returnDefaultOnCancelClientRequest } from '../utils/wrappers';
+import { ScopeType, ScopeItemCapability } from '../capabilities/capabilities';
 
 export interface ExtensionConfiguration {
 	maxDocumentLines: number;
@@ -56,10 +65,8 @@ export interface ExtensionConfiguration {
 @injectable()
 export class Workspace implements IWorkspace {
 	private events?: WorkspaceEvents;
-	private documents: BaseProjectDocument[] = [];
 	private parseCancellationTokenSource?: CancellationTokenSource;
 
-	private _activeDocument?: BaseProjectDocument;
 	private readonly _hasConfigurationCapability: boolean;
 	private _extensionConfiguration?: ExtensionConfiguration;
 
@@ -82,10 +89,6 @@ export class Workspace implements IWorkspace {
 		})();
 	}
 
-	get activeDocument() {
-		return this._activeDocument;
-	}
-
 	constructor(
 		@inject("_Connection") public readonly connection: _Connection,
 		@inject("ILanguageServer") private server: ILanguageServer) {
@@ -95,63 +98,89 @@ export class Workspace implements IWorkspace {
 		this._hasConfigurationCapability = hasWorkspaceConfigurationCapability(this.server);
 
 		// Configure scopes
-		const languageScope = new ScopeItemCapability(undefined, ItemType.VBA);
-		const applicationScope = new ScopeItemCapability(undefined, ItemType.APPLICATION, undefined, languageScope);
-		const projectScope = new ScopeItemCapability(undefined, ItemType.PROJECT, undefined, applicationScope);
+		const languageScope = new ScopeItemCapability(undefined, ScopeType.VBA);
+		const applicationScope = new ScopeItemCapability(undefined, ScopeType.APPLICATION, undefined, languageScope);
+		const projectScope = new ScopeItemCapability(undefined, ScopeType.PROJECT, undefined, applicationScope);
 		Services.registerProjectScope(projectScope);
 	}
 
-	activateDocument(document?: BaseProjectDocument) {
-		if (document) {
-			this._activeDocument = document;
-		}
-	}
+	// Initially parse everything in the folder.
+	// ToDo: Handle removal of a workspace folder.
+	async addWorkspaceFolder(params: WorkspaceFolder): Promise<void> {
+		this.logger.info(`Adding workspace: ${params.name}`);
+		const workspaceFiles = walk(params.uri, /\.(cls|bas|frm)$/i);
 
-	async parseDocument(document?: BaseProjectDocument) {
-		this.activateDocument(document);
-		this.parseCancellationTokenSource?.cancel();
-		this.parseCancellationTokenSource = new CancellationTokenSource();
-
-		if (!this.activeDocument) {
-			this.logger.error('No active document.');
+		// No need to continue if we have no files.
+		if (workspaceFiles.size === 0) {
 			return;
 		}
 
+		// Set up parser and dummy token because we won't cancel this.
+		const parser = new SyntaxParser(this.logger);
+		const token = new CancellationTokenSource().token;
+
+		// Handle each file in the workspace.
+		for (const [uri, file] of workspaceFiles) {
+			const normalisedUri = uri.toFilePath().toFileUri();
+			// Don't parse files that we're already tracking.
+			if (this.projectDocuments.has(normalisedUri)) {
+				this.logger.debug(`Skipping file: ${normalisedUri}`, 1);
+				continue;
+			}
+
+			try {
+				// Read and parse the project document.
+				this.logger.debug(`Reading file: ${normalisedUri}`, 1);
+				const textDocument = TextDocument.create(`${normalisedUri}`, 'vba', 1, file);
+				const projectDocument = BaseProjectDocument.create(textDocument);
+				this.projectDocuments.set(normalisedUri, projectDocument);
+				await parser.parse(token, projectDocument);
+				this.logger.info(`Parsed ${projectDocument.name}`, 1);
+			} catch (e) {
+				// Log errors and anything else without failing.
+				this.logger.error(`Failed to parse ${normalisedUri}`, 0, e);
+			}
+		}
+
+		// Rebuild scopes from Project level.
+		Services.projectScope.build();
+		// Services.projectScope.printToDebug();
+	}
+
+	async parseDocument(document: BaseProjectDocument) {
+		// this.activateDocument(document);
+		this.parseCancellationTokenSource?.cancel();
+		this.parseCancellationTokenSource = new CancellationTokenSource();
+
 		// Exceptions thrown by the parser should be ignored.
 		try {
-			await this.activeDocument.parseAsync(this.parseCancellationTokenSource.token);
-			this.logger.info(`Parsed ${this.activeDocument.name}`);
-			this.connection.sendDiagnostics(this.activeDocument.languageServerDiagnostics());
+			await document.parse(this.parseCancellationTokenSource.token);
+			this.logger.info(`Parsed ${document.name}`);
+			this.connection.sendDiagnostics(document.languageServerDiagnostics());
 		} catch (e) {
 			if (e instanceof ParseCancellationException) {
 				// Swallow cancellation exceptions. They're good. We like these.
-			} else if (e instanceof Error) {
-				this.logger.stack(e);
 			} else {
-				this.logger.error('Something went wrong.');
+				this.logger.debug('Parser did not cancel or complete.', 0, e);
 			}
 		}
 
 		this.parseCancellationTokenSource = undefined;
 	}
 
-	async formatParseDocument(document: TextDocument): Promise<VbaFmtListener | undefined> {
-		this.parseCancellationTokenSource?.cancel();
-		this.parseCancellationTokenSource = new CancellationTokenSource();
-
+	async formatParseDocument(document: TextDocument, token: CancellationToken): Promise<VbaFmtListener | undefined> {
 		// Exceptions thrown by the parser should be ignored.
 		let result: VbaFmtListener | undefined;
 		try {
-			result = await this.activeDocument?.formatParseAsync(this.parseCancellationTokenSource.token);
+			const projectDocument = this.projectDocuments.get(document.uri.toFilePath().toFileUri());
+			result = await projectDocument?.formatParse(token);
 			this.logger.info(`Formatted ${document.uri}`);
 		}
 		catch (e) {
 			if (e instanceof ParseCancellationException) {
 				this.logger.debug('Parse cancelled successfully.');
-			} else if (e instanceof Error) {
-				this.logger.stack(e);
 			} else {
-				this.logger.error(`Parse failed: ${e}`);
+				this.logger.error(`Parse failed.`, 0, e);
 			}
 		}
 
@@ -160,15 +189,20 @@ export class Workspace implements IWorkspace {
 	}
 
 	openDocument(document: TextDocument): void {
-		const projectDocument = this.projectDocuments.get(document.uri);
-		if (document.version === projectDocument?.version) {
+		const normalisedUri = document.uri.toFilePath().toFileUri();
+		const projectDocument = this.projectDocuments.get(normalisedUri);
+		if (projectDocument) {
 			projectDocument.open();
+			if (document.version > projectDocument?.version) {
+				this.parseDocument(projectDocument);
+			}
 			this.connection.sendDiagnostics(projectDocument.languageServerDiagnostics());
 		}
 	}
 
 	closeDocument(document: TextDocument): void {
-		const projectDocument = this.projectDocuments.get(document.uri);
+		const normalisedUri = document.uri.toFilePath().toFileUri();
+		const projectDocument = this.projectDocuments.get(normalisedUri);
 		if (!projectDocument) {
 			Services.logger.warn(`Failed to get document to close: ${document.uri}`);
 			return;
@@ -268,33 +302,33 @@ class WorkspaceEvents {
 		const cancellableOnDocSymbol = returnDefaultOnCancelClientRequest(
 			(p: DocumentSymbolParams, t) => this.onDocumentSymbolAsync(p, t), [], 'Document Symbols');
 
-		const cancellableOnFoldingRanges = returnDefaultOnCancelClientRequest(
-			(p: FoldingRangeParams, t) => this.onFoldingRangesAsync(p, t), [], 'Folding Range');
-
-		connection.onInitialized(() => this.onInitialized());
+		connection.onCodeAction(async (params, token) => this.onCodeActionRequest(params, token));
 		connection.onCompletion(params => this.onCompletion(params));
 		connection.onCompletionResolve(item => this.onCompletionResolve(item));
+		connection.onDefinition(async (params, token) => await this.onDefinition(params, token));
 		connection.onDidChangeConfiguration(() => Services.workspace.clearDocumentsConfiguration());
 		connection.onDidChangeWatchedFiles(params => this.onDidChangeWatchedFiles(params));
+		connection.onDidCloseTextDocument(params => { Services.logger.debug('[event] onDidCloseTextDocument'); Services.logger.debug(JSON.stringify(params), 1); });
+		connection.onDocumentFormatting(async (params, token) => await this.onDocumentFormatting(params, token));
 		connection.onDocumentSymbol(async (params, token) => await cancellableOnDocSymbol(params, token));
 		connection.onHover(params => this.onHover(params));
-		connection.onDocumentFormatting(async (params, token) => await this.onDocumentFormatting(params, token));
-		connection.onDidCloseTextDocument(params => { Services.logger.debug('[event] onDidCloseTextDocument'); Services.logger.debug(JSON.stringify(params), 1); });
-		connection.onCodeAction((params, token) => this.onCodeActionRequest(params, token));
+		connection.onInitialized(() => this.onInitialized());
+		connection.onRenameRequest((params, token) => this.onRenameRequest(params, token));
 
 		if (hasWorkspaceConfigurationCapability(Services.server)) {
-			connection.onFoldingRanges(async (params, token) => await cancellableOnFoldingRanges(params, token));
+			connection.onFoldingRanges(async (params, token) => await this.onFoldingRangesAsync(params, token));
 		}
 
 		connection.onRequest((method: string, params: object | object[] | any) => {
 			switch (method) {
 				case 'textDocument/semanticTokens/full': {
-					const uri: string = params.textDocument.uri;
-					return this.activeDocument?.languageServerSemanticTokens();
+					const uri: string = params.textDocument.uri.toFilePath();
+					return this.projectDocuments.get(uri)?.languageServerSemanticTokens();
 				}
 				case 'textDocument/semanticTokens/range': {
 					const rangeParams = params as SemanticTokensRangeParams;
-					return this.activeDocument?.languageServerSemanticTokens(rangeParams.range);
+					const uri: string = params.textDocument.uri.toFilePath();
+					return this.projectDocuments.get(uri)?.languageServerSemanticTokens(rangeParams.range);
 				}
 				default:
 					Services.logger.error(`Unresolved request path: ${method}`);
@@ -323,6 +357,23 @@ class WorkspaceEvents {
 		return item;
 	}
 
+	private async onDefinition(params: DefinitionParams, token: CancellationToken): Promise<LocationLink[] | null | undefined> {
+		Services.logger.debug('[event] onDefinition');
+		Services.logger.debug(JSON.stringify(params), 1);
+		if (token.isCancellationRequested) {
+			return;
+		}
+
+		const results = Services.projectScope.getDeclarationLocation(params.textDocument.uri, params.position);
+		Services.logger.debug(`Processed onDefinition: returning ${JSON.stringify(results)}`);
+
+		if (results === undefined) {
+			return null;
+		} else {
+			return results;
+		}
+	}
+
 	private onDidChangeWatchedFiles(params: DidChangeWatchedFilesParams) {
 		Services.logger.debug('[event] onDidChangeWatchedFiles');
 		Services.logger.debug(JSON.stringify(params), 1);
@@ -341,18 +392,33 @@ class WorkspaceEvents {
 		return document?.languageServerSymbolInformation() ?? [];
 	}
 
-	private async onFoldingRangesAsync(params: FoldingRangeParams, token: CancellationToken): Promise<FoldingRange[]> {
+	private async onFoldingRangesAsync(params: FoldingRangeParams, token: CancellationToken): Promise<FoldingRange[] | undefined> {
 		const logger = Services.logger;
 		logger.debug('[Event] onFoldingRanges');
+
+		// Don't do any work if we don't have to.
+		if (token.isCancellationRequested) {
+			logger.debug('Cancellation requested before start for Folding Ranges.');
+			return;
+		}
+
 		let document: BaseProjectDocument | undefined;
 		try {
-			document = await this.getParsedProjectDocument(params.textDocument.uri, 0, token);
+			const normalisedUri = params.textDocument.uri.toFilePath().toFileUri();
+			document = await this.getParsedProjectDocument(normalisedUri, 0, token);
 		} catch (error) {
 			// Swallow parser cancellations and rethrow anything else.
 			if (error instanceof ParseCancellationException) {
 				throw error;
 			}
 		}
+
+		// Check again if we're cancelled.
+		if (token.isCancellationRequested) {
+			logger.debug('Cancellation requested before start for Folding Ranges.');
+			return;
+		}
+
 		const result = document?.languageServerFoldingRanges();
 		for (const foldingRange of result ?? []) {
 			logger.debug(`${JSON.stringify(foldingRange.range)} '${foldingRange.openWord}..${foldingRange.closeWord}'`, 1);
@@ -379,6 +445,11 @@ class WorkspaceEvents {
 			);
 			connection.client.register(DidChangeConfigurationNotification.type, undefined);
 		}
+
+		// Read workspace folders if we have them.
+		Services.server.configuration?.params
+			.workspaceFolders?.forEach(folder => setImmediate(() =>
+				Services.workspace.addWorkspaceFolder(folder)));
 	}
 
 	private async onDocumentFormatting(params: DocumentFormattingParams, token: CancellationToken): Promise<TextEdit[]> {
@@ -412,8 +483,6 @@ class WorkspaceEvents {
 		}
 
 		try {
-			// We don't actually need the document but await to ensure it's parsed.
-			await this.getParsedProjectDocument(params.textDocument.uri, 0, token);
 			const uri = params.textDocument.uri;
 			const result: (Command | CodeAction)[] = [];
 			const codeActionRegistry = Services.codeActionsRegistry;
@@ -433,6 +502,44 @@ class WorkspaceEvents {
 		}
 	}
 
+	private async onRenameRequest(params: RenameParams, token: CancellationToken): Promise<WorkspaceEdit | undefined | null> {
+		Services.logger.debug(`[event] onRenameRequest: ${JSON.stringify(params)}`);
+		if (token.isCancellationRequested) {
+			Services.logger.debug(`onRenameRequest cancelled before start.`);
+			return;
+		}
+
+		const renameItems = Services.projectScope.getRenameItems(params.textDocument.uri, params.position);
+		const workspaceEdit: { changes: { [uri: string]: TextEdit[] }; } = { changes: {} };
+
+		for (const renameItem of renameItems) {
+			const uri = renameItem.locationUri;
+			if (!uri) {
+				Services.logger.warn('Scope item has no element to rename');
+				continue;
+			}
+
+			const range = renameItem.element?.identifierCapability?.range;
+			if (!range) {
+				Services.logger.warn('Scope item has no identifier to rename');
+				continue;
+			}
+
+			workspaceEdit.changes[uri] ??= [];
+			workspaceEdit.changes[uri].push(TextEdit.replace(range, params.newName));
+		}
+
+		Services.logger.debug(`resolved onRenameRequest: returning\n${JSON.stringify(workspaceEdit)}`);
+
+		// Allow a cancellation to be processed if we have one.
+		await new Promise(resolve => setTimeout(resolve, 0));
+		if (token.isCancellationRequested) {
+			Services.logger.debug(`onRenameRequest cancelled during run.`);
+			return;
+		}
+		return workspaceEdit;
+	}
+
 	/** Documents event handlers */
 
 	/**
@@ -440,13 +547,10 @@ class WorkspaceEvents {
 	 * @param document The document being opened.
 	 */
 	onDidOpen(document: TextDocument) {
-		const logger = Services.logger;
-		logger.debug('[event] onDidOpen');
-		logger.debug(`uri: ${document.uri}`, 1);
-		logger.debug(`languageId: ${document.languageId}`, 1);
-		logger.debug(`version: ${document.version}`, 1);
-		const projectDocument = this.projectDocuments.get(document.uri);
-		if (projectDocument) {
+		Services.logger.debug('[event] onDidOpen');
+		this.printDocumentInformation(document);
+		const normalisedUri = document.uri.toFilePath().toFileUri();
+		if (this.projectDocuments.has(normalisedUri)) {
 			Services.workspace.openDocument(document);
 		}
 	}
@@ -456,23 +560,22 @@ class WorkspaceEvents {
 	 * @param document The document that was changed.
 	 */
 	onDidChangeContent(document: TextDocument): void {
-		const logger = Services.logger;
-		logger.debug('[event] onDidChangeContentAsync');
-		logger.debug(`uri: ${document.uri}`, 1);
-		logger.debug(`languageId: ${document.languageId}`, 1);
-		logger.debug(`version: ${document.version}`, 1);
+		Services.logger.debug('[event] onDidChangeContent');
+		this.printDocumentInformation(document);
 
 		// If the event is fired for the same version of the document, don't reparse.
-		const existingDocument = this.projectDocuments.get(document.uri);
-		if ((existingDocument?.version ?? -1) >= document.version) {
-			logger.debug('Document already parsed.');
+		const normalisedUri = document.uri.toFilePath().toFileUri();
+		const existingDocument = this.projectDocuments.get(normalisedUri);
+		const existingVersion = existingDocument?.version ?? -1;
+		Services.logger.debug(`existing: ${existingVersion}`, 1);
+		if (existingVersion >= document.version) {
 			return;
 		}
 
 		// The document is new or a new version that we should parse.
 		const projectDocument = BaseProjectDocument.create(document);
-		this.projectDocuments.set(document.uri, projectDocument);
-		Services.projectScope.invalidate(document.uri);
+		this.projectDocuments.set(normalisedUri, projectDocument);
+		Services.projectScope.invalidateModule(normalisedUri);
 		Services.workspace.parseDocument(projectDocument);
 	}
 
@@ -481,14 +584,21 @@ class WorkspaceEvents {
 	 * @param document The document being closed.
 	 */
 	onDidClose(document: TextDocument) {
-		const logger = Services.logger;
-		logger.debug('[event] onDidClose');
-		logger.debug(`uri: ${document.uri}`, 1);
-		logger.debug(`languageId: ${document.languageId}`, 1);
-		logger.debug(`version: ${document.version}`, 1);
-		const projectDocument = this.projectDocuments.get(document.uri);
-		if (projectDocument) {
+		Services.logger.debug('[event] onDidClose');
+		this.printDocumentInformation(document);
+
+		const normalisedUri = document.uri.toFilePath().toFileUri();
+		if (this.projectDocuments.has(normalisedUri)) {
 			Services.workspace.closeDocument(document);
 		}
+	}
+
+	private printDocumentInformation(document: TextDocument) {
+		const logger = Services.logger;
+		const normalisedUri = document.uri.toFilePath().toFileUri();
+		logger.debug(`doc uri: ${document.uri}`, 1);
+		logger.debug(`norm uri: ${normalisedUri}`, 1);
+		logger.debug(`languageId: ${document.languageId}`, 1);
+		logger.debug(`version: ${document.version}`, 1);
 	}
 }

@@ -16,8 +16,10 @@ import { Services } from './injection/services';
 
 // Ensures globally available type extensions.
 import './extensions/stringExtensions';
-import './extensions/parserExtensions';
 import './extensions/numberExtensions';
+import './extensions/antlrCoreExtensions';
+import './extensions/antlrVbaParserExtensions';
+import './extensions/antlrVbaPreParserExtensions';
 import { Workspace } from './project/workspace';
 import { activateSemanticTokenProvider } from './capabilities/semanticTokens';
 import { activateWorkspaceFolderCapability } from './capabilities/workspaceFolder';
@@ -45,6 +47,10 @@ export class LanguageServer implements ILanguageServer {
 			activateSemanticTokenProvider(result);
 			return result;
 		});
+		// Register shutdown actions
+		this.connection.onShutdown(() => { });
+		this.connection.onExit(() => process.exit(0));
+
 		// Register for client configuration notification changes.
 		this.connection.onInitialized(() => { this.connection.client.register(DidChangeConfigurationNotification.type, undefined); });
 		this.connection.onDidChangeConfiguration(() => this._clientConfiguration = undefined);
@@ -70,26 +76,21 @@ export class LanguageServer implements ILanguageServer {
 
 
 export class LanguageServerConfiguration {
-	params: InitializeParams;
 	capabilities: ServerCapabilities<any> = {
 		// Implemented
-		documentSymbolProvider: true,
+		codeActionProvider: true,
+		definitionProvider: true,
 		foldingRangeProvider: true,
+		documentSymbolProvider: true,
 		textDocumentSync: TextDocumentSyncKind.Incremental,
-		// diagnosticProvider: {
-		// 	interFileDependencies: false,
-		// 	workspaceDiagnostics: false
-		// },
 
 		// Implement soon.
-		codeActionProvider: true,
-		completionProvider: undefined,
 		hoverProvider: false,
+		completionProvider: undefined,
 
 		// Not implemented.		
 		signatureHelpProvider: undefined,
 		declarationProvider: false,
-		definitionProvider: false,
 		typeDefinitionProvider: false,
 		implementationProvider: false,
 		referencesProvider: false,
@@ -101,7 +102,7 @@ export class LanguageServerConfiguration {
 		documentFormattingProvider: true,
 		documentRangeFormattingProvider: false,
 		documentOnTypeFormattingProvider: undefined,
-		renameProvider: false,
+		renameProvider: true,
 		selectionRangeProvider: false,
 		executeCommandProvider: undefined,
 		callHierarchyProvider: false,
@@ -111,9 +112,7 @@ export class LanguageServerConfiguration {
 		experimental: undefined,
 	};
 
-	constructor(params: InitializeParams) {
-		this.params = params;
-	}
+	constructor(public params: InitializeParams) { }
 }
 
 

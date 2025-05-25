@@ -8,24 +8,40 @@ import { vbapreListener } from '../../antlr/out/vbapreListener';
 import { vbafmtListener } from '../../antlr/out/vbafmtListener';
 import { CompilerIfBlockContext } from '../../antlr/out/vbapreParser';
 import {
+    AmbiguousIdentifierContext,
     AnyOperatorContext,
+    ArgumentListContext,
+    CallStatementContext,
     ClassModuleContext,
+    DictionaryAccessExpressionContext,
     EnumDeclarationContext,
     EnumMemberContext,
     FunctionDeclarationContext,
     IfStatementContext,
     IgnoredClassAttrContext,
     IgnoredProceduralAttrContext,
+    LetStatementContext,
+    LExpressionContext,
+    MemberAccessExpressionContext,
+    OptionalParamContext,
+    ParamArrayContext,
+    PositionalParamContext,
     ProceduralModuleContext,
     ProcedureDeclarationContext,
     PropertyGetDeclarationContext,
     PropertySetDeclarationContext,
+    SetStatementContext,
+    SimpleNameExpressionContext,
     SubroutineDeclarationContext,
     TypeSuffixContext,
     UdtDeclarationContext,
     UnexpectedEndOfLineContext,
+    UnrestrictedNameContext,
     VariableDeclarationContext,
-    WhileStatementContext
+    WhileStatementContext,
+    WithExpressionContext,
+    WithMemberAccessExpressionContext,
+    WithStatementContext
 } from '../../antlr/out/vbaParser';
 import {
     AttributeStatementContext,
@@ -48,16 +64,39 @@ import {
 } from '../../antlr/out/vbafmtParser';
 
 // Project
+import { Services } from '../../injection/services';
+import { ExtensionConfiguration } from '../workspace';
+import { ErrorRuleElement } from '../elements/generic';
 import { CompilerLogicalBlock } from '../elements/precompiled';
 import { UnexpectedEndOfLineElement } from '../elements/utils';
-import { DuplicateOperatorElement, IfElseBlock as IfStatementElement, WhileLoopElement } from '../elements/flow';
 import { VbaClassDocument, VbaModuleDocument } from '../document';
+import { DuplicateOperatorElement, IfElseBlockElement, WhileLoopElement } from '../elements/flow';
 import { ClassElement, ModuleElement, ModuleIgnoredAttributeElement } from '../elements/module';
-import { VariableDeclarationStatementElement, EnumDeclarationElement, EnumMemberDeclarationElement, TypeDeclarationElement, TypeSuffixElement } from '../elements/typing';
-import { FunctionDeclarationElement, PropertyGetDeclarationElement, PropertyLetDeclarationElement, PropertySetDeclarationElement, SubDeclarationElement } from '../elements/procedure';
-import { ExtensionConfiguration } from '../workspace';
-import { Services } from '../../injection/services';
-import { ErrorRuleElement } from '../elements/generic';
+import { NameExpressionContext, NameExpressionElement, WithStatementElement } from '../elements/naming';
+import {
+    TypeSuffixElement,
+    EnumDeclarationElement,
+    TypeDeclarationElement,
+    PositionalParamElement,
+    EnumMemberDeclarationElement,
+    VariableDeclarationStatementElement,
+} from '../elements/typing';
+import {
+    SubDeclarationElement,
+    FunctionDeclarationElement,
+    PropertyGetDeclarationElement,
+    PropertyLetDeclarationElement,
+    PropertySetDeclarationElement,
+} from '../elements/procedure';
+
+
+enum ParserAssignmentState {
+    NONE,
+    LET,
+    SET,
+    CALL
+}
+
 
 export class CommonParserCapability {
     document: VbaClassDocument | VbaModuleDocument;
@@ -80,18 +119,50 @@ export class CommonParserCapability {
     }
 }
 
+type ParserState = {
+    inCallExp: boolean
+    isWithExp: boolean;
+    isWithStmt: boolean;
+    isDictAccess: boolean;
+    assignment: ParserAssignmentState;
+    nameElements: NameExpressionElement[];
+    callMembers?: number;
+};
 
 export class VbaListener extends vbaListener {
     document: VbaClassDocument | VbaModuleDocument;
     protected documentSettings?: ExtensionConfiguration;
     protected isAfterMethodDeclaration = false;
+    private withStatementStack: WithStatementElement[] = [];
+    private parserStateStack: ParserState[] = [];
+
+    private readonly verbose = false;
+
+    private get parserState(): ParserState {
+        if (this.parserStateStack.length === 0) {
+            Services.logger.error('State stack is empty.');
+            this.pushNewState();
+        }
+        return this.parserStateStack.at(-1)!;
+    }
+
+    private pushNewState = () =>
+        this.parserStateStack.push({
+            inCallExp: false,
+            isWithExp: false,
+            isWithStmt: false,
+            isDictAccess: false,
+            nameElements: [],
+            assignment: ParserAssignmentState.NONE
+        });
 
     constructor(document: VbaClassDocument | VbaModuleDocument) {
         super();
+        this.pushNewState();
         this.document = document;
     }
 
-    static async createAsync(document: VbaClassDocument | VbaModuleDocument): Promise<VbaListener> {
+    static async create(document: VbaClassDocument | VbaModuleDocument): Promise<VbaListener> {
         const result = new VbaListener(document);
         await result.ensureHasSettingsAsync();
         return result;
@@ -126,7 +197,7 @@ export class VbaListener extends vbaListener {
     };
 
     enterIfStatement = (ctx: IfStatementContext) =>
-        this.document.registerElement(new IfStatementElement(ctx, this.document.textDocument));
+        this.document.registerElement(new IfElseBlockElement(ctx, this.document.textDocument));
 
     enterIgnoredClassAttr = (ctx: IgnoredClassAttrContext) => this.registerIgnoredAttribute(ctx);
     enterIgnoredProceduralAttr = (ctx: IgnoredProceduralAttrContext) => this.registerIgnoredAttribute(ctx);
@@ -171,6 +242,227 @@ export class VbaListener extends vbaListener {
         this.document.registerElement(element);
     };
 
+    enterArgumentList = (_: ArgumentListContext) => this.pushNewState();
+    exitArgumentList = (_: ArgumentListContext) => this.parserStateStack.pop();
+
+    enterLetStatement = (_: LetStatementContext) => {
+        if (this.verbose) Services.logger.debug(`enterLetStatement`, this.parserStateStack.length);
+        this.parserState.assignment = ParserAssignmentState.LET;
+    };
+
+    enterSetStatement = (_: SetStatementContext) => {
+        if (this.verbose) Services.logger.debug(`enterSetStatement`, this.parserStateStack.length);
+        this.parserState.assignment = ParserAssignmentState.SET;
+    };
+
+    enterCallStatement = (ctx: CallStatementContext) => {
+        if (this.verbose) Services.logger.debug(`enterCallStatement: ${ctx.getText()}`, this.parserStateStack.length);
+        this.parserState.inCallExp = true;
+
+        // Sometimes a call statement does not have the normal trigger context to add a name expression.
+        const simpleNameCtx = ctx.simpleNameExpression();
+        if (!ctx.memberAccessExpression() && !ctx.indexExpression() && simpleNameCtx) {
+            this.pushNameElement(simpleNameCtx);
+        }
+    };
+
+    exitCallStatement = (ctx: CallStatementContext) => {
+        if (this.verbose) Services.logger.debug(`exitCallStatement: ${ctx.getText()}`, this.parserStateStack.length);
+
+        // Sometimes a call statement does not have the normal trigger context to exit a name expression.
+        const simpleNameCtx = ctx.simpleNameExpression();
+        if (!ctx.memberAccessExpression() && !ctx.indexExpression() && simpleNameCtx) {
+            this.parserState.assignment = ParserAssignmentState.CALL;
+            this.registerNameElement();
+        }
+        this.parserState.inCallExp = false;
+    };
+
+    enterMemberAccessExpression = (ctx: MemberAccessExpressionContext) => {
+        if (this.verbose) Services.logger.debug(`enterMemberAccessExpression: ${ctx.getText()}`, this.parserStateStack.length);
+        this.pushNameElement(ctx);
+    };
+
+    enterDictionaryAccessExpression = (ctx: DictionaryAccessExpressionContext) => {
+        if (this.verbose) Services.logger.debug(`enterDictionaryAccessExpression: ${ctx.getText()}`, this.parserStateStack.length);
+        this.parserState.isDictAccess = true;
+        this.pushNameElement(ctx);
+    };
+
+    exitDictionaryAccessExpression = (ctx: DictionaryAccessExpressionContext) => {
+        if (this.verbose) Services.logger.debug(`exitDictionaryAccessExpression`, this.parserStateStack.length);
+        this.parserState.isDictAccess = false;
+    };
+
+    enterWithMemberAccessExpression = (ctx: WithMemberAccessExpressionContext) => {
+        if (this.verbose) Services.logger.debug(`enterWithMemberAccessExpression: ${ctx.getText()}`, this.parserStateStack.length);
+        this.pushNameElement(ctx);
+    };
+
+    exitMemberAccessExpression = (ctx: MemberAccessExpressionContext) => {
+        if (this.verbose) Services.logger.debug(`exitMemberAccessExpression: ${ctx.getText()}`, this.parserStateStack.length);
+        if (this.parserState.inCallExp) this.parserState.assignment = ParserAssignmentState.CALL;
+        this.registerNameElement();
+    };
+
+    enterLExpression = (ctx: LExpressionContext) => {
+        if (this.verbose) Services.logger.debug(`enterLExpression: ${ctx.getText()}`, this.parserStateStack.length);
+        if (ctx.LPAREN()) {
+            // FIXME: Will need to track function calls properly when we have types... maybe.
+            return;
+        }
+
+        // Will be handled by the WithExpression.
+        if (ctx.withExpression()) {
+            return;
+        }
+        this.pushNameElement(ctx);
+    };
+
+    exitLExpression = (ctx: LExpressionContext) => {
+        if (this.verbose) Services.logger.debug(`exitLExpression: ${ctx.getText()}`, this.parserStateStack.length);
+        if (ctx.LPAREN()) {
+            return;
+        }
+        // Was handled by the WithExpression.
+        if (ctx.withExpression()) {
+            return;
+        }
+        this.registerNameElement();
+    };
+
+    enterPositionalParam = (ctx: PositionalParamContext) => {
+        if (this.verbose) Services.logger.debug(`enterPositionalParam: ${ctx.getText()}`, this.parserStateStack.length);
+        const element = new PositionalParamElement(ctx, this.document.textDocument);
+        this.document.registerElement(element);
+    };
+
+    enterOptionalParam = (ctx: OptionalParamContext) => {
+        if (this.verbose) Services.logger.debug(`enterOptionalParam: ${ctx.getText()}`, this.parserStateStack.length);
+        const identifierCtx = ctx.paramDcl().untypedNameParamDcl()?.ambiguousIdentifier()
+            ?? ctx.paramDcl().typedNameParamDcl()?.typedName().ambiguousIdentifier();
+
+        if (identifierCtx) {
+            this.addNameElementContext(identifierCtx, 'ambigiousNameContext');
+        }
+    };
+
+    exitOptionalParam = (ctx: OptionalParamContext) => {
+        if (this.verbose) Services.logger.debug(`exitOptionalParam: ${ctx.getText()}`, this.parserStateStack.length);
+        this.registerNameElement();
+    };
+
+    enterParamArray = (ctx: ParamArrayContext) => {
+        if (this.verbose) Services.logger.debug(`enterParamArray: ${ctx.getText()}`, this.parserStateStack.length);
+        this.addNameElementContext(ctx.ambiguousIdentifier(), 'ambigiousNameContext');
+    };
+
+    exitParamArray = (ctx: ParamArrayContext) => {
+        if (this.verbose) Services.logger.debug(`exitParamArray: ${ctx.getText()}`, this.parserStateStack.length);
+        this.registerNameElement();
+    };
+
+    enterUnrestrictedName = (ctx: UnrestrictedNameContext) => this.addNameElementContext(ctx, 'enterUnrestrictedName');
+    enterSimpleNameExpression = (ctx: SimpleNameExpressionContext) => this.addNameElementContext(ctx, 'enterSimpleNameExpression');
+
+    private addNameElementContext(ctx: UnrestrictedNameContext | SimpleNameExpressionContext | AmbiguousIdentifierContext, source: string) {
+        if (this.verbose) Services.logger.debug(`${source}: ${ctx.getText()}`, this.parserStateStack.length);
+        const nameElement = this.parserState.nameElements.at(-1);
+        if (!nameElement) {
+            Services.logger.error(`Cannot add name ${ctx.getText()}`, this.parserStateStack.length);
+            return;
+        }
+
+        nameElement.addName(ctx);
+    }
+
+    private pushNameElement(ctx: NameExpressionContext): void {
+        if (this.verbose) Services.logger.debug('Pushing name', this.parserStateStack.length);
+        const element = new NameExpressionElement(ctx, this.document.textDocument);
+
+        // Push the name element to the stack.
+        this.parserState.nameElements.push(element);
+
+        // Link to WithStatement if we have one.
+        const withStatement = this.withStatementStack.at(-1);
+        if (withStatement && !withStatement.nameExpressionElement) {
+            withStatement.nameExpressionElement = element;
+        }
+    }
+
+    private registerNameElement(): void {
+        // Pop the current element and return if we don't have one.
+        const nameElement = this.parserState.nameElements.pop();
+        if (!nameElement) {
+            return;
+        }
+
+        // Add with names if we're in a WithExpression
+        if (this.parserState.isWithExp) {
+            nameElement.withStatementElement = this.withStatementStack.at(-1);
+            this.parserState.isWithExp = false;
+        }
+
+        // Resolve the access members if we have them.
+        nameElement.evaluateNameStack();
+
+        // Set the type based on parser state.
+        switch (this.parserState.assignment) {
+            case ParserAssignmentState.SET:
+                nameElement.setAsSetType();
+                break;
+            case ParserAssignmentState.LET:
+                nameElement.setAsLetType();
+                break;
+            case ParserAssignmentState.CALL:
+                nameElement.setAsCallType();
+                break;
+        }
+        this.parserState.assignment = ParserAssignmentState.NONE;
+
+        // Register this name element.
+        this.document.registerElement(nameElement);
+        if (this.verbose) {
+            const name = nameElement.identifierCapability.name;
+            const fqName = nameElement.accessMembers?.map(x => x.getText).join('.');
+            Services.logger.debug(`Registered ${fqName} as ${name}`, this.parserStateStack.length);
+        }
+
+        // Add the name(s) to the next element down.
+        const nextElement = this.parserState.nameElements.at(-1);
+        if (nextElement) {
+            nextElement.nameContexts = [
+                nameElement.nameContexts,
+                nextElement.nameContexts
+            ].flat();
+        }
+    }
+
+    enterWithStatement = (ctx: WithStatementContext) => {
+        if (this.verbose) Services.logger.debug(`enterWithStatement: ${ctx.getText().split('\n')[0]}...`, this.parserStateStack.length);
+        const element = new WithStatementElement(ctx, this.document.textDocument);
+        this.withStatementStack.push(element);
+    };
+
+    exitWithStatement = (ctx: WithStatementContext) => {
+        if (this.verbose) Services.logger.debug(`exitWithStatement`, this.parserStateStack.length);
+        if (this.withStatementStack.at(-1)?.context.rule === ctx) {
+            this.withStatementStack.pop();
+        } else {
+            Services.logger.error(`Can't exit With`);
+        }
+    };
+
+    enterWithExpression = (_: WithExpressionContext) => {
+        if (this.verbose) Services.logger.debug(`enterWithExpression`, this.parserStateStack.length);
+        this.parserState.isWithExp = true;
+    };
+
+    exitWithExpression = (_: WithExpressionContext) => {
+        if (this.verbose) Services.logger.debug(`exitWithExpression`, this.parserStateStack.length);
+        this.registerNameElement();
+    };
+
     enterTypeSuffix = (ctx: TypeSuffixContext) =>
         this.document.registerElement(new TypeSuffixElement(ctx, this.document.textDocument));
 
@@ -207,7 +499,7 @@ export class VbaPreListener extends vbapreListener {
         this.common = new CommonParserCapability(document);
     }
 
-    static async createAsync(document: VbaClassDocument | VbaModuleDocument): Promise<VbaPreListener> {
+    static async create(document: VbaClassDocument | VbaModuleDocument): Promise<VbaPreListener> {
         const result = new VbaPreListener(document);
         await result.common.ensureHasSettingsAsync();
         return result;
@@ -277,7 +569,7 @@ export class VbaFmtListener extends vbafmtListener {
         this.indentationKeys = new Array(document.textDocument.lineCount);
     }
 
-    static async createAsync(document: VbaClassDocument | VbaModuleDocument): Promise<VbaFmtListener> {
+    static async create(document: VbaClassDocument | VbaModuleDocument): Promise<VbaFmtListener> {
         const result = new VbaFmtListener(document);
         await result.common.ensureHasSettingsAsync();
         return result;

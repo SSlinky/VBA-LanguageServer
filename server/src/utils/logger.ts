@@ -1,6 +1,9 @@
+// Core
 import { inject, injectable } from 'tsyringe';
-import { Logger, ILanguageServer } from '../injection/interface';
 import { _Connection } from 'vscode-languageserver';
+
+// Project
+import { Logger, ILanguageServer } from '../injection/interface';
 
 
 enum LogLevel {
@@ -23,14 +26,14 @@ export class LspLogger implements Logger {
 		@inject("_Connection") public connection: _Connection,
 		@inject("ILanguageServer") private server: ILanguageServer) { }
 
-	error = (msg: string, lvl?: number) => this.emit(LogLevel.error, msg, lvl);
-	warn = (msg: string, lvl?: number) => this.emit(LogLevel.warn, msg, lvl);
-	info = (msg: string, lvl?: number) => this.emit(LogLevel.info, msg, lvl);
-	log = (msg: string, lvl?: number) => this.emit(LogLevel.log, msg, lvl);
-	debug = (msg: string, lvl?: number) => this.emit(LogLevel.debug, msg, lvl);
-	stack = (e: Error) => this.emit(LogLevel.error, `${e.name}: ${e.message}\n${e.stack}`);
+	error = (msg: string, lvl?: number, e?: unknown) => this.emit(LogLevel.error, msg, lvl, e);
+	warn = (msg: string, lvl?: number, e?: unknown) => this.emit(LogLevel.warn, msg, lvl, e);
+	info = (msg: string, lvl?: number, e?: unknown) => this.emit(LogLevel.info, msg, lvl, e);
+	log = (msg: string, lvl?: number, e?: unknown) => this.emit(LogLevel.log, msg, lvl, e);
+	debug = (msg: string, lvl?: number, e?: unknown) => this.emit(LogLevel.debug, msg, lvl, e);
+	stack = (e: Error, logLevel?: LogLevel) => this.emit(logLevel ?? LogLevel.error, `${e.name}: ${e.message}\n${e.stack}`);
 
-	private emit(logLevel: LogLevel, msgText: string, msgLevel?: number): void {
+	private emit(logLevel: LogLevel, msgText: string, msgLevel?: number, e?: unknown): void {
 		// Async get the configuration and then emit.
 		this.server.clientConfiguration.then(config => {
 			try {
@@ -54,6 +57,11 @@ export class LspLogger implements Logger {
 				message: msgText,
 				level: msgLevel ?? 0
 			});
+
+			// If we have an error, then log stack trace too.
+			if (e instanceof Error) {
+				this.stack(e, logLevel);
+			}
 		});
 	}
 

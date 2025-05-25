@@ -32,6 +32,15 @@ export abstract class BaseDiagnostic implements Diagnostic {
 		}
 		this.relatedInformation.push(information);
 	}
+
+	equals(diagnostic: Diagnostic) {
+		return this.severity === diagnostic.severity
+			&& this.message === diagnostic.message
+			&& this.range.end.line === diagnostic.range.end.line
+			&& this.range.start.line === diagnostic.range.start.line
+			&& this.range.end.character === diagnostic.range.end.character
+			&& this.range.start.character === diagnostic.range.start.character;
+	}
 }
 
 
@@ -79,27 +88,36 @@ export class DuplicateDeclarationDiagnostic extends BaseDiagnostic {
 
 
 // test
-export class ShadowDeclarationDiagnostic extends BaseDiagnostic {
-	message = "Declaration is shadowed in the local scope.";
-	severity = DiagnosticSeverity.Warning;
-	constructor(range: Range) {
+export class AmbiguousNameDiagnostic extends BaseDiagnostic {
+	severity = DiagnosticSeverity.Error;
+	constructor(range: Range, message: string) {
 		super(range);
+		this.message = `Ambiguous name detected: '${message}'.`;
+	}
+}
+
+
+// test
+export class ShadowDeclarationDiagnostic extends BaseDiagnostic {
+	severity = DiagnosticSeverity.Warning;
+	constructor(range: Range, message: string) {
+		super(range);
+		this.message = `${message} is shadowed in the local scope.`;
 	}
 }
 
 export class VariableNotDefinedDiagnostic extends BaseDiagnostic {
-	message = "Variable not defined.";
-	severity = DiagnosticSeverity.Error;
-	constructor(range: Range) {
+	constructor(range: Range, message: string, public severity: DiagnosticSeverity) {
 		super(range);
+		this.message = `Variable ${message} not defined.`;
 	}
 }
 
 export class SubOrFunctionNotDefinedDiagnostic extends BaseDiagnostic {
-	message = "Sub or Function not defined.";
 	severity = DiagnosticSeverity.Error;
-	constructor(range: Range) {
+	constructor(range: Range, message: string) {
 		super(range);
+		this.message = `Method ${message} not defined.`;
 	}
 }
 
@@ -123,10 +141,9 @@ export class MethodVariableIsPublicDiagnostic extends BaseDiagnostic {
 
 // test
 export class UnexpectedLineEndingDiagnostic extends BaseDiagnostic {
-	message = "Unexpected line ending.";
 	severity = DiagnosticSeverity.Error;
 	constructor(range: Range) {
-		super(range);
+		super(range, 'Unexpected line ending.');
 	}
 }
 
@@ -135,22 +152,31 @@ export class UnreachableCodeDiagnostic extends BaseDiagnostic {
 	severity = DiagnosticSeverity.Hint;
 	tags = [DiagnosticTag.Unnecessary];
 	constructor(range: Range) {
-		super(range);
+		super(range, 'Unreachable code detected.');
+	}
+}
+
+// test
+export class UnusedDiagnostic extends BaseDiagnostic {
+	severity = DiagnosticSeverity.Hint;
+	tags = [DiagnosticTag.Unnecessary];
+	constructor(range: Range, message: string) {
+		super(range, `${message} is declared but its value is never read.`);
 	}
 }
 
 
-export class IgnoredAttributeDiagnostic extends BaseDiagnostic {
-	severity = DiagnosticSeverity.Warning;
+export class UnknownAttributeDiagnostic extends BaseDiagnostic {
+	severity = DiagnosticSeverity.Error;
 	constructor(range: Range, attributeName: string) {
-		super(range, `Unknown attribute '${attributeName}' will be ignored.`);
+		super(range, `Unknown attribute '${attributeName}'.`);
 	}
 }
 
 
 export class MissingOptionExplicitDiagnostic extends BaseDiagnostic {
 	message = "Option Explicit is missing from module header.";
-	severity = DiagnosticSeverity.Warning;
+	severity = DiagnosticSeverity.Hint;
 	constructor(range: Range) {
 		super(range);
 
@@ -159,10 +185,14 @@ export class MissingOptionExplicitDiagnostic extends BaseDiagnostic {
 		this.actionFactory = (diagnostic: Diagnostic, uri: string) =>
 			CodeAction.create(
 				"Insert Option Explicit",
-				{ changes: { [uri]: [{
-					range: diagnostic.range,
-					newText: "\nOption Explicit"
-				}]}},
+				{
+					changes: {
+						[uri]: [{
+							range: diagnostic.range,
+							newText: "\nOption Explicit"
+						}]
+					}
+				},
 				CodeActionKind.QuickFix
 			);
 

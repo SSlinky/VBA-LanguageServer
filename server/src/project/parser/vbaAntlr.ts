@@ -97,7 +97,6 @@ export class VbaErrorHandler extends DefaultErrorStrategy {
         const inputStream = recognizer.inputStream;
         if (inputStream.LA(1) !== Token.EOF) {
             const intervalSet = this.getErrorRecoverySet(recognizer);
-            console.log(`recover consuming ${recognizer.getCurrentToken()}`);
             inputStream.consume();
             // this.consumeUntil(recognizer, intervalSet);
         }
@@ -108,12 +107,12 @@ export class VbaErrorHandler extends DefaultErrorStrategy {
         // Attempt to recover using token deletion.
         const matchedSymbol = this.singleTokenDeletion(recognizer);
         if (matchedSymbol) {
-          recognizer.consume();
-          return matchedSymbol;
+            recognizer.consume();
+            return matchedSymbol;
         }
         // Attempt to recover using token insertion.
         if (this.singleTokenInsertion(recognizer)) {
-          return this.getMissingSymbol(recognizer);
+            return this.getMissingSymbol(recognizer);
         }
 
         // When we don't know what could come next, invalidate the entire line.
@@ -123,13 +122,11 @@ export class VbaErrorHandler extends DefaultErrorStrategy {
             const invalidTokens: Token[] = [];
             while (![vbaLexer.NEWLINE, vbaLexer.EOF].includes(stream.LA(1))) {
                 invalidTokens.push(stream.LT(1)!);
-                console.log(`inline consuming ${recognizer.getCurrentToken()}`);
                 recognizer.consume();
             }
             if (invalidTokens.length > 0) {
                 const missingToken = this.createErrorToken(recognizer, invalidTokens);
                 this.reportMatch(recognizer);
-                console.log(`inline consuming ${recognizer.getCurrentToken()}`);
                 recognizer.consume();
                 return missingToken;
             }

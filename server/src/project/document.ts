@@ -6,31 +6,30 @@ import { CancellationToken, Diagnostic, SymbolInformation, SymbolKind } from 'vs
 import { ParserRuleContext } from 'antlr4ng';
 
 // Project
+import { Services } from '../injection/services';
+import { IWorkspace } from '../injection/interface';
 import { Dictionary } from '../utils/helpers';
 import { SyntaxParser } from './parser/vbaParser';
 import { FoldingRange } from '../capabilities/folding';
+import { VbaFmtListener } from './parser/vbaListener';
+import { BaseDiagnostic } from '../capabilities/diagnostics';
 import { SemanticTokensManager } from '../capabilities/semanticTokens';
+import { ScopeItemCapability } from '../capabilities/capabilities';
 import {
 	BaseRuleSyntaxElement,
 	BaseSyntaxElement,
-	DeclarableElement,
 	HasDiagnosticCapability,
 	HasFoldingRangeCapability,
 	HasScopeItemCapability,
 	HasSemanticTokenCapability,
 	HasSymbolInformationCapability
 } from './elements/base';
-
 import {
 	PropertyDeclarationElement,
 	PropertyGetDeclarationElement,
 	PropertyLetDeclarationElement,
 	PropertySetDeclarationElement
 } from './elements/procedure';
-import { VbaFmtListener } from './parser/vbaListener';
-import { Services } from '../injection/services';
-import { IWorkspace } from '../injection/interface';
-import { ScopeItemCapability } from '../capabilities/capabilities';
 
 
 // TODO ---------------------------------------------
@@ -77,35 +76,6 @@ export abstract class BaseProjectDocument {
 	get redactedText() {
 		return this.subtractTextFromRanges(this.redactedElements.map(x => x.context.range));
 	}
-
-	// async getDocumentConfiguration(): Promise<DocumentSettings> {
-	// 	// Get the stored configuration.
-	// 	if (this.documentConfiguration) {
-	// 		return this.documentConfiguration;
-	// 	}
-
-	// 	// Get the configuration from the client.
-	// 	if (this.workspace.hasConfigurationCapability) {
-	// 		this.documentConfiguration = await this.workspace.requestDocumentSettings(this.textDocument.uri);
-	// 		if (this.documentConfiguration) {
-	// 			return this.documentConfiguration;
-	// 		}
-	// 	}
-
-	// 	// Use the defaults.
-	// 	this.documentConfiguration = {
-	// 		maxDocumentLines: 1500,
-	// 		maxNumberOfProblems: 100,
-	// 		doWarnOptionExplicitMissing: true,
-	// 		environment: {
-	// 			os: "Win64",
-	// 			version: "Vba7"
-	// 		}
-	// 	};
-	// 	return this.documentConfiguration;
-	// }
-
-	// clearDocumentConfiguration = () => this.documentConfiguration = undefined;
 
 	constructor(name: string, document: TextDocument) {
 		this.textDocument = document;
@@ -164,23 +134,27 @@ export abstract class BaseProjectDocument {
 	// 	};
 	// }
 	languageServerDiagnostics() {
+		const diagnostics = this.isClosed ? [] : this.diagnostics;
+		Services.logger.debug(`Sending diagnostics for ${this.textDocument.uri}`);
+		Services.logger.debug(JSON.stringify(diagnostics));
+
 		return {
 			uri: this.textDocument.uri,
 			version: this.version,
-			diagnostics: this.isClosed ? [] : this.diagnostics
+			diagnostics: diagnostics
 		};
 	}
 
 	async formatParseVisit(token: CancellationToken): Promise<VbaFmtListener> {
 		try {
-			return await (new SyntaxParser(Services.logger)).formatParseAsync(token, this);
+			return await (new SyntaxParser(Services.logger)).formatParse(token, this);
 		} catch (e) {
 			Services.logger.debug('caught doc');
 			throw e;
 		}
 	}
 
-	async parseAsync(token: CancellationToken): Promise<void> {
+	async parse(token: CancellationToken): Promise<void> {
 		// Don't parse oversize documents.
 		if (await this.isOversize) {
 			Services.logger.debug(`Document oversize: ${this.textDocument.lineCount} lines.`);
@@ -190,20 +164,29 @@ export abstract class BaseProjectDocument {
 		}
 
 		// Parse the document.
-		await (new SyntaxParser(Services.logger)).parseAsync(token, this);
+		await (new SyntaxParser(Services.logger)).parse(token, this);
 		const projectScope = this.currentScope.project;
 		const buildScope = projectScope?.isDirty ? projectScope : this.currentScope;
 		buildScope.build();
+		buildScope.resolveUnused();
 
 		// Evaluate the diagnostics.
-		this.diagnostics = this.hasDiagnosticElements
+		const diagnostics = this.hasDiagnosticElements
 			.map(e => e.diagnosticCapability.evaluate())
 			.flat();
+
+		// Ensure diagnostics aren't reported twice.
+		// TODO: Redesign diagnostics so this isn't required.
+		diagnostics.forEach(diagnostic => {
+			if (!this.hasDiagnostic(diagnostic)) {
+				this.diagnostics.push(diagnostic);
+			}
+		});
 
 		this._isBusy = false;
 	};
 
-	async formatParseAsync(token: CancellationToken): Promise<VbaFmtListener | undefined> {
+	async formatParse(token: CancellationToken): Promise<VbaFmtListener | undefined> {
 		// Don't parse oversize documents.
 		if (await this.isOversize) {
 			Services.logger.debug(`Document oversize: ${this.textDocument.lineCount} lines.`);
@@ -212,7 +195,7 @@ export abstract class BaseProjectDocument {
 		}
 
 		// Parse the document.
-		return await (new SyntaxParser(Services.logger)).formatParseAsync(token, this);
+		return await (new SyntaxParser(Services.logger)).formatParse(token, this);
 	}
 
 	/**
@@ -315,6 +298,15 @@ export abstract class BaseProjectDocument {
 			);
 			return result.join('\r\n');
 		}
+	}
+
+	private hasDiagnostic(diagnostic: BaseDiagnostic): boolean {
+		for (const pushedDiagnostic of this.diagnostics) {
+			if (diagnostic.equals(pushedDiagnostic)) {
+				return true;
+			}
+		}
+		return false;
 	}
 }
 

@@ -1,9 +1,12 @@
+// Core
 import { container, InjectionToken } from 'tsyringe';
-import { Logger, IWorkspace, ILanguageServer } from './interface';
-import { LspLogger } from '../utils/logger';
 import { _Connection, createConnection, ProposedFeatures } from 'vscode-languageserver/node';
-import { ScopeItemCapability } from '../capabilities/capabilities';
+
+// Project
+import { LspLogger } from '../utils/logger';
+import { Logger, IWorkspace, ILanguageServer } from './interface';
 import { CodeActionsRegistry } from '../capabilities/codeActions';
+import { ScopeItemCapability } from '../capabilities/capabilities';
 
 
 export class Services {

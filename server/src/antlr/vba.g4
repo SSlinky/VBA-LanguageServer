@@ -861,7 +861,7 @@ identifierStatementLabel
     : ambiguousIdentifier
     ;
 
-resetNumberLable
+resetNumberLabel
     : MINUS INTEGERLITERAL
     ;
 
@@ -1312,7 +1312,7 @@ onErrorStatement
 errorBehavior
     : RESUME wsc NEXT
     | GOTO wsc? statementLabel
-    | GOTO wsc? resetNumberLable
+    | GOTO wsc? resetNumberLabel
     ;
 
 // 5.4.4.2 Resume Statement
@@ -2062,11 +2062,6 @@ reservedTypeIdentifierB
     | VARIANT_B
     ;
 
-typeableReservedName
-    : DATE
-    | STRING
-    ;
-
 literalIdentifier
     : booleanLiteralIdentifier
     | objectLiteralIdentifier
@@ -2135,7 +2130,6 @@ builtinType
 // This probably could be turned into a token
 typedName
     : ambiguousIdentifier typeSuffix
-    | typeableReservedName typeSuffix
     ;
 
 typeSuffix

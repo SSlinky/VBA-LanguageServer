@@ -8,12 +8,20 @@
         ["(", ")"]
     ],
     "autoClosingPairs": [
-        { "open": "\"", "close": "\""}
+        { "open": "\"", "close": "\""},
+        { "open": "(", "close": ")"},
+        { "open": "[", "close": "]"}
     ],
+    "autoCloseBefore": ": \n\r\t)}]\n",
     "surroundingPairs": [
         [ "(", ")" ],
         [ "[", "]" ],
         [ "\"", "\"" ]
     ],
     "wordPattern": "(-?\\d*\\.\\d\\w*)|([^\\`\\~\\!\\@\\#\\%\\^\\&\\*\\(\\)\\-\\=\\+\\[\\{\\]\\}\\\\\\|\\;\\:\\'\\\"\\,\\.\\<\\>\\/\\?\\s]+)",
+    // Placeholder - possibly won't use as it's a little awkward. Prefer to implement with LSP.
+    // "indentationRules": {
+    //     "increaseIndentPattern": "^\\s*(?:Sub|Function|Property\\s+(?:Get|Let|Set)|Else|(Else)?If.*?Then|For|While|Do|Select\\s+Case|Type|With|Enum)\\b",
+    //     "decreaseIndentPattern": "^\\s*(?:End\\s+(?:Sub|Function|Property|If|Select|Type|With|Enum)|Next|Loop|Else|ElseIf.*?Then)\\b"
+    // }
 }

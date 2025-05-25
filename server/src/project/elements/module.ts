@@ -3,7 +3,7 @@ import { TextDocument } from 'vscode-languageserver-textdocument';
 import { Diagnostic, Range, SymbolKind } from 'vscode-languageserver';
 
 // Antlr
-import { ParserRuleContext } from 'antlr4ng';
+import { ParserRuleContext, TerminalNode } from 'antlr4ng';
 import {
 	ClassModuleCodeElementContext,
 	ClassModuleContext,
@@ -17,8 +17,8 @@ import {
 
 // Project
 import { BaseRuleSyntaxElement, BaseIdentifyableSyntaxElement, HasDiagnosticCapability } from './base';
-import { DiagnosticCapability, IdentifierCapability, ItemType, ScopeItemCapability, SymbolInformationCapability } from '../../capabilities/capabilities';
-import { DuplicateAttributeDiagnostic, IgnoredAttributeDiagnostic, MissingAttributeDiagnostic, MissingOptionExplicitDiagnostic } from '../../capabilities/diagnostics';
+import { DiagnosticCapability, IdentifierCapability, ScopeType, ScopeItemCapability, SymbolInformationCapability } from '../../capabilities/capabilities';
+import { DuplicateAttributeDiagnostic, UnknownAttributeDiagnostic, MissingAttributeDiagnostic, MissingOptionExplicitDiagnostic } from '../../capabilities/diagnostics';
 
 
 interface DocumentSettings {
@@ -29,7 +29,7 @@ interface DocumentSettings {
 abstract class BaseModuleElement<T extends ParserRuleContext> extends BaseIdentifyableSyntaxElement<T> {
 	abstract attrubutes: ParserRuleContext[];
 	abstract diagnosticCapability: DiagnosticCapability;
-	abstract hasOptionExplicit: boolean;
+	abstract scopeItemCapability: ScopeItemCapability;
 
 	settings: DocumentSettings;
 	symbolInformationCapability: SymbolInformationCapability;
@@ -38,7 +38,6 @@ abstract class BaseModuleElement<T extends ParserRuleContext> extends BaseIdenti
 		super(ctx, doc);
 		this.settings = documentSettings;
 		this.symbolInformationCapability = new SymbolInformationCapability(this, symbolKind);
-		this.scopeItemCapability = new ScopeItemCapability(this, ItemType.MODULE);
 	}
 
 	// Helpers
@@ -60,7 +59,7 @@ abstract class BaseModuleElement<T extends ParserRuleContext> extends BaseIdenti
 	}
 
 	protected addOptionExplicitMissingDiagnostic(diagnostics: Diagnostic[], header: ClassModuleHeaderContext | ProceduralModuleHeaderContext): void {
-		if (this.settings.doWarnOptionExplicitMissing && !this.hasOptionExplicit) {
+		if (this.settings.doWarnOptionExplicitMissing && !this.scopeItemCapability.isOptionExplicitScope) {
 			const startLine = header.stop?.line ?? 0 + 1;
 			diagnostics.push(new MissingOptionExplicitDiagnostic(
 				Range.create(startLine, 1, startLine, 1)
@@ -104,32 +103,38 @@ abstract class BaseModuleElement<T extends ParserRuleContext> extends BaseIdenti
 export class ModuleElement extends BaseModuleElement<ProceduralModuleContext> {
 	diagnosticCapability: DiagnosticCapability;
 	identifierCapability: IdentifierCapability;
+	scopeItemCapability: ScopeItemCapability;
 
 	attrubutes: ParserRuleContext[];
-	hasOptionExplicit: boolean;
 
 	constructor(ctx: ProceduralModuleContext, doc: TextDocument, documentSettings: DocumentSettings) {
 		super(ctx, doc, documentSettings, SymbolKind.File);
 		this.attrubutes = ctx.proceduralModuleHeader().proceduralModuleAttr();
 		this.diagnosticCapability = new DiagnosticCapability(this);
+		this.scopeItemCapability = new ScopeItemCapability(this, ScopeType.MODULE);
+		this.scopeItemCapability.locationUri = doc.uri.toFileUri();
 
-		this.hasOptionExplicit = this.evaluateHasOptionExplicit(ctx
+		this.scopeItemCapability.isOptionExplicitScope = this.evaluateHasOptionExplicit(ctx
 			.proceduralModuleBody()
 			.proceduralModuleCode()
 			.proceduralModuleCodeElement());
 
-		this.identifierCapability = new IdentifierCapability({
-			element: this,
-			formatName: (x: string) => x.stripQuotes(),
-			defaultName: 'Unknown Module',
-			defaultRange: () => Range.create(this.context.range.start, this.context.range.start),
-			getNameContext: () => ctx
-				.proceduralModuleHeader()
-				.proceduralModuleAttr()
-				.map(x => x.nameAttr())
-				.filter(x => !!x)[0]
-				?.STRINGLITERAL()
-		});
+		const getIdentifierNameContext = () => this.context.rule
+			.proceduralModuleHeader()
+			.proceduralModuleAttr()
+			.map(x => x.nameAttr())
+			.filter(x => !!x)[0]
+			?.STRINGLITERAL();
+		const getIdentifierFormattedName = (x: string) => x.stripQuotes();
+		const getIdentifierDefaultRange = () => Range.create(this.context.range.start, this.context.range.start);
+
+		this.identifierCapability = new IdentifierCapability(
+			this,
+			getIdentifierNameContext,
+			getIdentifierFormattedName,
+			'Unknown Module',
+			getIdentifierDefaultRange
+		);
 
 		this.resolveConfiguration(
 			this.diagnosticCapability.diagnostics,
@@ -142,9 +147,9 @@ export class ModuleElement extends BaseModuleElement<ProceduralModuleContext> {
 export class ClassElement extends BaseModuleElement<ClassModuleContext> {
 	diagnosticCapability: DiagnosticCapability;
 	identifierCapability: IdentifierCapability;
+	scopeItemCapability: ScopeItemCapability;
 
 	attrubutes: ParserRuleContext[];
-	hasOptionExplicit: boolean;
 
 	constructor(ctx: ClassModuleContext, doc: TextDocument, documentSettings: DocumentSettings) {
 		super(ctx, doc, documentSettings, SymbolKind.File);
@@ -154,26 +159,31 @@ export class ClassElement extends BaseModuleElement<ClassModuleContext> {
 			ctx.classModuleHeader().ignoredClassAttr()
 		].flat();
 		this.diagnosticCapability = new DiagnosticCapability(this);
+		this.scopeItemCapability = new ScopeItemCapability(this, ScopeType.CLASS);
+		this.scopeItemCapability.locationUri = doc.uri.toFileUri();
 
-		this.hasOptionExplicit = this.evaluateHasOptionExplicit(ctx
+		this.scopeItemCapability.isOptionExplicitScope = this.evaluateHasOptionExplicit(ctx
 			.classModuleBody()
 			.classModuleCode()
 			.classModuleCodeElement());
 
-		let nameContextGetter;
+		let getIdentifierNameContext = (): TerminalNode | undefined => undefined;
 		if (ctx.classModuleHeader().nameAttr().length > 0) {
-			nameContextGetter = () => ctx
+			getIdentifierNameContext = () => ctx
 				.classModuleHeader()
 				.nameAttr()[0]
 				.STRINGLITERAL();
 		}
-		this.identifierCapability = new IdentifierCapability({
-			element: this,
-			formatName: (x: string) => x.stripQuotes(),
-			defaultName: 'Unknown Class',
-			defaultRange: () => Range.create(this.context.range.start, this.context.range.start),
-			getNameContext: nameContextGetter
-		});
+		const getIdentifierFormattedName = (x: string) => x.stripQuotes();
+		const getIdentifierDefaultRange = () => Range.create(this.context.range.start, this.context.range.start);
+
+		this.identifierCapability = new IdentifierCapability(
+			this,
+			getIdentifierNameContext,
+			getIdentifierFormattedName,
+			'Unknown Class',
+			getIdentifierDefaultRange
+		);
 
 		this.resolveConfiguration(
 			this.diagnosticCapability.diagnostics,
@@ -189,7 +199,7 @@ export class ModuleIgnoredAttributeElement extends BaseRuleSyntaxElement<ParserR
 	constructor(ctx: IgnoredClassAttrContext | IgnoredProceduralAttrContext, doc: TextDocument) {
 		super(ctx, doc);
 		this.diagnosticCapability = new DiagnosticCapability(this, () => {
-			this.diagnosticCapability.diagnostics.push(new IgnoredAttributeDiagnostic(
+			this.diagnosticCapability.diagnostics.push(new UnknownAttributeDiagnostic(
 				this.context.range, this.context.text.split(' ')[1]
 			));
 			return this.diagnosticCapability.diagnostics;
