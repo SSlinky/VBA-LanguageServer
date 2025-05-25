@@ -189,6 +189,7 @@ export class VariableDeclarationElement extends BaseRuleSyntaxElement<VariableDc
 		this.scopeItemCapability.assignmentType = AssignmentType.GET
 			| (this.hasLetAccessor ? AssignmentType.LET : AssignmentType.NONE)
 			| (this.hasSetAccessor ? AssignmentType.SET : AssignmentType.NONE);
+		this.scopeItemCapability.classTypeName = this.variableTypeInformation?.classTypeName;
 	}
 
 	get hasLetAccessor(): boolean {
@@ -234,6 +235,10 @@ class VariableTypeInformation extends BaseRuleSyntaxElement<TypeContext> {
 	// 	- Build the capability to evaluate constant expressions.
 	get isResizable(): boolean {
 		return this.arrayCtx?.isResizable ?? false;
+	}
+
+	get classTypeName(): string | undefined {
+		return this.context.rule.classTypeName;
 	}
 
 	constructor(ctx: TypeContext, doc: TextDocument, private readonly arrayCtx?: ArrayDimContext | ArrayDesignatorContext) {

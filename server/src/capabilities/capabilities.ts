@@ -271,6 +271,7 @@ export class ScopeItemCapability {
 	isPublicScope?: boolean;
 	accessMembers?: string[];
 	isOptionExplicitScope = false;
+	classTypeName?: string;
 
 	constructor(
 		readonly element?: BaseRuleSyntaxElement<ParserRuleContext>,

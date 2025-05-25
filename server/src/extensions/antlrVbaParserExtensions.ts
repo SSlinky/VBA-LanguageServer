@@ -64,18 +64,21 @@ declare module '../antlr/out/vbaParser' {
         isObject: boolean;
         isVariant: boolean;
         isPrimative: boolean;
+        classTypeName: string | undefined;
     }
 
     interface TypeExpressionContext {
         isObject: boolean;
         isVariant: boolean;
         isPrimative: boolean;
+        classTypeName: string | undefined;
     }
 
     interface TypeSuffixContext {
         isObject: boolean;
         isVariant: boolean;
         isPrimative: boolean;
+        classTypeName: string | undefined;
     }
 
     interface ArrayDesignatorContext {
@@ -139,6 +142,12 @@ Object.defineProperty(TypeExpressionContext.prototype, "isObject", {
     }
 });
 
+Object.defineProperty(TypeExpressionContext.prototype, "classTypeName", {
+    get: function (this: TypeExpressionContext): string | undefined {
+        return this.definedTypeExpression()?.getText();
+    }
+});
+
 Object.defineProperty(TypeSuffixContext.prototype, "isPrimative", {
     get: function (this: TypeSuffixContext): boolean {
         return true;
@@ -154,6 +163,12 @@ Object.defineProperty(TypeSuffixContext.prototype, "isVariant", {
 Object.defineProperty(TypeSuffixContext.prototype, "isObject", {
     get: function (this: TypeSuffixContext): boolean {
         return false;
+    }
+});
+
+Object.defineProperty(TypeSuffixContext.prototype, "classTypeName", {
+    get: function (this: TypeSuffixContext): string | undefined {
+        return undefined;
     }
 });
 
@@ -177,6 +192,15 @@ Object.defineProperty(AsClauseContext.prototype, "isObject", {
         const isAutoObject = !!this.asAutoObject();
         const isTypeExprObject = !!(this.asType()?.typeSpec().typeExpression() ?? false);
         return isAutoObject || isTypeExprObject;
+    }
+});
+
+Object.defineProperty(AsClauseContext.prototype, "classTypeName", {
+    get: function (this: AsClauseContext): string | undefined {
+        return this.isObject
+            ? this.asType()?.typeSpec().getText()
+            ?? this.asAutoObject()?.classTypeName().getText()
+            : undefined;
     }
 });
 
