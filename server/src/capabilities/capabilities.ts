@@ -693,11 +693,29 @@ export class ScopeItemCapability {
 			?? this.parent?.findPropertySetter(identifier);
 	}
 
-	findDeclarations(identifier: string): ScopeItemCapability[] | undefined {
+	findDeclarations(identifier: string, assignmentType: AssignmentType): ScopeItemCapability[] | undefined {
 		const explicitResult = this.explicitDeclarations
 			.map(x => x.get(identifier))
 			.filter(x => !!x)
 			.flat();
+
+		if (assignmentType & AssignmentType.GET) {
+			this.properties?.getters?.get(identifier)?.forEach(x =>
+				explicitResult.push(x)
+			);
+		}
+
+		if (assignmentType & AssignmentType.SET) {
+			this.properties?.setters?.get(identifier)?.forEach(x =>
+				explicitResult.push(x)
+			);
+		}
+
+		if (assignmentType & AssignmentType.LET) {
+			this.properties?.letters?.get(identifier)?.forEach(x =>
+				explicitResult.push(x)
+			);
+		}
 
 		if (explicitResult.length > 0) {
 			return explicitResult;
@@ -710,7 +728,7 @@ export class ScopeItemCapability {
 			return implicitResult;
 		}
 
-		return this.parent?.findDeclarations(identifier);
+		return this.parent?.findDeclarations(identifier, assignmentType);
 	}
 
 	/**
