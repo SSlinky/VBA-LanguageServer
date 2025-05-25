@@ -563,7 +563,7 @@ class WorkspaceEvents {
 		// The document is new or a new version that we should parse.
 		const projectDocument = BaseProjectDocument.create(document);
 		this.projectDocuments.set(normalisedUri, projectDocument);
-		Services.projectScope.invalidate(normalisedUri);
+		Services.projectScope.invalidateModule(normalisedUri);
 		Services.workspace.parseDocument(projectDocument);
 	}
 

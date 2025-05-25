@@ -284,21 +284,8 @@ export class ScopeItemCapability {
 	 * Recursively build from this node down.
 	 */
 	build(): void {
-		// Remove children that are invalidated.
-		this.maps.forEach(map => {
-			for (const [key, items] of map) {
-				const keep = items.filter(x => !x.isInvalidated);
-				if (keep.length === 0) map.delete(key);
-				else map.set(key, keep);
-			}
-		});
-
-		// Clean invalidated links.
-		if (this.link?.isInvalidated) this.link = undefined;
-		if (this.backlinks) {
-			const keep = this.backlinks.filter(x => !x.isInvalidated);
-			this.backlinks = keep.length > 0 ? keep : undefined;
-		}
+		this.deleteInvalidatedScopes();
+		this.cleanInvalidatedLinks();
 
 		// Don't build self if invalidated.
 		if (this.isInvalidated) {
@@ -473,13 +460,6 @@ export class ScopeItemCapability {
 		});
 	}
 
-	private resolveShadowedDeclaration(item: ScopeItemCapability | undefined): void {
-		if (item) {
-			const diagnostic = this.pushDiagnostic(ShadowDeclarationDiagnostic, this, this.name);
-			this.addDiagnosticReference(diagnostic, item);
-		}
-	}
-
 	private resolveShadowedDeclarations(ancestors: ScopeItemCapability[]) {
 		// Don't check for shadowed declarations if we're above project level.
 		if (ancestors.length < 3) {
@@ -585,13 +565,58 @@ export class ScopeItemCapability {
 		linkItem.backlinks.push(this);
 	}
 
-	private removeBacklink(backlinkedItem: ScopeItemCapability): void {
-		if (!this.backlinks) {
-			return;
-		}
+	private deleteInvalidatedScopes() {
+		const removeInvalidatedScopes = (map: Map<string, ScopeItemCapability[]> | undefined) => {
+			if (!map) return;
 
-		const keep = this.backlinks.filter(x => x !== backlinkedItem);
-		this.backlinks = keep.length === 0 ? undefined : keep;
+			const result = new Map<string, ScopeItemCapability[]>();
+			for (const [name, scopes] of map) {
+				const filteredScopes = scopes.filter(x => !x.isInvalidated);
+				if (filteredScopes.length > 0) {
+					result.set(name, filteredScopes);
+				}
+			}
+			if (result.size !== 0) {
+				return result;
+			}
+		};
+
+		this.types = removeInvalidatedScopes(this.types);
+		this.modules = removeInvalidatedScopes(this.modules);
+		this.functions = removeInvalidatedScopes(this.functions);
+		this.subroutines = removeInvalidatedScopes(this.subroutines);
+		if (this.properties) {
+			this.properties.getters = removeInvalidatedScopes(this.properties?.getters);
+			this.properties.setters = removeInvalidatedScopes(this.properties?.setters);
+			this.properties.letters = removeInvalidatedScopes(this.properties?.letters);
+		}
+		this.parameters = removeInvalidatedScopes(this.parameters);
+		this.references = removeInvalidatedScopes(this.references);
+		this.implicitDeclarations = removeInvalidatedScopes(this.implicitDeclarations);
+	}
+
+	private cleanInvalidatedLinks() {
+		const removeLinks = (map: Map<string, ScopeItemCapability[]> | undefined) => {
+			map?.forEach((scopes) => scopes.forEach(scope => {
+				if (scope.link && scope.link.isInvalidated) {
+					scope.link = undefined;
+				}
+				if (scope.backlinks) {
+					scope.backlinks = scope.backlinks.filter(link => !link.isInvalidated);
+					if (scope.backlinks.length === 0) scope.backlinks = undefined;
+				}
+			}));
+		};
+
+		removeLinks(this.types);
+		removeLinks(this.modules);
+		removeLinks(this.functions);
+		removeLinks(this.subroutines);
+		removeLinks(this.properties?.getters);
+		removeLinks(this.properties?.setters);
+		removeLinks(this.properties?.letters);
+		removeLinks(this.parameters);
+		removeLinks(this.references);
 	}
 
 	/** Returns the module this scope item falls under */
@@ -838,13 +863,18 @@ export class ScopeItemCapability {
 		return item;
 	}
 
-	invalidate(uri: string): void {
-		if (this.type !== ScopeType.PROJECT) {
-			this.isInvalidated = true;
-		}
-		this.maps.forEach(map => map.forEach(items =>
-			items.forEach(item => item.invalidate(uri))
-		));
+	invalidateModule(uri: string): void {
+		const module = this.findModuleByUri(uri);
+		module?.invalidate();
+	}
+
+	invalidate(): void {
+		this.isInvalidated = true;
+		this.maps.forEach(
+			map => map.forEach(
+				scopes => scopes.forEach(
+					scope => scope.invalidate()
+				)));
 	}
 
 	/** Returns true for public and false for private */
@@ -915,20 +945,22 @@ export class ScopeItemCapability {
 
 		const itemsAtPosition: ScopeItemCapability[] = [];
 		this.getItemsIdentifiedAtPosition(position, itemsAtPosition, [module]);
-		if (itemsAtPosition.length === 0) {
+		const uniqueItemsAtPosition = this.removeDuplicatesByRange(itemsAtPosition);
+		if (uniqueItemsAtPosition.length === 0) {
 			Services.logger.warn(`Nothing to rename.`);
 			return [];
 		}
 
-		if (itemsAtPosition.length > 1) {
-			Services.logger.warn(`Ambiguity detected: ${itemsAtPosition.length} overlapping names.`);
+		if (uniqueItemsAtPosition.length > 1) {
+			Services.logger.warn(`Ambiguity detected: ${uniqueItemsAtPosition.length} overlapping names.`);
 			return [];
 		}
 
-		const declarationItem = itemsAtPosition[0].link ? itemsAtPosition[0].link : itemsAtPosition[0];
-		const result = [declarationItem, ...declarationItem.backlinks ?? []];
-
-		return result;
+		// Use linked declaration to return all items, otherwise just return the item we have.
+		const declarationItem = uniqueItemsAtPosition[0].link
+			? uniqueItemsAtPosition[0].link
+			: uniqueItemsAtPosition[0];
+		return [declarationItem, ...declarationItem.backlinks ?? []];
 	}
 
 	getDeclarationLocation(uri: string, position: Position): LocationLink[] | undefined {
@@ -1017,5 +1049,16 @@ export class ScopeItemCapability {
 				}
 			});
 		});
+	}
+
+	private removeDuplicatesByRange(results: ScopeItemCapability[]): ScopeItemCapability[] {
+		const rangeString = (r: Range | undefined): string => {
+			if (!r) return 'null';
+			return `${r.start.line}.${r.start.character}:${r.end.line}.${r.end.character}`;
+		};
+
+		const m = new Map<string, ScopeItemCapability>();
+		results.forEach(s => m.set(rangeString(s.element?.context.range), s));
+		return Array.from(m.values());
 	}
 }
