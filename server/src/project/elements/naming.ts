@@ -57,8 +57,11 @@ export class NameExpressionElement extends BaseRuleSyntaxElement<NameExpressionC
         return [(this.withStatementElement?.nameStack ?? []), this.nameContexts].flat();
     }
 
-    get fqName(): string {
-        return this.nameStack.map(x => x.getText()).join('.');
+    get accessMembers(): ParserRuleContext[] | undefined {
+        const names = this.nameStack;
+        if (names.length > 1) {
+            return names;
+        }
     }
 
     constructor(ctx: NameExpressionContext, doc: TextDocument) {
@@ -76,9 +79,6 @@ export class NameExpressionElement extends BaseRuleSyntaxElement<NameExpressionC
     };
 
     evaluateNameStack(): void {
-        const names = this.nameStack.map(x => x.getText());
-        if (names.length > 0) {
-            this.scopeItemCapability.accessMembers = names;
-        }
+        this.scopeItemCapability.accessMembers = this.accessMembers;
     }
 }

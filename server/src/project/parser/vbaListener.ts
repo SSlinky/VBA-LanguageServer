@@ -474,6 +474,9 @@ export class VbaListener extends vbaListener {
             this.parserState.isWithExp = false;
         }
 
+        // Resolve the access members if we have them.
+        nameElement.evaluateNameStack();
+
         // Set the type based on parser state.
         switch (this.parserState.assignment) {
             case ParserAssignmentState.SET:
@@ -490,7 +493,11 @@ export class VbaListener extends vbaListener {
 
         // Register this name element.
         this.document.registerElement(nameElement);
-        if (this.verbose) Services.logger.debug(`Registered ${nameElement.fqName} as ${nameElement.identifierCapability.name}`, this.parserStateStack.length);
+        if (this.verbose) {
+            const name = nameElement.identifierCapability.name;
+            const fqName = nameElement.accessMembers?.map(x => x.getText).join('.');
+            Services.logger.debug(`Registered ${fqName} as ${name}`, this.parserStateStack.length);
+        }
 
         // Add the name(s) to the next element down.
         const nextElement = this.parserState.nameElements.at(-1);
