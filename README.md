@@ -21,6 +21,23 @@ Provides Visual Basic for Applications (VBA) language support in Visual Studio C
 
 <sup>1</sup>Currently full document `Shift+Alt+F` formatting only.
 
+### *PREVIEW* Definition Provider
+
+This extension now supports definitions, i.e., following a name to a declaration. Pressing F12 will jump you to the relevant method or variable declaration.
+
+This is a preview feature and may not work 100% as expected. If bugs are encountered, please take the time to raise an issue on the repo.
+
+### *PREVIEW* Code Refactoring
+
+This extension now supports Rename requests, i.e., using F2 to rename an element. It will find the all instances of the name throughout the workspace and rename it.
+
+### Preview Limitations
+
+Known limitations:
+ - Method attributes (yet) aren't renamed when  you rename a function or sub.
+ - Public methods still producing diagnostics when there's a similarly named method in another module.
+ - Can't yet rename classes with this functionality.
+
 ### Web Support
 
 The VBA Pro Extension offers limited support for web environments (e.g. vscode-dev).
@@ -75,6 +92,7 @@ End Property
 ## Coming Soon
 
 * Hovers
+* Completion
 
 ## Installation
 
