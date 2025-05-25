@@ -20,7 +20,7 @@ String.prototype.toFilePath = function (): string {
 };
 
 String.prototype.toFileUri = function (): string {
-	return this.startsWith('file://')
+	return !this.startsWith('file://')
 		? pathToFileURL(this.toString()).href
 		: this.toString();
 };
