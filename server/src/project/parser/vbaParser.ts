@@ -31,6 +31,8 @@ export class SyntaxParser {
         const listener = await VbaListener.createAsync(document);
         const parser = VbaParser.create(docText);
         await this.parseDocumentAsync(token, listener, parser);
+        // const visitor = new VbaVisitor(token, document);
+        // await visitor.visitStartRule(parser.startRule());
         this.logger.debug(`Completed main parse.`);
 
         // Perform visit.

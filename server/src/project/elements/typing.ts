@@ -13,9 +13,11 @@ import {
 	EnumMemberContext,
 	PublicEnumDeclarationContext,
 	PublicTypeDeclarationContext,
+	TypedNameContext,
 	TypeSuffixContext,
 	UdtDeclarationContext,
 	UnrestrictedNameContext,
+	UntypedNameContext,
 	VariableDclContext,
 	VariableDeclarationContext,
 	WitheventsVariableDclContext
@@ -167,7 +169,7 @@ export class VariableDeclarationElement extends BaseRuleSyntaxElement<VariableDc
 		this.symbolInformationCapability = new SymbolInformationCapability(this, ctx.toSymbolKind());
 		// this.semanticTokenCapability = new SemanticTokenCapability(this, SemanticTokenTypes.variable, isConst ? [SemanticTokenModifiers.declaration, SemanticTokenModifiers.readonly] : [SemanticTokenModifiers.declaration]);
 		this.identifierCapability = new IdentifierCapability({ element: this, getNameContext: () => ctx.ambiguousIdentifier() });
-		
+
 		// VariableDcl > TypedVariableDcl > TypedName > TypeSuffix
 		//			   > UntypedVariableDcl > AsClause
 
@@ -286,7 +288,7 @@ class VariableTypeInformation extends BaseRuleSyntaxElement<TypeSuffixContext | 
 	}
 
 	constructor(ctx: TypeSuffixContext | AsClauseContext, doc: TextDocument, private readonly arrayCtx?: ArrayDimContext) {
-			super(ctx, doc);
+		super(ctx, doc);
 	}
 }
 
@@ -313,4 +315,29 @@ export class TypeSuffixElement extends BaseRuleSyntaxElement<TypeSuffixContext> 
 		);
 		return this.diagnosticCapability.diagnostics;
 	};
+}
+
+
+export class NameElement extends BaseContextSyntaxElement<UntypedNameContext | TypedNameContext> {
+	constructor(ctx: UntypedNameContext | TypedNameContext, doc: TextDocument) {
+		super(ctx, doc);
+	}
+}
+
+export class NewEnumDeclaration extends BaseContextSyntaxElement<EnumDeclarationContext> {
+	enumMembers: NewEnumMemberElement[] = [];
+
+	get isPublicScope(): boolean {
+		return this.context.rule.parent instanceof PublicEnumDeclarationContext;
+	}
+
+	constructor(ctx: EnumDeclarationContext, doc: TextDocument) {
+		super(ctx, doc);
+	}
+}
+
+export class NewEnumMemberElement extends BaseContextSyntaxElement<EnumMemberContext> {
+	constructor(ctx: EnumMemberContext, doc: TextDocument) {
+		super(ctx, doc);
+	}
 }

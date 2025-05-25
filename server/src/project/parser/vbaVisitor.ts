@@ -1,12 +1,78 @@
-import { ParseTree } from "antlr4ng";
-import { vbaVisitor } from "../../antlr/out/vbaVisitor";
-import { CancellationToken } from "vscode-languageserver";
-import { Services } from "../../injection/services";
 import { ClassModuleDirectiveElementContext, CommonOptionDirectiveContext, NameAttrContext, ProceduralModuleContext, ProceduralModuleDirectiveElementContext, ProcedureBodyContext, ProcedureDeclarationContext, RemStatementContext, StartRuleContext, SubroutineDeclarationContext } from "../../antlr/out/vbaParser";
 
 
 type VisitResult = Promise<void>
+import { CancellationToken } from 'vscode-languageserver';
+import { vbaVisitor } from '../../antlr/out/vbaVisitor';
+import { EnumDeclarationContext, UntypedNameContext } from '../../antlr/out/vbaParser';
+import { Logger } from '../../injection/interface';
+import { Services } from '../../injection/services';
+import { ParserRuleContext, ParseTree } from 'antlr4ng';
+import { VbaClassDocument, VbaModuleDocument } from '../document';
+import { BaseRuleSyntaxElement } from '../elements/base';
+import { NameElement } from '../elements/typing';
+import { IdentifierCapability } from '../../capabilities/capabilities';
 
+
+export class VbaVisitor extends vbaVisitor<Promise<BaseRuleSyntaxElement<ParserRuleContext> | void>> {
+    private _logger?: Logger;
+    private nodesProcessed = 0;
+
+    get logger(): Logger {
+        if (!this._logger) {
+            this._logger = Services.logger;
+        }
+        return this._logger;
+    }
+
+    constructor(private cancellationToken: CancellationToken, private document: VbaClassDocument | VbaModuleDocument) {
+        super();
+        this.cancellationToken.onCancellationRequested((e) => {
+            this.logger.debug(`Cancellation requested at ${this.nodesProcessed} nodes processed.`);
+        });
+    }
+
+    visit = async (tree: ParseTree) => {
+        if (this.cancellationToken.isCancellationRequested) {
+            return;
+        }
+        this.nodesProcessed += 1;
+        await this.yieldThread();
+        const result = await super.visit(tree);
+        if (result) {
+            return result;
+        }
+        // await this.visitChildren(tree);
+    };
+
+    async visitChildren(node: ParseTree) {
+        for (let i = 0; i < node.getChildCount(); i++) {
+            const child = node.getChild(i);
+            if (child) await this.visit(child);
+        }
+    }
+
+    visitStartRule = async (ctx: StartRuleContext) => {
+        if (this.cancellationToken.isCancellationRequested) {
+            return;
+        }
+        await this.yieldThread();
+        this.logger.debug(`Visited visitStartRule`);
+        await this.visit(ctx.module());
+    };
+
+    visitEnumDeclaration = async (ctx: EnumDeclarationContext) => {
+        const nameElement = await this.visit(ctx.untypedName()) as NameElement;
+        const identifier = new IdentifierCapability({
+            element: nameElement,
+            getNameContext: () => nameElement.context.rule
+        });
+    };
+
+    visitUntypedName = async (ctx: UntypedNameContext) => {
+        return new NameElement(ctx, this.document.textDocument);
+    };
+}
 
 export class VbaDeclarationVisitor extends vbaVisitor<void> {
     private logger = Services.logger;
