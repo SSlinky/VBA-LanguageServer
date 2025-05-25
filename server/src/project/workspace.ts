@@ -353,11 +353,15 @@ class WorkspaceEvents {
 	}
 
 	private async onDefinition(params: DefinitionParams, token: CancellationToken): Promise<LocationLink[] | null | undefined> {
+		Services.logger.debug('[event] onDefinition');
+		Services.logger.debug(JSON.stringify(params), 1);
 		if (token.isCancellationRequested) {
 			return;
 		}
 
 		const results = Services.projectScope.getDeclarationLocation(params.textDocument.uri, params.position);
+		Services.logger.debug(`Processed onDefinition: returning ${JSON.stringify(results)}`);
+
 		if (results === undefined) {
 			return null;
 		} else {
