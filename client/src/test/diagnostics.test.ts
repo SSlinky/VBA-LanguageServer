@@ -8,6 +8,11 @@ import * as assert from 'assert';
 import { getDocUri, activate, runOnActivate } from './helper';
 import { toRange } from './util';
 
+enum DiagnosticTag {
+	Unnecessary = 1,
+	Deprecated = 2
+}
+
 suite('Should get module diagnostics', () => {
 	test('diagnostics.module.missingNameAttributeError', async () => {
 		await testDiagnostics(getDocUri('DiagnosticsMissingAttributeModule.bas'), [
@@ -41,15 +46,15 @@ suite('Should get module diagnostics', () => {
 				source: 'ex'
 			},
 			{
-				message: 'Unknown attribute \'VB_Creatable\' will be ignored.',
+				message: 'Unknown attribute \'VB_Creatable\'.',
 				range: toRange(3, 0, 3, 30),
-				severity: vscode.DiagnosticSeverity.Warning,
+				severity: vscode.DiagnosticSeverity.Error,
 				source: 'ex'
 			},
 			{
-				message: 'Unknown attribute \'VB_Foo\' will be ignored.',
+				message: 'Unknown attribute \'VB_Foo\'.',
 				range: toRange(4, 0, 4, 24),
-				severity: vscode.DiagnosticSeverity.Warning,
+				severity: vscode.DiagnosticSeverity.Error,
 				source: 'ex'
 			},
 			{
@@ -68,6 +73,27 @@ suite('Should get module diagnostics', () => {
 				message: 'Enum declarations cannot appear below a Sub, Function, or Property declaration.',
 				range: toRange(28, 7, 32, 8),
 				severity: vscode.DiagnosticSeverity.Error,
+				source: 'ex'
+			},
+			{
+				message: 'Enum1 is declared but its value is never read.',
+				range: toRange(29, 4, 29, 9),
+				severity: vscode.DiagnosticSeverity.Hint,
+				tags: [DiagnosticTag.Unnecessary],
+				source: 'ex'
+			},
+			{
+				message: 'Enum2 is declared but its value is never read.',
+				range: toRange(30, 4, 30, 9),
+				severity: vscode.DiagnosticSeverity.Hint,
+				tags: [DiagnosticTag.Unnecessary],
+				source: 'ex'
+			},
+			{
+				message: 'Enum3 is declared but its value is never read.',
+				range: toRange(31, 4, 31, 9),
+				severity: vscode.DiagnosticSeverity.Hint,
+				tags: [DiagnosticTag.Unnecessary],
 				source: 'ex'
 			},
 			{
@@ -119,15 +145,22 @@ suite('Should get class diagnostics', () => {
 				source: 'ex'
 			},
 			{
-				message: 'Unknown attribute \'VB_Exxposed\' will be ignored.',
+				message: 'Unknown attribute \'VB_Exxposed\'.',
 				range: toRange(12, 0, 12, 29),
-				severity: vscode.DiagnosticSeverity.Warning,
+				severity: vscode.DiagnosticSeverity.Error,
 				source: 'ex'
 			},
 			{
-				message: 'Unknown attribute \'VB_Exxposed\' will be ignored.',
+				message: 'Unknown attribute \'VB_Exxposed\'.',
 				range: toRange(13, 0, 13, 29),
-				severity: vscode.DiagnosticSeverity.Warning,
+				severity: vscode.DiagnosticSeverity.Error,
+				source: 'ex'
+			},
+			{
+				message: 'SmkfeiondFoo is declared but its value is never read.',
+				range: toRange(17, 11, 17, 23),
+				severity: vscode.DiagnosticSeverity.Hint,
+				tags: [DiagnosticTag.Unnecessary],
 				source: 'ex'
 			},
 			{
@@ -143,9 +176,44 @@ suite('Should get class diagnostics', () => {
 				source: 'ex'
 			},
 			{
+				message: 'GkiofseiFoo is declared but its value is never read.',
+				range: toRange(25, 4, 25, 15),
+				severity: vscode.DiagnosticSeverity.Hint,
+				tags: [DiagnosticTag.Unnecessary],
+				source: 'ex'
+			},
+			{
 				message: 'Enum declarations cannot appear below a Sub, Function, or Property declaration.',
 				range: toRange(37, 7, 41, 8),
 				severity: vscode.DiagnosticSeverity.Error,
+				source: 'ex'
+			},
+			{
+				message: 'PewmfoiawFoo is declared but its value is never read.',
+				range: toRange(37, 12, 37, 24),
+				severity: vscode.DiagnosticSeverity.Hint,
+				tags: [DiagnosticTag.Unnecessary],
+				source: 'ex'
+			},
+			{
+				message: 'Enum1 is declared but its value is never read.',
+				range: toRange(38, 4, 38, 9),
+				severity: vscode.DiagnosticSeverity.Hint,
+				tags: [DiagnosticTag.Unnecessary],
+				source: 'ex'
+			},
+			{
+				message: 'Enum2 is declared but its value is never read.',
+				range: toRange(39, 4, 39, 9),
+				severity: vscode.DiagnosticSeverity.Hint,
+				tags: [DiagnosticTag.Unnecessary],
+				source: 'ex'
+			},
+			{
+				message: 'Enum3 is declared but its value is never read.',
+				range: toRange(40, 4, 40, 9),
+				severity: vscode.DiagnosticSeverity.Hint,
+				tags: [DiagnosticTag.Unnecessary],
 				source: 'ex'
 			}
 		]);
@@ -167,5 +235,6 @@ async function testDiagnostics(docUri: vscode.Uri, expectedDiagnostics: vscode.D
 		assert.equal(actualDiagnostic.message, expectedDiagnostic.message, `Message: expected '${expectedDiagnostic.message}' got '${actualDiagnostic.message}'.`);
 		assert.deepEqual(actualDiagnostic.range, expectedDiagnostic.range, `Range: expected '${JSON.stringify(expectedDiagnostic.range)}' got '${JSON.stringify(actualDiagnostic.range)}'.`);
 		assert.equal(actualDiagnostic.severity, expectedDiagnostic.severity, `Severity: expected '${expectedDiagnostic.severity}' got '${actualDiagnostic.severity}'.`);
+		assert.deepEqual(actualDiagnostic.tags, expectedDiagnostic.tags, `Tags: expected '${JSON.stringify(expectedDiagnostic.tags)}' got '${JSON.stringify(actualDiagnostic.tags)}'.`);
 	});
 }

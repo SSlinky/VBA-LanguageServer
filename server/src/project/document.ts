@@ -134,10 +134,14 @@ export abstract class BaseProjectDocument {
 	// 	};
 	// }
 	languageServerDiagnostics() {
+		const diagnostics = this.isClosed ? [] : this.diagnostics;
+		Services.logger.debug(`Sending diagnostics for ${this.textDocument.uri}`);
+		Services.logger.debug(JSON.stringify(diagnostics));
+
 		return {
 			uri: this.textDocument.uri,
 			version: this.version,
-			diagnostics: this.isClosed ? [] : this.diagnostics
+			diagnostics: diagnostics
 		};
 	}
 

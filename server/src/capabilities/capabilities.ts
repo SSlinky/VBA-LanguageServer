@@ -117,7 +117,8 @@ export class SymbolInformationCapability extends BaseCapability {
 
 export class IdentifierCapability extends BaseCapability {
 	private get unformattedName(): string {
-		return this.nameContext?.getText() ?? this.defaultName ?? "Unknown Element";
+		const nameCtx = this.getNameContext ? this.getNameContext() : this.nameContext;
+		return nameCtx?.getText() ?? this.defaultName ?? "Unknown Element";
 	}
 
 	get name(): string {
@@ -349,7 +350,7 @@ export class ScopeItemCapability {
 			const identifier = this.element?.identifierCapability;
 			const diagnostics = this.element?.diagnosticCapability?.diagnostics;
 			if (identifier && diagnostics) {
-				diagnostics.push(new UnusedDiagnostic(identifier.range));
+				diagnostics.push(new UnusedDiagnostic(identifier.range, identifier.name));
 			}
 		}
 

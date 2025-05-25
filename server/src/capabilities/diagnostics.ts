@@ -141,10 +141,9 @@ export class MethodVariableIsPublicDiagnostic extends BaseDiagnostic {
 
 // test
 export class UnexpectedLineEndingDiagnostic extends BaseDiagnostic {
-	message = "Unexpected line ending.";
 	severity = DiagnosticSeverity.Error;
 	constructor(range: Range) {
-		super(range);
+		super(range, 'Unexpected line ending.');
 	}
 }
 
@@ -153,7 +152,7 @@ export class UnreachableCodeDiagnostic extends BaseDiagnostic {
 	severity = DiagnosticSeverity.Hint;
 	tags = [DiagnosticTag.Unnecessary];
 	constructor(range: Range) {
-		super(range);
+		super(range, 'Unreachable code detected.');
 	}
 }
 
@@ -161,8 +160,8 @@ export class UnreachableCodeDiagnostic extends BaseDiagnostic {
 export class UnusedDiagnostic extends BaseDiagnostic {
 	severity = DiagnosticSeverity.Hint;
 	tags = [DiagnosticTag.Unnecessary];
-	constructor(range: Range) {
-		super(range);
+	constructor(range: Range, message: string) {
+		super(range, `${message} is declared but its value is never read.`);
 	}
 }
 
@@ -170,7 +169,7 @@ export class UnusedDiagnostic extends BaseDiagnostic {
 export class UnknownAttributeDiagnostic extends BaseDiagnostic {
 	severity = DiagnosticSeverity.Error;
 	constructor(range: Range, attributeName: string) {
-		super(range, `Unknown attribute '${attributeName}' will be ignored.`);
+		super(range, `Unknown attribute '${attributeName}'.`);
 	}
 }
 

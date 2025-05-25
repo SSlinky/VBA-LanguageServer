@@ -3,7 +3,7 @@ import { TextDocument } from 'vscode-languageserver-textdocument';
 import { Diagnostic, Range, SymbolKind } from 'vscode-languageserver';
 
 // Antlr
-import { ParserRuleContext } from 'antlr4ng';
+import { ParserRuleContext, TerminalNode } from 'antlr4ng';
 import {
 	ClassModuleCodeElementContext,
 	ClassModuleContext,
@@ -167,7 +167,7 @@ export class ClassElement extends BaseModuleElement<ClassModuleContext> {
 			.classModuleCode()
 			.classModuleCodeElement());
 
-		let getIdentifierNameContext;
+		let getIdentifierNameContext = (): TerminalNode | undefined => undefined;
 		if (ctx.classModuleHeader().nameAttr().length > 0) {
 			getIdentifierNameContext = () => ctx
 				.classModuleHeader()
