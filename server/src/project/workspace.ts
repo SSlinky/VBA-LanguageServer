@@ -121,23 +121,24 @@ export class Workspace implements IWorkspace {
 
 		// Handle each file in the workspace.
 		for (const [uri, file] of workspaceFiles) {
+			const normalisedUri = uri.toFilePath().toFileUri();
 			// Don't parse files that we're already tracking.
-			if (this.projectDocuments.has(uri)) {
-				this.logger.debug(`Skipping file: ${uri}`, 1);
+			if (this.projectDocuments.has(normalisedUri)) {
+				this.logger.debug(`Skipping file: ${normalisedUri}`, 1);
 				continue;
 			}
 
 			try {
 				// Read and parse the project document.
-				this.logger.debug(`Reading file: ${uri}`, 1);
-				const textDocument = TextDocument.create(`${uri}`, 'vba', 1, file);
+				this.logger.debug(`Reading file: ${normalisedUri}`, 1);
+				const textDocument = TextDocument.create(`${normalisedUri}`, 'vba', 1, file);
 				const projectDocument = BaseProjectDocument.create(textDocument);
-				this.projectDocuments.set(uri, projectDocument);
+				this.projectDocuments.set(normalisedUri, projectDocument);
 				await parser.parse(token, projectDocument);
 				this.logger.info(`Parsed ${projectDocument.name}`, 1);
 			} catch (e) {
 				// Log errors and anything else without failing.
-				this.logger.error(`Failed to parse ${uri}`, 0, e);
+				this.logger.error(`Failed to parse ${normalisedUri}`, 0, e);
 			}
 		}
 
@@ -188,16 +189,20 @@ export class Workspace implements IWorkspace {
 	}
 
 	openDocument(document: TextDocument): void {
-		const projectDocument = this.projectDocuments.get(document.uri.toFilePath());
-		if (document.version === projectDocument?.version) {
+		const normalisedUri = document.uri.toFilePath().toFileUri();
+		const projectDocument = this.projectDocuments.get(normalisedUri);
+		if (projectDocument) {
 			projectDocument.open();
-			this.parseDocument(projectDocument);
+			if (document.version > projectDocument?.version) {
+				this.parseDocument(projectDocument);
+			}
 			this.connection.sendDiagnostics(projectDocument.languageServerDiagnostics());
 		}
 	}
 
 	closeDocument(document: TextDocument): void {
-		const projectDocument = this.projectDocuments.get(document.uri.toFilePath());
+		const normalisedUri = document.uri.toFilePath().toFileUri();
+		const projectDocument = this.projectDocuments.get(normalisedUri);
 		if (!projectDocument) {
 			Services.logger.warn(`Failed to get document to close: ${document.uri}`);
 			return;
@@ -496,13 +501,13 @@ class WorkspaceEvents {
 		const workspaceEdit: { changes: { [uri: string]: TextEdit[] }; } = { changes: {} };
 
 		for (const renameItem of renameItems) {
-			const uri = renameItem.element?.context.document.uri;
+			const uri = renameItem.locationUri;
 			if (!uri) {
 				Services.logger.warn('Scope item has no element to rename');
 				continue;
 			}
 
-			const range = renameItem.element.identifierCapability?.range;
+			const range = renameItem.element?.identifierCapability?.range;
 			if (!range) {
 				Services.logger.warn('Scope item has no identifier to rename');
 				continue;
@@ -530,12 +535,10 @@ class WorkspaceEvents {
 	 * @param document The document being opened.
 	 */
 	onDidOpen(document: TextDocument) {
-		const logger = Services.logger;
-		logger.debug('[event] onDidOpen');
-		logger.debug(`uri: ${document.uri.toFilePath()}`, 1);
-		logger.debug(`languageId: ${document.languageId}`, 1);
-		logger.debug(`version: ${document.version}`, 1);
-		if (this.projectDocuments.has(document.uri.toFilePath())) {
+		Services.logger.debug('[event] onDidOpen');
+		this.printDocumentInformation(document);
+		const normalisedUri = document.uri.toFilePath().toFileUri();
+		if (this.projectDocuments.has(normalisedUri)) {
 			Services.workspace.openDocument(document);
 		}
 	}
@@ -545,26 +548,22 @@ class WorkspaceEvents {
 	 * @param document The document that was changed.
 	 */
 	onDidChangeContent(document: TextDocument): void {
-		const logger = Services.logger;
-		logger.debug('[event] onDidChangeContent');
-		logger.debug(`uri: ${document.uri.toFilePath()}`, 1);
-		logger.debug(`languageId: ${document.languageId}`, 1);
-		logger.debug(`version: ${document.version}`, 1);
+		Services.logger.debug('[event] onDidChangeContent');
+		this.printDocumentInformation(document);
 
 		// If the event is fired for the same version of the document, don't reparse.
-		const docPath = document.uri.toFilePath();
-		const existingDocument = this.projectDocuments.get(docPath);
+		const normalisedUri = document.uri.toFilePath().toFileUri();
+		const existingDocument = this.projectDocuments.get(normalisedUri);
 		const existingVersion = existingDocument?.version ?? -1;
-		logger.debug(`existing: ${existingVersion}`, 1);
+		Services.logger.debug(`existing: ${existingVersion}`, 1);
 		if (existingVersion >= document.version) {
-			logger.debug('Document already parsed.');
 			return;
 		}
 
 		// The document is new or a new version that we should parse.
 		const projectDocument = BaseProjectDocument.create(document);
-		this.projectDocuments.set(docPath, projectDocument);
-		Services.projectScope.invalidate(docPath);
+		this.projectDocuments.set(normalisedUri, projectDocument);
+		Services.projectScope.invalidate(normalisedUri);
 		Services.workspace.parseDocument(projectDocument);
 	}
 
@@ -573,13 +572,21 @@ class WorkspaceEvents {
 	 * @param document The document being closed.
 	 */
 	onDidClose(document: TextDocument) {
-		const logger = Services.logger;
-		logger.debug('[event] onDidClose');
-		logger.debug(`uri: ${document.uri}`, 1);
-		logger.debug(`languageId: ${document.languageId}`, 1);
-		logger.debug(`version: ${document.version}`, 1);
-		if (this.projectDocuments.has(document.uri.toFilePath())) {
+		Services.logger.debug('[event] onDidClose');
+		this.printDocumentInformation(document);
+
+		const normalisedUri = document.uri.toFilePath().toFileUri();
+		if (this.projectDocuments.has(normalisedUri)) {
 			Services.workspace.closeDocument(document);
 		}
+	}
+
+	private printDocumentInformation(document: TextDocument) {
+		const logger = Services.logger;
+		const normalisedUri = document.uri.toFilePath().toFileUri();
+		logger.debug(`doc uri: ${document.uri}`, 1);
+		logger.debug(`norm uri: ${normalisedUri}`, 1);
+		logger.debug(`languageId: ${document.languageId}`, 1);
+		logger.debug(`version: ${document.version}`, 1);
 	}
 }
