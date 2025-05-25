@@ -302,9 +302,6 @@ class WorkspaceEvents {
 		const cancellableOnDocSymbol = returnDefaultOnCancelClientRequest(
 			(p: DocumentSymbolParams, t) => this.onDocumentSymbolAsync(p, t), [], 'Document Symbols');
 
-		const cancellableOnFoldingRanges = returnDefaultOnCancelClientRequest(
-			(p: FoldingRangeParams, t) => this.onFoldingRangesAsync(p, t), [], 'Folding Range');
-
 		connection.onCodeAction(async (params, token) => this.onCodeActionRequest(params, token));
 		connection.onCompletion(params => this.onCompletion(params));
 		connection.onCompletionResolve(item => this.onCompletionResolve(item));
@@ -319,7 +316,7 @@ class WorkspaceEvents {
 		connection.onRenameRequest((params, token) => this.onRenameRequest(params, token));
 
 		if (hasWorkspaceConfigurationCapability(Services.server)) {
-			connection.onFoldingRanges(async (params, token) => await cancellableOnFoldingRanges(params, token));
+			connection.onFoldingRanges(async (params, token) => await this.onFoldingRangesAsync(params, token));
 		}
 
 		connection.onRequest((method: string, params: object | object[] | any) => {
@@ -395,18 +392,33 @@ class WorkspaceEvents {
 		return document?.languageServerSymbolInformation() ?? [];
 	}
 
-	private async onFoldingRangesAsync(params: FoldingRangeParams, token: CancellationToken): Promise<FoldingRange[]> {
+	private async onFoldingRangesAsync(params: FoldingRangeParams, token: CancellationToken): Promise<FoldingRange[] | undefined> {
 		const logger = Services.logger;
 		logger.debug('[Event] onFoldingRanges');
+
+		// Don't do any work if we don't have to.
+		if (token.isCancellationRequested) {
+			logger.debug('Cancellation requested before start for Folding Ranges.');
+			return;
+		}
+
 		let document: BaseProjectDocument | undefined;
 		try {
-			document = await this.getParsedProjectDocument(params.textDocument.uri, 0, token);
+			const normalisedUri = params.textDocument.uri.toFilePath().toFileUri();
+			document = await this.getParsedProjectDocument(normalisedUri, 0, token);
 		} catch (error) {
 			// Swallow parser cancellations and rethrow anything else.
 			if (error instanceof ParseCancellationException) {
 				throw error;
 			}
 		}
+
+		// Check again if we're cancelled.
+		if (token.isCancellationRequested) {
+			logger.debug('Cancellation requested before start for Folding Ranges.');
+			return;
+		}
+
 		const result = document?.languageServerFoldingRanges();
 		for (const foldingRange of result ?? []) {
 			logger.debug(`${JSON.stringify(foldingRange.range)} '${foldingRange.openWord}..${foldingRange.closeWord}'`, 1);
