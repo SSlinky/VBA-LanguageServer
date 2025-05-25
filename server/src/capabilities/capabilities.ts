@@ -248,9 +248,6 @@ export class ScopeItemCapability {
 		addToResult(this.modules);
 		addToResult(this.functions);
 		addToResult(this.subroutines);
-		addToResult(this.properties?.getters);
-		addToResult(this.properties?.letters);
-		addToResult(this.properties?.setters);
 
 		return result;
 	}
