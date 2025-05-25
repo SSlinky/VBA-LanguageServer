@@ -25,7 +25,7 @@ suite('Should get module diagnostics', () => {
 			{
 				message: 'Option Explicit is missing from module header.',
 				range: toRange(2, 1, 2, 1),
-				severity: vscode.DiagnosticSeverity.Warning,
+				severity: vscode.DiagnosticSeverity.Hint,
 				source: 'ex'
 			}
 		]);
@@ -97,7 +97,7 @@ suite('Should get class diagnostics', () => {
 			{
 				message: 'Option Explicit is missing from module header.',
 				range: toRange(11, 1, 11, 1),
-				severity: vscode.DiagnosticSeverity.Warning,
+				severity: vscode.DiagnosticSeverity.Hint,
 				source: 'ex'
 			}
 		]);
