@@ -1,5 +1,4 @@
 // Core
-import * as url from 'url';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { Diagnostic, Range, SymbolKind } from 'vscode-languageserver';
 
@@ -113,7 +112,7 @@ export class ModuleElement extends BaseModuleElement<ProceduralModuleContext> {
 		this.attrubutes = ctx.proceduralModuleHeader().proceduralModuleAttr();
 		this.diagnosticCapability = new DiagnosticCapability(this);
 		this.scopeItemCapability = new ScopeItemCapability(this, ScopeType.MODULE);
-		this.scopeItemCapability.locationUri = url.pathToFileURL(doc.uri).toString();
+		this.scopeItemCapability.locationUri = doc.uri.toFileUri();
 
 		this.scopeItemCapability.isOptionExplicitScope = this.evaluateHasOptionExplicit(ctx
 			.proceduralModuleBody()
@@ -161,7 +160,7 @@ export class ClassElement extends BaseModuleElement<ClassModuleContext> {
 		].flat();
 		this.diagnosticCapability = new DiagnosticCapability(this);
 		this.scopeItemCapability = new ScopeItemCapability(this, ScopeType.CLASS);
-		this.scopeItemCapability.locationUri = url.pathToFileURL(doc.uri).toString();
+		this.scopeItemCapability.locationUri = doc.uri.toFileUri();
 
 		this.scopeItemCapability.isOptionExplicitScope = this.evaluateHasOptionExplicit(ctx
 			.classModuleBody()
