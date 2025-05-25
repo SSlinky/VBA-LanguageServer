@@ -15,7 +15,7 @@ import { ParserRuleContext, TerminalNode } from 'antlr4ng';
 import { SemanticToken, SemanticTokenModifiers, SemanticTokenTypes } from '../capabilities/semanticTokens';
 import { FoldingRange, FoldingRangeKind } from '../capabilities/folding';
 import { BaseRuleSyntaxElement, BaseIdentifyableSyntaxElement, BaseSyntaxElement, Context, HasSemanticTokenCapability } from '../project/elements/base';
-import { BaseDiagnostic, DuplicateDeclarationDiagnostic, ShadowDeclarationDiagnostic, SubOrFunctionNotDefinedDiagnostic, UnusedDiagnostic, VariableNotDefinedDiagnostic } from './diagnostics';
+import { AmbiguousNameDiagnostic, BaseDiagnostic, DuplicateDeclarationDiagnostic, ShadowDeclarationDiagnostic, SubOrFunctionNotDefinedDiagnostic, UnusedDiagnostic, VariableNotDefinedDiagnostic } from './diagnostics';
 import { Services } from '../injection/services';
 import { isPositionInsideRange } from '../utils/helpers';
 
@@ -531,10 +531,76 @@ export class ScopeItemCapability {
 	}
 
 	private resolveLinks() {
-		const declarations = this.findDeclarations(this.identifier);
-		if (declarations) {
+
+		// Resolve where we have no member access names.
+		if (!this.accessMembers || this.accessMembers.length === 0) {
+			const declarations = this.findDeclarations(this.identifier, this.assignmentType);
+			if (declarations === undefined || declarations.length === 0) {
+				return;
+			}
+
+			if (declarations.length > 1) {
+				const diagnostic = this.pushDiagnostic(AmbiguousNameDiagnostic, this, this.identifier);
+				this.addScopesAsRelatedInformation(diagnostic, declarations);
+				return;
+			}
+
 			this.linkThisToItem(declarations[0]);
+			return;
 		}
+
+		// Resolve for member accessed names.
+		let foundDeclarations: ScopeItemCapability[] = [];
+		for (const [i, ctx] of this.accessMembers.entries()) {
+			// Get the scope item to search and exit if we don't have anything.
+			const searchScope = i === 0 ? this
+				: foundDeclarations.length === 0
+					? this.project
+					: foundDeclarations[0];
+
+			// Can't do anything more if we don't have a scope to search.
+			if (searchScope === undefined) {
+				return;
+			}
+
+			// Get the details of what we're searching for.
+			const name = ctx.getText();
+			const assignmentType = i < this.accessMembers.length - 1
+				? AssignmentType.GET
+				: this.assignmentType;
+
+			// Search the immediate scope hierarchy if this is the first member.
+			foundDeclarations = searchScope.findDeclarations(name, assignmentType) ?? [];
+
+			// If we didn't find anything, try searching the type.
+			if (foundDeclarations.length === 0 && searchScope.classTypeName !== undefined) {
+				foundDeclarations = this.project?.findDeclarations(searchScope.classTypeName, assignmentType) ?? [];
+				foundDeclarations = foundDeclarations[0]?.findDeclarations(name, assignmentType) ?? [];
+			}
+
+			// Exactly one means we found something.
+			if (foundDeclarations.length === 1) {
+				continue;
+			}
+
+			// Nothing found means we can't continue.
+			if (foundDeclarations.length === 0) {
+				return;
+			}
+
+			// More than one declaration is ambiguous.
+			if (foundDeclarations.length > 1) {
+				const document = this.element?.context.document;
+				if (document) {
+					const diagnostic = new AmbiguousNameDiagnostic(ctx.toRange(document), '');
+					this.addScopesAsRelatedInformation(diagnostic, foundDeclarations);
+				}
+				return;
+			}
+		}
+
+		// If we get here, we have resolved the member access name.
+		this.linkThisToItem(foundDeclarations[0]);
 	}
 
 	private linkThisToItem(linkItem?: ScopeItemCapability): void {
@@ -1023,5 +1089,25 @@ export class ScopeItemCapability {
 			diagnostics.push(diagnostic);
 			return diagnostic;
 		}
+	}
+
+	private addScopesAsRelatedInformation(diagnostic: BaseDiagnostic | undefined, items: ScopeItemCapability[]): void {
+		if (diagnostic === undefined) {
+			return;
+		}
+
+		items.forEach(item => {
+			const ctx = item.element?.context;
+			if (ctx === undefined) {
+				return;
+			}
+			diagnostic.addRelatedInformation({
+				message: "Related Information",
+				location: {
+					uri: ctx.document.uri,
+					range: ctx.range
+				}
+			});
+		});
 	}
 }

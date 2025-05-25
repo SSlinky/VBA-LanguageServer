@@ -88,6 +88,16 @@ export class DuplicateDeclarationDiagnostic extends BaseDiagnostic {
 
 
 // test
+export class AmbiguousNameDiagnostic extends BaseDiagnostic {
+	severity = DiagnosticSeverity.Error;
+	constructor(range: Range, message: string) {
+		super(range);
+		this.message = `Ambiguous name detected: '${message}'.`;
+	}
+}
+
+
+// test
 export class ShadowDeclarationDiagnostic extends BaseDiagnostic {
 	severity = DiagnosticSeverity.Warning;
 	constructor(range: Range, message: string) {
