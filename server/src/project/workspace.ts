@@ -1,4 +1,5 @@
 // Core
+import { inject, injectable } from 'tsyringe';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import {
 	CancellationToken,
@@ -29,18 +30,20 @@ import {
 	_Connection
 } from 'vscode-languageserver';
 
-import { BaseProjectDocument } from './document';
-import { hasWorkspaceConfigurationCapability } from '../capabilities/workspaceFolder';
-import { sleep, walk } from '../utils/helpers';
+// Antlr
 import { ParseCancellationException } from 'antlr4ng';
-import { getFormattingEdits } from './formatter';
-import { VbaFmtListener } from './parser/vbaListener';
-import { returnDefaultOnCancelClientRequest } from '../utils/wrappers';
-import { inject, injectable } from 'tsyringe';
-import { Logger, ILanguageServer, IWorkspace } from '../injection/interface';
+
+// Project
+import { sleep, walk } from '../utils/helpers';
 import { Services } from '../injection/services';
-import { ScopeType, ScopeItemCapability } from '../capabilities/capabilities';
+import { getFormattingEdits } from './formatter';
+import { BaseProjectDocument } from './document';
 import { SyntaxParser } from './parser/vbaParser';
+import { VbaFmtListener } from './parser/vbaListener';
+import { hasWorkspaceConfigurationCapability } from '../capabilities/workspaceFolder';
+import { Logger, ILanguageServer, IWorkspace } from '../injection/interface';
+import { returnDefaultOnCancelClientRequest } from '../utils/wrappers';
+import { ScopeType, ScopeItemCapability } from '../capabilities/capabilities';
 
 export interface ExtensionConfiguration {
 	maxDocumentLines: number;

@@ -20,7 +20,6 @@ import {
     IfStatementContext,
     IgnoredClassAttrContext,
     IgnoredProceduralAttrContext,
-    IndexExpressionContext,
     LetStatementContext,
     LExpressionContext,
     MemberAccessExpressionContext,
@@ -34,7 +33,6 @@ import {
     SetStatementContext,
     SimpleNameExpressionContext,
     SubroutineDeclarationContext,
-    TypeExpressionContext,
     TypeSuffixContext,
     UdtDeclarationContext,
     UnexpectedEndOfLineContext,
@@ -66,19 +64,30 @@ import {
 } from '../../antlr/out/vbafmtParser';
 
 // Project
+import { Services } from '../../injection/services';
+import { ExtensionConfiguration } from '../workspace';
+import { ErrorRuleElement } from '../elements/generic';
 import { CompilerLogicalBlock } from '../elements/precompiled';
 import { UnexpectedEndOfLineElement } from '../elements/utils';
-import { DuplicateOperatorElement, IfElseBlock as IfStatementElement, WhileLoopElement } from '../elements/flow';
 import { VbaClassDocument, VbaModuleDocument } from '../document';
+import { DuplicateOperatorElement, IfElseBlockElement, WhileLoopElement } from '../elements/flow';
 import { ClassElement, ModuleElement, ModuleIgnoredAttributeElement } from '../elements/module';
-import { VariableDeclarationStatementElement, EnumDeclarationElement, EnumMemberDeclarationElement, TypeDeclarationElement, TypeSuffixElement, PositionalParamElement } from '../elements/typing';
-import { FunctionDeclarationElement, PropertyGetDeclarationElement, PropertyLetDeclarationElement, PropertySetDeclarationElement, SubDeclarationElement } from '../elements/procedure';
-import { ExtensionConfiguration } from '../workspace';
-import { Services } from '../../injection/services';
-import { ErrorRuleElement } from '../elements/generic';
 import { NameExpressionContext, NameExpressionElement, WithStatementElement } from '../elements/naming';
-import { FunctionOrArray } from '../elements/expression';
-import { AssignmentType } from '../../capabilities/capabilities';
+import {
+    TypeSuffixElement,
+    EnumDeclarationElement,
+    TypeDeclarationElement,
+    PositionalParamElement,
+    EnumMemberDeclarationElement,
+    VariableDeclarationStatementElement,
+} from '../elements/typing';
+import {
+    SubDeclarationElement,
+    FunctionDeclarationElement,
+    PropertyGetDeclarationElement,
+    PropertyLetDeclarationElement,
+    PropertySetDeclarationElement,
+} from '../elements/procedure';
 
 
 enum ParserAssignmentState {
@@ -125,7 +134,6 @@ export class VbaListener extends vbaListener {
     protected documentSettings?: ExtensionConfiguration;
     protected isAfterMethodDeclaration = false;
     private withStatementStack: WithStatementElement[] = [];
-    private functionOrArrayStack: FunctionOrArray[] = [];
     private parserStateStack: ParserState[] = [];
 
     private readonly verbose = false;
@@ -189,7 +197,7 @@ export class VbaListener extends vbaListener {
     };
 
     enterIfStatement = (ctx: IfStatementContext) =>
-        this.document.registerElement(new IfStatementElement(ctx, this.document.textDocument));
+        this.document.registerElement(new IfElseBlockElement(ctx, this.document.textDocument));
 
     enterIgnoredClassAttr = (ctx: IgnoredClassAttrContext) => this.registerIgnoredAttribute(ctx);
     enterIgnoredProceduralAttr = (ctx: IgnoredProceduralAttrContext) => this.registerIgnoredAttribute(ctx);
@@ -237,48 +245,6 @@ export class VbaListener extends vbaListener {
     enterArgumentList = (_: ArgumentListContext) => this.pushNewState();
     exitArgumentList = (_: ArgumentListContext) => this.parserStateStack.pop();
 
-    // enterLExpression = (ctx: LExpressionContext) => {
-    //     // We're already dealing with an expression.
-    //     if (this.parserState.nameElement) {
-    //         return;
-    //     }
-
-    //     // We have a function call or array.
-    //     if (ctx.hasParenthesis()) {
-    //         this.functionOrArrayStack.push(new FunctionOrArray(ctx, this.document.textDocument));
-    //         Services.logger.debug(`Push function or array (${this.functionOrArrayStack.length}): ${ctx.getText()}`);
-    //         return;
-    //     }
-
-    //     // All other cases, start an expression.
-    //     Services.logger.debug(`Start expression: ${ctx.getText()}`);
-    //     const element = new NameExpressionElement(ctx, this.document.textDocument);
-    //     this.parserState.nameElement = element;
-    //     const funcOrArray = this.functionOrArrayStack.at(-1);
-    //     if (funcOrArray && !funcOrArray.nameExpressionElement) {
-    //         funcOrArray.nameExpressionElement = element;
-    //     }
-
-    //     // Handle assignment type
-    //     if (this.parserState.assignment !== ParserAssignmentState.NONE) {
-    //         if (this.parserState.assignment === ParserAssignmentState.LET) {
-    //             element.setAsLetType();
-    //         } else {
-    //             element.setAsSetType();
-    //         }
-    //         this.parserState.assignment = ParserAssignmentState.NONE;
-    //     }
-    // };
-
-    // exitLExpression = (ctx: LExpressionContext) => {
-    //     if (this.functionOrArrayStack.at(-1)?.context.rule === ctx) {
-    //         Services.logger.debug(`Pop function or array (${this.functionOrArrayStack.length}): ${ctx.getText()}`);
-    //         this.functionOrArrayStack.pop();
-    //         return;
-    //     }
-    //     this.handleExitCallOrExpression(ctx);
-    // };
-
     enterLetStatement = (_: LetStatementContext) => {
         if (this.verbose) Services.logger.debug(`enterLetStatement`, this.parserStateStack.length);
         this.parserState.assignment = ParserAssignmentState.LET;
@@ -288,16 +254,6 @@ export class VbaListener extends vbaListener {
         if (this.verbose) Services.logger.debug(`enterSetStatement`, this.parserStateStack.length);
         this.parserState.assignment = ParserAssignmentState.SET;
     };
-
-    // enterCallStatement = (ctx: CallStatementContext) => {
-    //     // We shouldn't be dealing with an expression.
-    //     const state = this.parserState;
-    //     if (state.nameElement) {
-    //         Services.logger.error('Call statement in expression?');
-    //     }
-    //     Services.logger.debug(`Start call expression: ${ctx.getText()}`);
-    //     state.nameElement = new NameExpressionElement(ctx, this.document.textDocument);
-    // };
 
     enterCallStatement = (ctx: CallStatementContext) => {
         if (this.verbose) Services.logger.debug(`enterCallStatement: ${ctx.getText()}`, this.parserStateStack.length);
@@ -349,17 +305,6 @@ export class VbaListener extends vbaListener {
         this.registerNameElement();
     };
 
-    enterIndexExpression = (ctx: IndexExpressionContext) => {
-        if (this.verbose) Services.logger.debug(`enterIndexExpression: ${ctx.getText()}`, this.parserStateStack.length);
-        this.pushNameElement(ctx);
-    };
-
-    exitIndexExpression = (ctx: IndexExpressionContext) => {
-        Services.logger.debug(`exitIndexExpression: ${ctx.getText()}`, this.parserStateStack.length);
-        if (this.parserState.inCallExp) this.parserState.assignment = ParserAssignmentState.CALL;
-        this.registerNameElement();
-    };
-
     enterLExpression = (ctx: LExpressionContext) => {
         if (this.verbose) Services.logger.debug(`enterLExpression: ${ctx.getText()}`, this.parserStateStack.length);
         if (ctx.LPAREN()) {
@@ -390,23 +335,7 @@ export class VbaListener extends vbaListener {
         if (this.verbose) Services.logger.debug(`enterPositionalParam: ${ctx.getText()}`, this.parserStateStack.length);
         const element = new PositionalParamElement(ctx, this.document.textDocument);
         this.document.registerElement(element);
-        // this.pushNameElement(ctx);
-
-        // const identifierCtx = ctx.paramDcl().untypedNameParamDcl()?.ambiguousIdentifier()
-        //     ?? ctx.paramDcl().typedNameParamDcl()?.typedName().ambiguousIdentifier();
-
-        // if (identifierCtx) {
-        //     this.addNameElementContext(identifierCtx, 'ambigiousNameContext');
-        // }
     };
-
-    // enterTypeExpression = (ctx: TypeExpressionContext) =>
-    //     Services.logger.log(`TypeExpressionContext ${ctx.getText()} is primative: ${ctx.isPrimative}`);
-
-    // exitPositionalParam = (ctx: PositionalParamContext) => {
-    //     if (this.verbose) Services.logger.debug(`exitPositionalParam: ${ctx.getText()}`, this.parserStateStack.length);
-    //     this.registerNameElement();
-    // };
 
     enterOptionalParam = (ctx: OptionalParamContext) => {
         if (this.verbose) Services.logger.debug(`enterOptionalParam: ${ctx.getText()}`, this.parserStateStack.length);
@@ -508,65 +437,6 @@ export class VbaListener extends vbaListener {
             ].flat();
         }
     }
-
-    // exitCallStatement = (ctx: CallStatementContext) => {
-    //     if (!this.parserState.nameElement) {
-    //         Services.logger.error('No call expression to exit.');
-    //         return;
-    //     }
-    //     this.parserState.nameElement.setAsCallType();
-    //     this.handleExitCallOrExpression(ctx);
-    // };
-
-    // private handleExitCallOrExpression(ctx: LExpressionContext | CallStatementContext) {
-    //     // This isn't the expression we're dealing with.
-    //     const nameExpressionElement = this.parserState.nameElement;
-    //     if (!nameExpressionElement) {
-    //         return;
-    //     }
-
-    //     if (nameExpressionElement.context.rule !== ctx) {
-    //         return;
-    //     }
-
-    //     if (!nameExpressionElement.hasNames) {
-    //         Services.logger.debug(`End expression 0 names: ${ctx.getText()}`);
-    //         this.parserState.nameElement = undefined;
-    //         return;
-    //     }
-
-    //     // Handle when this name is a With statement.
-    //     const withStatement = this.withStatementStack.at(-1);
-    //     if (withStatement && !withStatement.nameExpressionElement) {
-    //         withStatement.nameExpressionElement = nameExpressionElement;
-    //         if (this.isWithExpression) {
-    //             // Attach to the parent when this also uses a With expression.
-    //             const withStatementParent = this.withStatementStack.at(-2);
-    //             if (!withStatementParent) {
-    //                 Services.logger.error(`Not enough ancestors.`);
-    //             } else {
-    //                 nameExpressionElement.withStatementElement = withStatementParent;
-    //             }
-    //             this.isWithExpression = false;
-    //         }
-    //         this.parserState.nameElement = undefined;
-    //         return;
-    //     }
-
-    //     // Attach With statement if we're in a With expression.
-    //     if (this.isWithExpression && withStatement) {
-    //         nameExpressionElement.withStatementElement = withStatement;
-    //         this.isWithExpression = false;
-    //     }
-
-    //     Services.logger.debug(`Registering name: ${nameExpressionElement.fqName}`);
-    //     this.document.registerElement(nameExpressionElement);
-    //     this.parserState.nameElement = undefined;
-
-    //     if (this.isWithExpression) {
-    //         Services.logger.warn('Still within withExpression after exitLExpression');
-    //     }
-    // }
 
     enterWithStatement = (ctx: WithStatementContext) => {
         if (this.verbose) Services.logger.debug(`enterWithStatement: ${ctx.getText().split('\n')[0]}...`, this.parserStateStack.length);

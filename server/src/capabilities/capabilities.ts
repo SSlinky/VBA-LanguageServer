@@ -269,7 +269,7 @@ export class ScopeItemCapability {
 	// Item Properties
 	locationUri?: string;
 	isPublicScope?: boolean;
-	accessMembers?: string[];
+	accessMembers?: ParserRuleContext[];
 	isOptionExplicitScope = false;
 	classTypeName?: string;
 
@@ -499,34 +499,6 @@ export class ScopeItemCapability {
 				}
 				shadowing.forEach(item => this.addDiagnosticReference(diagnostic, item));
 			}
-
-			// // All declaration types check for modules.
-			// this.resolveShadowedDeclaration(parent.findType(this.identifier));
-			// this.resolveShadowedDeclaration(parent.findModule(this.identifier));
-			// this.resolveShadowedDeclaration(parent.findFunction(this.identifier));
-			// this.resolveShadowedDeclaration(parent.findSubroutine(this.identifier));
-
-			// // Properties care about everything except properties that
-			// // aren't the same type. Everything else cares about everything.
-
-			// // ToDo:
-			// // Variables are registered as props so should also squash their
-			// // get/set/let diagnostics into one single diagnostic.
-
-			// // Check get properties.
-			// if (this.assignmentType & AssignmentType.GET) {
-			// 	this.resolveShadowedDeclaration(parent.findPropertyGetter(this.identifier));
-			// }
-
-			// // Check let properties.
-			// if (this.assignmentType & AssignmentType.LET) {
-			// 	this.resolveShadowedDeclaration(parent.findPropertyLetter(this.identifier));
-			// }
-
-			// // Check set properties.
-			// if (this.assignmentType & AssignmentType.SET) {
-			// 	this.resolveShadowedDeclaration(parent.findPropertySetter(this.identifier));
-			// }
 		}
 	}
 
@@ -658,43 +630,6 @@ export class ScopeItemCapability {
 		return false;
 	}
 
-	// findDeclarations(name: string, section?: string): ScopeItemCapability[] {
-	// 	const identifier = section ?? name.split('.')[0];
-	// 	if (this.has(identifier)) {
-	// 		return this.maps.map(x => x.get(identifier) ?? []).flat();
-	// 	}
-
-	// 	// FIXME: Handle publicly accessible names in project scope.
-	// 	return this.parent?.findDeclarations(name, section) ?? [];
-	// }
-
-	// resolvePropertyChain(chain: string) {
-	// 	// Search UP for foo in foo.xx.xx.xx....
-	// 	const declarations = this.findDeclarations(chain);
-
-	// 	// Not found.
-	// 	if (declarations.length === 0) {
-	// 		return { status: 404, scope: undefined };
-	// 	}
-
-	// 	// Conflicting names FIXME: may need to add logic to handle get/set/let.
-	// 	if (declarations.length > 1) {
-	// 		return { status: 409, scope: undefined };
-	// 	}
-
-	// 	// We have exactly one name. Search DOWN the chain.
-	// 	const chainLinks = chain.split('.').slice(1);
-	// 	let declaration = declarations[0];
-	// 	for (const chainLink of chainLinks) {
-	// 		// Assume we're only going to get one result here.
-	// 		// If we get more, we can handle diagnostics elsewhere.
-	// 		declaration = declaration.maps.map(
-	// 			x => x.get(chainLink) ?? []
-	// 		).flat()[0];
-	// 	}
-	// 	return { status: 200, scope: declaration };
-	// }
-
 	/** Get accessible declarations */
 	getAccessibleScopes(identifier: string, results: ScopeItemCapability[] = []): ScopeItemCapability[] {
 		// Add any non-public items we find at this level.
@@ -801,33 +736,6 @@ export class ScopeItemCapability {
 	 * @returns The current scope.
 	 */
 	registerScopeItem(item: ScopeItemCapability): ScopeItemCapability {
-		// ToDo: Get the parent based on visibility.
-		// Public scoped elements should get the project.
-		// Check pub/priv declares in same document treated as duplicate instead of shadowed.
-
-		/**
-		 * Visibility on a method-scoped variable does nothing but isn't invalid.
-		 * These should declare as if they're private and raise a warning.
-		 * 
-		 * Only MODULE scoped items are accessible implicitly in PROJECT scope and therefore
-		 * only they should be 'escalated' to that scope.
-		 */
-		// const getParent = (item: ScopeItemCapability): ScopeItemCapability =>
-		// 	(item.isPublicScope && this.type === ItemType.MODULE ? this.project : this) ?? this;
-
-		// // Method-scoped variables are always private. 
-		// if (this.isMethodScope && item.type === ItemType.VARIABLE && item.isPublicScope) {
-		// 	item.isPublicScope = false;
-		// 	if (item.visibilityModifierContext && item.element) {
-		// 		const ctx = item.visibilityModifierContext;
-		// 		const diagnostic = new MethodVariableIsPublicDiagnostic(
-		// 			ctx.toRange(item.element.context.document),
-		// 			ItemType[this.type]
-		// 		);
-		// 		item.element?.diagnosticCapability?.diagnostics.push(diagnostic);
-		// 	}
-		// }
-
 		// Immediately invalidate if we're an Unknown Module
 		if (item.type === ScopeType.MODULE && item.name === 'Unknown Module') {
 			item.isInvalidated = true;

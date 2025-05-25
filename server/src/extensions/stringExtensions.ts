@@ -1,3 +1,4 @@
+// Core
 import { fileURLToPath, pathToFileURL } from "url";
 
 declare global {

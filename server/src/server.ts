@@ -78,19 +78,15 @@ export class LanguageServer implements ILanguageServer {
 export class LanguageServerConfiguration {
 	capabilities: ServerCapabilities<any> = {
 		// Implemented
-		documentSymbolProvider: true,
+		codeActionProvider: true,
+		definitionProvider: true,
 		foldingRangeProvider: true,
+		documentSymbolProvider: true,
 		textDocumentSync: TextDocumentSyncKind.Incremental,
-		// diagnosticProvider: {
-		// 	interFileDependencies: false,
-		// 	workspaceDiagnostics: false
-		// },
 
 		// Implement soon.
-		codeActionProvider: true,
-		completionProvider: undefined,
 		hoverProvider: false,
-		definitionProvider: true,
+		completionProvider: undefined,
 
 		// Not implemented.		
 		signatureHelpProvider: undefined,

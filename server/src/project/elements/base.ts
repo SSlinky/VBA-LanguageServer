@@ -3,7 +3,7 @@ import { Position, Range } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 
 // Antlr
-import { Parser, ParserRuleContext, TerminalNode } from 'antlr4ng';
+import { ParserRuleContext, TerminalNode } from 'antlr4ng';
 
 // Project
 import {
@@ -33,7 +33,7 @@ export abstract class BaseSyntaxElement {
 	 */
 	constructor() {
 		let x: TerminalNode | ParserRuleContext;
-		
+
 	}
 }
 

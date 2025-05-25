@@ -1,6 +1,9 @@
+// Core
 import { inject, injectable } from 'tsyringe';
-import { Logger, ILanguageServer } from '../injection/interface';
 import { _Connection } from 'vscode-languageserver';
+
+// Project
+import { Logger, ILanguageServer } from '../injection/interface';
 
 
 enum LogLevel {

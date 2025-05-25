@@ -9,7 +9,7 @@ import { DiagnosticCapability, FoldingRangeCapability } from '../../capabilities
 import { BaseRuleSyntaxElement, HasDiagnosticCapability } from './base';
 import { MultipleOperatorsDiagnostic, WhileWendDeprecatedDiagnostic } from '../../capabilities/diagnostics';
 
-export class IfElseBlock extends BaseRuleSyntaxElement<IfStatementContext> {
+export class IfElseBlockElement extends BaseRuleSyntaxElement<IfStatementContext> {
 	constructor(context: IfStatementContext, document: TextDocument) {
 		super(context, document);
 		this.foldingRangeCapability = new FoldingRangeCapability(this);

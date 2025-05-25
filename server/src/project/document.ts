@@ -6,10 +6,15 @@ import { CancellationToken, Diagnostic, SymbolInformation, SymbolKind } from 'vs
 import { ParserRuleContext } from 'antlr4ng';
 
 // Project
+import { Services } from '../injection/services';
+import { IWorkspace } from '../injection/interface';
 import { Dictionary } from '../utils/helpers';
 import { SyntaxParser } from './parser/vbaParser';
 import { FoldingRange } from '../capabilities/folding';
+import { VbaFmtListener } from './parser/vbaListener';
+import { BaseDiagnostic } from '../capabilities/diagnostics';
 import { SemanticTokensManager } from '../capabilities/semanticTokens';
+import { ScopeItemCapability } from '../capabilities/capabilities';
 import {
 	BaseRuleSyntaxElement,
 	BaseSyntaxElement,
@@ -19,18 +24,12 @@ import {
 	HasSemanticTokenCapability,
 	HasSymbolInformationCapability
 } from './elements/base';
-
 import {
 	PropertyDeclarationElement,
 	PropertyGetDeclarationElement,
 	PropertyLetDeclarationElement,
 	PropertySetDeclarationElement
 } from './elements/procedure';
-import { VbaFmtListener } from './parser/vbaListener';
-import { Services } from '../injection/services';
-import { IWorkspace } from '../injection/interface';
-import { ScopeItemCapability } from '../capabilities/capabilities';
-import { BaseDiagnostic } from '../capabilities/diagnostics';
 
 
 // TODO ---------------------------------------------
@@ -77,35 +76,6 @@ export abstract class BaseProjectDocument {
 	get redactedText() {
 		return this.subtractTextFromRanges(this.redactedElements.map(x => x.context.range));
 	}
-
-	// async getDocumentConfiguration(): Promise<DocumentSettings> {
-	// 	// Get the stored configuration.
-	// 	if (this.documentConfiguration) {
-	// 		return this.documentConfiguration;
-	// 	}
-
-	// 	// Get the configuration from the client.
-	// 	if (this.workspace.hasConfigurationCapability) {
-	// 		this.documentConfiguration = await this.workspace.requestDocumentSettings(this.textDocument.uri);
-	// 		if (this.documentConfiguration) {
-	// 			return this.documentConfiguration;
-	// 		}
-	// 	}
-
-	// 	// Use the defaults.
-	// 	this.documentConfiguration = {
-	// 		maxDocumentLines: 1500,
-	// 		maxNumberOfProblems: 100,
-	// 		doWarnOptionExplicitMissing: true,
-	// 		environment: {
-	// 			os: "Win64",
-	// 			version: "Vba7"
-	// 		}
-	// 	};
-	// 	return this.documentConfiguration;
-	// }
-
-	// clearDocumentConfiguration = () => this.documentConfiguration = undefined;
 
 	constructor(name: string, document: TextDocument) {
 		this.textDocument = document;

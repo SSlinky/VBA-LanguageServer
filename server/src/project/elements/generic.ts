@@ -2,10 +2,10 @@
 import { TextDocument } from 'vscode-languageserver-textdocument';
 
 // Antlr
-import { ErrorNode, ParserRuleContext, TerminalNode } from 'antlr4ng';
+import { ErrorNode, TerminalNode } from 'antlr4ng';
 
 // Project
-import { BaseRuleSyntaxElement, BaseSyntaxElement, Context } from './base';
+import { BaseSyntaxElement, Context } from './base';
 import { DiagnosticCapability } from '../../capabilities/capabilities';
 import { ParserErrorDiagnostic } from '../../capabilities/diagnostics';
 

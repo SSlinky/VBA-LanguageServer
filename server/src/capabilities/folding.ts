@@ -1,3 +1,4 @@
+// Core
 import { FoldingRange as VscFoldingRange, Range } from 'vscode-languageserver';
 
 /**

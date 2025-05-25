@@ -1,8 +1,12 @@
+// Core
+import { TextDocument } from 'vscode-languageserver-textdocument';
+import { CancellationToken, WorkspaceFolder } from 'vscode-languageserver';
+
+// Project
 import { LanguageServerConfiguration } from '../server';
 import { BaseProjectDocument } from '../project/document';
-import { TextDocument } from 'vscode-languageserver-textdocument';
 import { VbaFmtListener } from '../project/parser/vbaListener';
-import { CancellationToken, WorkspaceFolder } from 'vscode-languageserver';
+
 
 export interface Logger {
 	error(msg: string, lvl?: number, e?: unknown): void;
