@@ -172,7 +172,7 @@ export class Workspace implements IWorkspace {
 		// Exceptions thrown by the parser should be ignored.
 		let result: VbaFmtListener | undefined;
 		try {
-			const projectDocument = this.projectDocuments.get(document.uri);
+			const projectDocument = this.projectDocuments.get(document.uri.toFilePath().toFileUri());
 			result = await projectDocument?.formatParse(token);
 			this.logger.info(`Formatted ${document.uri}`);
 		}
