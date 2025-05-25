@@ -945,22 +945,33 @@ export class ScopeItemCapability {
 
 		const itemsAtPosition: ScopeItemCapability[] = [];
 		this.getItemsIdentifiedAtPosition(position, itemsAtPosition, [module]);
-		const uniqueItemsAtPosition = this.removeDuplicatesByRange(itemsAtPosition);
-		if (uniqueItemsAtPosition.length === 0) {
+		if (itemsAtPosition.length === 0) {
 			Services.logger.warn(`Nothing to rename.`);
 			return [];
 		}
 
-		if (uniqueItemsAtPosition.length > 1) {
-			Services.logger.warn(`Ambiguity detected: ${uniqueItemsAtPosition.length} overlapping names.`);
-			return [];
-		}
+		// Switch to the linked declaration if we have one.
+		const swapRefsForDeclarations = itemsAtPosition.map(
+			item => item.link ? item.link : item);
 
-		// Use linked declaration to return all items, otherwise just return the item we have.
-		const declarationItem = uniqueItemsAtPosition[0].link
-			? uniqueItemsAtPosition[0].link
-			: uniqueItemsAtPosition[0];
-		return [declarationItem, ...declarationItem.backlinks ?? []];
+		// Replace property items with all properties of same name.
+		const propertyIncludedItems = swapRefsForDeclarations.map(item =>
+			item.type === ScopeType.PROPERTY && item.parent?.properties
+				? [
+					item.parent.properties.getters?.get(item.identifier),
+					item.parent.properties.setters?.get(item.identifier),
+					item.parent.properties.letters?.get(item.identifier)
+				]
+				: item
+		).flat().flat().flat().filter(x => !!x);
+
+		// Add backlinks for each item.
+		const addedBacklinks = propertyIncludedItems.map(item =>
+			item.backlinks ? [item, ...item.backlinks] : item
+		).flat().flat();
+
+		const uniqueItemsAtPosition = this.removeDuplicatesByRange(addedBacklinks);
+		return uniqueItemsAtPosition;
 	}
 
 	getDeclarationLocation(uri: string, position: Position): LocationLink[] | undefined {
