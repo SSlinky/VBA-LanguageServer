@@ -281,12 +281,16 @@ export class ScopeItemCapability {
 		public parent?: ScopeItemCapability,
 	) { }
 
+	clean(): void {
+		this.deleteInvalidatedScopes();
+		this.cleanInvalidatedLinks();
+	}
+
 	/**
 	 * Recursively build from this node down.
 	 */
 	build(): void {
-		this.deleteInvalidatedScopes();
-		this.cleanInvalidatedLinks();
+		this.clean();
 
 		// Don't build self if invalidated.
 		if (this.isInvalidated) {
@@ -800,7 +804,7 @@ export class ScopeItemCapability {
 		}
 
 		// Add implicitly accessible names to the project scope.
-		if (item.isPublicScope && this.project) {
+		if (item.isPublicScope && this.project && this !== this.project) {
 			this.project.implicitDeclarations ??= new Map();
 			this.addItem(this.project.implicitDeclarations, item, item.name);
 		}

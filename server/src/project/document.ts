@@ -167,6 +167,7 @@ export abstract class BaseProjectDocument {
 		await (new SyntaxParser(Services.logger)).parse(token, this);
 		const projectScope = this.currentScope.project;
 		const buildScope = projectScope?.isDirty ? projectScope : this.currentScope;
+		projectScope?.clean();
 		buildScope.build();
 		buildScope.resolveUnused();
 
