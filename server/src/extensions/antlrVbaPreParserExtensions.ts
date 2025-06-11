@@ -1,9 +1,13 @@
 // Project
-import { CompilerConditionalStatementContext } from '../antlr/out/vbapreParser';
+import { CompilerConditionalStatementContext, DirectiveExpressionContext } from '../antlr/out/vbapreParser';
 
 
 declare module '../antlr/out/vbapreParser' {
     interface CompilerConditionalStatementContext {
+        vbaExpression(): string;
+    }
+
+    interface DirectiveExpressionContext {
         vbaExpression(): string;
     }
 }
@@ -14,4 +18,8 @@ CompilerConditionalStatementContext.prototype.vbaExpression = function (): strin
         .booleanExpression()
         .getText()
         .toLowerCase();
+};
+
+DirectiveExpressionContext.prototype.vbaExpression = function (): string {
+    return this.getText().toLowerCase();
 };

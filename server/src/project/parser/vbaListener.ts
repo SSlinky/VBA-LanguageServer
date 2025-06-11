@@ -6,7 +6,7 @@ import { ErrorNode, ParserRuleContext } from 'antlr4ng';
 import { vbaListener } from '../../antlr/out/vbaListener';
 import { vbapreListener } from '../../antlr/out/vbapreListener';
 import { vbafmtListener } from '../../antlr/out/vbafmtListener';
-import { CompilerIfBlockContext } from '../../antlr/out/vbapreParser';
+import { CompilerIfBlockContext, ConstDirectiveStatementContext} from '../../antlr/out/vbapreParser';
 import {
     AmbiguousIdentifierContext,
     AnyOperatorContext,
@@ -67,7 +67,7 @@ import {
 import { Services } from '../../injection/services';
 import { ExtensionConfiguration } from '../workspace';
 import { ErrorRuleElement } from '../elements/generic';
-import { CompilerLogicalBlock } from '../elements/precompiled';
+import { CompilerDirectiveElement, CompilerLogicalBlock } from '../elements/precompiled';
 import { UnexpectedEndOfLineElement } from '../elements/utils';
 import { VbaClassDocument, VbaModuleDocument } from '../document';
 import { DuplicateOperatorElement, IfElseBlockElement, WhileLoopElement } from '../elements/flow';
@@ -489,6 +489,7 @@ export class VbaListener extends vbaListener {
 
 export class VbaPreListener extends vbapreListener {
     common: CommonParserCapability;
+    directives: Map<string, any> = new Map();
 
     get text(): string {
         return this.common.document.redactedText;
@@ -505,10 +506,27 @@ export class VbaPreListener extends vbapreListener {
         return result;
     }
 
+    enterConstDirectiveStatement = (ctx: ConstDirectiveStatementContext) => {
+        const doc = this.common.document;
+        const element = new CompilerDirectiveElement(
+            ctx,
+            doc.textDocument,
+            this.common.documentSettings,
+            this.directives
+        );
+        this.directives.set(element.identifierCapability.name, element.evaluate());
+        doc.registerElement(element)
+            .registerSubtractElement(element);
+    };
+
     enterCompilerIfBlock = (ctx: CompilerIfBlockContext) => {
         const doc = this.common.document;
-        const docprops = this.common.documentSettings;
-        const element = new CompilerLogicalBlock(ctx, doc.textDocument, docprops);
+        const element = new CompilerLogicalBlock(
+            ctx,
+            doc.textDocument,
+            this.common.documentSettings,
+            this.directives
+        );
         element.inactiveBlocks.forEach(
             b => doc.registerElement(b)
                 .registerSubtractElement(b)
