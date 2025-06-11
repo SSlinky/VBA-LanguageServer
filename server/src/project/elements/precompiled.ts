@@ -68,7 +68,7 @@ export class CompilerLogicalBlock extends BaseRuleSyntaxElement<CompilerIfBlockC
 				resolved = true;
 				continue;
 			}
-			block.deactivate();
+			block.deactivateContent();
 			this.inactiveBlocks.push(block);
 		}
 	}
@@ -106,9 +106,12 @@ class CompilerConditionBlock extends BaseRuleSyntaxElement<CompilerConditionalBl
 		return result;
 	}
 
-	deactivate(): void {
-		this.diagnosticCapability = new DiagnosticCapability(this);
-		this.diagnosticCapability.diagnostics.push(new UnreachableCodeDiagnostic(this.context.range));
+	deactivateContent(): void {
+		const contentRange = this.context.rule.compilerBlockContent()?.toRange(this.context.document);
+		if (contentRange) {
+			this.diagnosticCapability = new DiagnosticCapability(this);
+			this.diagnosticCapability.diagnostics.push(new UnreachableCodeDiagnostic(contentRange));
+		}
 	}
 }
 
