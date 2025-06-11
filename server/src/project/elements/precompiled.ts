@@ -130,7 +130,7 @@ function transpileVbaToTypescript(exp: string, settings: DocumentSettings, direc
 	// Perform language text replacements.
 	let result = exp;
 	replacements.forEach((v, k) => {
-		const regexp = RegExp(`${k}`, 'i');
+		const regexp = RegExp(`\\b${k}\\b`, 'i');
 		if (regexp.test(result)) {
 			result = result.replace(regexp, v);
 		}
@@ -138,7 +138,7 @@ function transpileVbaToTypescript(exp: string, settings: DocumentSettings, direc
 
 	// Perform user directives text replacements.
 	directives.forEach((v, k) => {
-		const regexp = RegExp(`${k}`, 'i');
+		const regexp = RegExp(`\\b${k}\\b`, 'i');
 		if (regexp.test(result)) {
 			result = result.replace(regexp, v);
 		}
