@@ -11,11 +11,78 @@ startRule
     ;
 
 document
-    : (documentLines | compilerIfBlock)*
+    : (documentLines | compilerIfBlock | constDirectiveStatement)*
     ;
 
 documentLines
     : (anyOtherLine | endOfLine)+
+    ;
+
+constDirectiveName
+    : ANYCHARS
+    ;
+
+directiveParenthesizedExpression
+    : '(' WS? directiveExpression WS? ')'
+    ;
+
+directiveUnaryMinusExpression
+    : '-' WS? directiveExpression
+    ;
+
+directiveLiteralExpression
+    : DATELITERAL
+    | FLOATLITERAL
+    | INTEGERLITERAL
+    | STRINGLITERAL
+    | literalIdentifier
+    ;
+
+literalIdentifier
+    : booleanLiteralIdentifier
+    | objectLiteralIdentifier
+    | variantLiteralIdentifier
+    ;
+
+booleanLiteralIdentifier
+    : TRUE
+    | FALSE
+    ;
+
+objectLiteralIdentifier
+    : NOTHING
+    ;
+
+variantLiteralIdentifier
+    : EMPTY_X
+    | NULL_
+    ;
+
+directiveExpression
+    : directiveLiteralExpression
+    | directiveParenthesizedExpression
+    | directiveUnaryMinusExpression
+    // | directiveExpression wsc? (divOperator | multOperator) wsc? directiveExpression
+    // | directiveExpression wsc? modOperator wsc? directiveExpression
+    // | directiveExpression wsc? (plusOperator | minusOperator) wsc? directiveExpression
+    // | directiveExpression wsc? ampOperator wsc? directiveExpression
+    // | directiveExpression wsc? (
+    //     IS
+    //     | LIKE
+    //     | geqOperator
+    //     | leqOperator
+    //     | gtOperator
+    //     | ltOperator
+    //     | neqOperator
+    //     | eqOperator
+    // ) wsc? directiveExpression
+    // | notOperatorExpression
+    // | directiveExpression wsc? (andOperator | orOperator | xorOperator | eqvOperator | impOperator) wsc? directiveExpression
+    // | lExpression
+    ;
+
+constDirectiveStatement
+    : CONST WS constDirectiveName WS? EQ WS? directiveExpression endOfStatement
     ;
 
 compilerIfBlock
@@ -76,9 +143,18 @@ compilerConstant
     | MAC
     ;
 
-anyWord
-    : ANYCHARS+
-    ;
+anyWord: (
+		ANYCHARS
+		| EQ
+		| STRINGLITERAL
+		| FLOATLITERAL
+		| DATELITERAL
+		| TRUE
+		| FALSE
+		| NOTHING
+		| EMPTY_X
+		| NULL_
+	)+;
 
 anyOtherLine
     : (WS* anyWord)+
@@ -112,12 +188,20 @@ NEWLINE
     : ([\r\n\u2028\u2029]) (WS* ([\r\n\u2028\u2029]))*
     ;
 
+AS
+    : 'AS'
+    ;
+
+CONST
+    : '#CONST'
+    ;
+
 ELSE
     : '#ELSE'
     ;
 
 ELSEIF
-    : '#ELSE IF'
+    : '#ELSEIF'
     ;
 
 ENDIF
@@ -188,6 +272,10 @@ SINGLEQUOTE
     : '\''
     ;
 
+EQ
+    : '='
+    ;
+
 REM
     : 'REM'
     ;
@@ -216,6 +304,121 @@ NOT
     : 'NOT'
     ;
 
+NOTHING
+    : 'NOTHING'
+    ;
+
+NULL_
+    : 'NULL'
+    ;
+
+TRUE
+    : 'TRUE'
+    ;
+
+FALSE
+    : 'FALSE'
+    ;
+
+EMPTY_X
+    : 'EMPTY'
+    ;
+
+STRINGLITERAL
+    : '"' (~["\r\n] | '""')* '"'
+    ;
+
+INTEGERLITERAL
+    : (DIGIT DIGIT* | '&H' [0-9A-F]+ | '&' [O]? [0-7]+) [%&^]?
+    ;
+
+FLOATLITERAL
+    : FLOATINGPOINTLITERAL [!#@]?
+    | DECIMALLITERAL [!#@]
+    ;
+
+fragment FLOATINGPOINTLITERAL
+    : DECIMALLITERAL [DE] [+-]? DECIMALLITERAL
+    | DECIMALLITERAL '.' DECIMALLITERAL? ([DE] [+-]? DECIMALLITERAL)?
+    | '.' DECIMALLITERAL ([DE] [+-]? DECIMALLITERAL)?
+    ;
+
+fragment DECIMALLITERAL
+    : DIGIT DIGIT*
+    ;
+
+DATELITERAL
+    : '#' DATEORTIME '#'
+    ;
+
+fragment DATEORTIME
+    : DATEVALUE WS+ TIMEVALUE
+    | DATEVALUE
+    | TIMEVALUE
+    ;
+
+fragment DATEVALUE
+    : DATEVALUEPART DATESEPARATOR DATEVALUEPART (DATESEPARATOR DATEVALUEPART)?
+    ;
+
+fragment DATEVALUEPART
+    : DIGIT+
+    | MONTHNAME
+    ;
+
+fragment DATESEPARATOR
+    : WS+
+    | WS? [/,-] WS?
+    ;
+
+fragment MONTHNAME
+    : ENGLISHMONTHNAME
+    | ENGLISHMONTHABBREVIATION
+    ;
+
+fragment ENGLISHMONTHNAME
+    : 'JANUARY'
+    | 'FEBRUARY'
+    | 'MARCH'
+    | 'APRIL'
+    | 'MAY'
+    | 'JUNE'
+    | 'JULY'
+    | 'AUGUST'
+    | 'SEPTEMBER'
+    | 'OCTOBER'
+    | 'NOVEMBER'
+    | 'DECEMBER'
+    ;
+
+// May has intentionally been left out
+fragment ENGLISHMONTHABBREVIATION
+    : 'JAN'
+    | 'FEB'
+    | 'MAR'
+    | 'APR'
+    | 'JUN'
+    | 'JUL'
+    | 'AUG'
+    | 'SEP'
+    | 'OCT'
+    | 'NOV'
+    | 'DEC'
+    ;
+
+fragment TIMEVALUE
+    : DIGIT+ AMPM
+    | DIGIT+ TIMESEPARATOR DIGIT+ (TIMESEPARATOR DIGIT+)? AMPM?
+    ;
+
+fragment TIMESEPARATOR
+    : WS? (':' | '.') WS?
+    ;
+
+fragment AMPM
+    : WS? ('AM' | 'PM' | 'A' | 'P')
+    ;
+
 
 // Any non-whitespace or new line characters.
 ANYCHARS
@@ -224,4 +427,8 @@ ANYCHARS
 
 fragment ANYCHAR
     : ~[\r\n\u2028\u2029 \t\u0019\u3000]
+    ;
+
+fragment DIGIT
+    : [0-9]
     ;
