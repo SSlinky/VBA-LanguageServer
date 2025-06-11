@@ -191,9 +191,10 @@ export class Workspace implements IWorkspace {
 	openDocument(document: TextDocument): void {
 		const normalisedUri = document.uri.toFilePath().toFileUri();
 		const projectDocument = this.projectDocuments.get(normalisedUri);
+		Services.logger.debug(`existing: ${projectDocument?.version ?? 'None'}`, 1);
 		if (projectDocument) {
 			projectDocument.open();
-			if (document.version > projectDocument?.version) {
+			if (document.version > projectDocument.version) {
 				this.parseDocument(projectDocument);
 			}
 			this.connection.sendDiagnostics(projectDocument.languageServerDiagnostics());
