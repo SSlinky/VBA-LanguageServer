@@ -26,15 +26,11 @@ directiveParenthesizedExpression
     : '(' WS? directiveExpression WS? ')'
     ;
 
-directiveUnaryMinusExpression
-    : '-' WS? directiveExpression
-    ;
-
 directiveLiteralExpression
-    : DATELITERAL
-    | FLOATLITERAL
-    | INTEGERLITERAL
-    | STRINGLITERAL
+    : LITDATE
+    | LITFLOAT
+    | LITINTEGER
+    | LITSTRING
     | literalIdentifier
     ;
 
@@ -58,28 +54,30 @@ variantLiteralIdentifier
     | NULL_
     ;
 
+// Operators
+orderOfOps1: DIVD | MULT;
+orderOfOps2: MOD;
+orderOfOps3: PLUS | SUBT;
+orderOfOps4: AMP;
+orderOfOps5: LIKE | (LT | GT)?  (LT | GT | EQ) | EQ;
+orderOfOps6: AND | OR | XOR | EQV | IMP;
+
+
 directiveExpression
     : directiveLiteralExpression
     | directiveParenthesizedExpression
-    | directiveUnaryMinusExpression
-    // | directiveExpression wsc? (divOperator | multOperator) wsc? directiveExpression
-    // | directiveExpression wsc? modOperator wsc? directiveExpression
-    // | directiveExpression wsc? (plusOperator | minusOperator) wsc? directiveExpression
-    // | directiveExpression wsc? ampOperator wsc? directiveExpression
-    // | directiveExpression wsc? (
-    //     IS
-    //     | LIKE
-    //     | geqOperator
-    //     | leqOperator
-    //     | gtOperator
-    //     | ltOperator
-    //     | neqOperator
-    //     | eqOperator
-    // ) wsc? directiveExpression
-    // | notOperatorExpression
-    // | directiveExpression wsc? (andOperator | orOperator | xorOperator | eqvOperator | impOperator) wsc? directiveExpression
-    // | lExpression
+    | directiveExpression WS? orderOfOps1 WS? directiveExpression
+    | directiveExpression WS? orderOfOps2 WS? directiveExpression
+    | directiveExpression WS? orderOfOps3 WS? directiveExpression
+    | directiveExpression WS? orderOfOps4 WS? directiveExpression
+    | directiveExpression WS? orderOfOps5 WS? directiveExpression
+    | notDirectiveExpression
+    | directiveExpression WS? orderOfOps6 WS? directiveExpression
+    | unreservedWord
     ;
+
+notDirectiveExpression
+    : NOT WS directiveExpression;
 
 constDirectiveStatement
     : CONST WS constDirectiveName WS? EQ WS? directiveExpression endOfStatement
@@ -131,7 +129,7 @@ booleanExpression
     ;
 
 booleanPart
-    : WS? (AND | OR | XOR | EQV | IMP)? WS? NOT? WS? (compilerConstant | anyWord)
+    : WS? (AND | OR | XOR | EQV | IMP)? WS? NOT? WS? (compilerConstant | unreservedWord)
     ;
 
 compilerConstant
@@ -143,18 +141,34 @@ compilerConstant
     | MAC
     ;
 
-anyWord: (
-		ANYCHARS
-		| EQ
-		| STRINGLITERAL
-		| FLOATLITERAL
-		| DATELITERAL
-		| TRUE
-		| FALSE
-		| NOTHING
-		| EMPTY_X
-		| NULL_
-	)+;
+reservedWord
+    : AMP
+    | AND
+    | AS
+    | DIVD
+    | EMPTY_X
+    | EQ
+    | MOD
+    | MULT
+    | PLUS
+    | SUBT
+    | THEN
+    | compilerConstant
+    ;
+
+unreservedWord
+    : ANYCHARS
+	| FALSE
+	| LITDATE
+	| LITINTEGER
+	| LITSTRING
+	| LITFLOAT
+	| NOTHING
+	| NULL_
+	| TRUE
+    ;
+
+anyWord: ( unreservedWord | reservedWord)+;
 
 anyOtherLine
     : (WS* anyWord)+
@@ -175,7 +189,7 @@ endOfStatement
 commentBody: COMMENT;
 remStatement: REMCOMMENT;
 
-// wsc: (WS | LINE_CONTINUATION)+;
+// WS: (WS | LINE_CONTINUATION)+;
 
 
 
@@ -239,6 +253,19 @@ WIN64
 MAC
     : 'MAC'
     ;
+
+MULT: '*';
+DIVD: INTDIV | DBLDIV;
+MOD: 'MOD';
+PLUS: '+';
+SUBT: '-';
+AMP: '&';
+LIKE: 'LIKE';
+LT: '<';
+GT: '>';
+
+fragment INTDIV: '\\';
+fragment DBLDIV: '/';
 
 REMCOMMENT
     : COLON? REM WS (LINE_CONTINUATION | ~[\r\n\u2028\u2029])*
@@ -324,17 +351,17 @@ EMPTY_X
     : 'EMPTY'
     ;
 
-STRINGLITERAL
+LITSTRING
     : '"' (~["\r\n] | '""')* '"'
     ;
 
-INTEGERLITERAL
-    : (DIGIT DIGIT* | '&H' [0-9A-F]+ | '&' [O]? [0-7]+) [%&^]?
+LITINTEGER
+    : '-'? (DIGIT DIGIT* | '&H' [0-9A-F]+ | '&' [O]? [0-7]+) [%&^]?
     ;
 
-FLOATLITERAL
-    : FLOATINGPOINTLITERAL [!#@]?
-    | DECIMALLITERAL [!#@]
+LITFLOAT
+    : '-'? FLOATINGPOINTLITERAL [!#@]?
+    | '-'? DECIMALLITERAL [!#@]
     ;
 
 fragment FLOATINGPOINTLITERAL
@@ -347,7 +374,7 @@ fragment DECIMALLITERAL
     : DIGIT DIGIT*
     ;
 
-DATELITERAL
+LITDATE
     : '#' DATEORTIME '#'
     ;
 
