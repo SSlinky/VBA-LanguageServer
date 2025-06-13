@@ -6,6 +6,7 @@ declare global {
 		stripQuotes(): string;
 		toFilePath(): string;
 		toFileUri(): string;
+		ciEquals(s: string): boolean;
 	}
 }
 
@@ -24,4 +25,10 @@ String.prototype.toFileUri = function (): string {
 	return !this.startsWith('file://')
 		? pathToFileURL(this.toString()).href
 		: this.toString();
+};
+
+String.prototype.ciEquals = function (s: string): boolean {
+	return this.localeCompare(s, undefined, {
+		sensitivity: 'accent'
+	}) === 0;
 };

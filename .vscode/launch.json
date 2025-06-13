@@ -10,11 +10,7 @@
 			"args": [
 				"--extensionDevelopmentPath=${workspaceRoot}",
 				"${workspaceFolder}/sample/project"
-			],
-			"preLaunchTask": {
-				"type": "npm",
-				"script": "build"
-			}
+			]
 		},
 		{
 			"type": "node",

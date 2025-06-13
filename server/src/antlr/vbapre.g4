@@ -60,7 +60,8 @@ orderOfOps2: MOD;
 orderOfOps3: PLUS | SUBT;
 orderOfOps4: AMP;
 orderOfOps5: LIKE | (LT | GT)?  (LT | GT | EQ) | EQ;
-orderOfOps6: AND | OR | XOR | EQV | IMP;
+orderOfOps6: anyWord;
+// orderOfOps6: AND | OR | XOR | EQV | IMP;
 
 
 directiveExpression
@@ -153,7 +154,6 @@ reservedWord
     | PLUS
     | SUBT
     | THEN
-    | compilerConstant
     ;
 
 unreservedWord
@@ -166,6 +166,7 @@ unreservedWord
 	| NOTHING
 	| NULL_
 	| TRUE
+    | compilerConstant
     ;
 
 anyWord: ( unreservedWord | reservedWord)+;
