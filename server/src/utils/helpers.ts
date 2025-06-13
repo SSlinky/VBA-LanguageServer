@@ -88,3 +88,23 @@ export function isPositionInsideRange(position: Position, range: Range): boolean
 		&& position.character >= range.start.character
 		&& position.character <= range.end.character;
 }
+
+/**
+ * Returns true if the inner range is inside the outer range.
+ * @param inner The range to test as enveloped.
+ * @param outer The range to test as enveloping.
+ */
+export function isRangeInsideRange(inner: Range, outer: Range): boolean {
+	// Test characters on single-line ranges.
+	const isSingleLine = inner.start.line === inner.end.line
+		&& outer.start.line === outer.end.line
+		&& inner.start.line === outer.start.line;
+	if (isSingleLine) {
+		return inner.start.character >= outer.start.character
+			&& inner.end.character <= outer.end.character;
+	}
+
+	// Test lines on multi-line ranges.
+	return inner.start.line >= outer.start.line
+		&& inner.end.line <= outer.end.line;
+}
