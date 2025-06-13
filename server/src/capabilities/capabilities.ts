@@ -12,12 +12,12 @@ import {
 import { ParserRuleContext, TerminalNode } from 'antlr4ng';
 
 // Project
-import { SemanticToken, SemanticTokenModifiers, SemanticTokenTypes } from '../capabilities/semanticTokens';
+import { Services } from '../injection/services';
 import { FoldingRange, FoldingRangeKind } from '../capabilities/folding';
+import { SemanticToken, SemanticTokenModifiers, SemanticTokenTypes } from '../capabilities/semanticTokens';
 import { BaseRuleSyntaxElement, BaseIdentifyableSyntaxElement, BaseSyntaxElement, Context, HasSemanticTokenCapability } from '../project/elements/base';
 import { AmbiguousNameDiagnostic, BaseDiagnostic, DuplicateDeclarationDiagnostic, ShadowDeclarationDiagnostic, SubOrFunctionNotDefinedDiagnostic, UnusedDiagnostic, VariableNotDefinedDiagnostic } from './diagnostics';
-import { Services } from '../injection/services';
-import { isPositionInsideRange } from '../utils/helpers';
+import { isPositionInsideRange, isRangeInsideRange } from '../utils/helpers';
 
 
 abstract class BaseCapability {
@@ -221,7 +221,6 @@ export class ScopeItemCapability {
 
 	// Technical
 	isDirty: boolean = true;
-	isInvalidated = false;
 
 	get maps() {
 		const result: Map<string, ScopeItemCapability[]>[] = [];
@@ -281,26 +280,13 @@ export class ScopeItemCapability {
 		public parent?: ScopeItemCapability,
 	) { }
 
-	clean(): void {
-		this.deleteInvalidatedScopes();
-		this.cleanInvalidatedLinks();
-	}
-
 	/**
 	 * Recursively build from this node down.
 	 */
 	build(): void {
-		this.clean();
-
-		// Don't build self if invalidated.
-		if (this.isInvalidated) {
-			return;
-		}
-
 		if (this.type === ScopeType.REFERENCE) {
 			// Link to declaration if it exists.
 			this.resolveLinks();
-			const abc = 0;
 			if (!this.link) {
 				// TODO:
 				// References to variables should get a diagnostic if they aren't declared.
@@ -570,60 +556,6 @@ export class ScopeItemCapability {
 		linkItem.backlinks.push(this);
 	}
 
-	private deleteInvalidatedScopes() {
-		const removeInvalidatedScopes = (map: Map<string, ScopeItemCapability[]> | undefined) => {
-			if (!map) return;
-
-			const result = new Map<string, ScopeItemCapability[]>();
-			for (const [name, scopes] of map) {
-				const filteredScopes = scopes.filter(x => !x.isInvalidated);
-				if (filteredScopes.length > 0) {
-					result.set(name, filteredScopes);
-				}
-			}
-			if (result.size !== 0) {
-				return result;
-			}
-		};
-
-		this.types = removeInvalidatedScopes(this.types);
-		this.modules = removeInvalidatedScopes(this.modules);
-		this.functions = removeInvalidatedScopes(this.functions);
-		this.subroutines = removeInvalidatedScopes(this.subroutines);
-		if (this.properties) {
-			this.properties.getters = removeInvalidatedScopes(this.properties?.getters);
-			this.properties.setters = removeInvalidatedScopes(this.properties?.setters);
-			this.properties.letters = removeInvalidatedScopes(this.properties?.letters);
-		}
-		this.parameters = removeInvalidatedScopes(this.parameters);
-		this.references = removeInvalidatedScopes(this.references);
-		this.implicitDeclarations = removeInvalidatedScopes(this.implicitDeclarations);
-	}
-
-	private cleanInvalidatedLinks() {
-		const removeLinks = (map: Map<string, ScopeItemCapability[]> | undefined) => {
-			map?.forEach((scopes) => scopes.forEach(scope => {
-				if (scope.link && scope.link.isInvalidated) {
-					scope.link = undefined;
-				}
-				if (scope.backlinks) {
-					scope.backlinks = scope.backlinks.filter(link => !link.isInvalidated);
-					if (scope.backlinks.length === 0) scope.backlinks = undefined;
-				}
-			}));
-		};
-
-		removeLinks(this.types);
-		removeLinks(this.modules);
-		removeLinks(this.functions);
-		removeLinks(this.subroutines);
-		removeLinks(this.properties?.getters);
-		removeLinks(this.properties?.setters);
-		removeLinks(this.properties?.letters);
-		removeLinks(this.parameters);
-		removeLinks(this.references);
-	}
-
 	/** Returns the module this scope item falls under */
 	get module(): ScopeItemCapability | undefined {
 		if (this.type === ScopeType.MODULE || this.type === ScopeType.CLASS) {
@@ -660,30 +592,18 @@ export class ScopeItemCapability {
 		return false;
 	}
 
-	/** Get accessible declarations */
+	/** Get accessible declarations matching name. */
 	getAccessibleScopes(identifier: string, results: ScopeItemCapability[] = []): ScopeItemCapability[] {
-		// Add any non-public items we find at this level.
-		this.maps.forEach(map => {
-			map.get(identifier)?.forEach(item => {
-				if (!item.isPublicScope) {
-					results.push(item);
-				}
-			});
-		});
-
-		// Get all public scope types if we're at the project level.
-		if (this.type === ScopeType.PROJECT) {
-			this.modules?.forEach(modules => modules.forEach(
-				module => module.maps.forEach(map => {
-					map.get(identifier)?.forEach(item => {
-						if (item.isPublicScope) {
-							results.push(item);
-						}
-					});
-				})
-			));
+		this.types?.get(identifier)?.forEach(scope => results.push(scope));
+		this.modules?.get(identifier)?.forEach(scope => results.push(scope));
+		this.functions?.get(identifier)?.forEach(scope => results.push(scope));
+		this.subroutines?.get(identifier)?.forEach(scope => results.push(scope));
+		if (this.properties) {
+			this.properties.getters?.get(identifier)?.forEach(scope => results.push(scope));
+			this.properties.letters?.get(identifier)?.forEach(scope => results.push(scope));
+			this.properties.setters?.get(identifier)?.forEach(scope => results.push(scope));
 		}
-
+		this.parameters?.get(identifier)?.forEach(scope => results.push(scope));
 		return this.parent?.getAccessibleScopes(identifier, results) ?? results;
 	}
 
@@ -766,11 +686,6 @@ export class ScopeItemCapability {
 	 * @returns The current scope.
 	 */
 	registerScopeItem(item: ScopeItemCapability): ScopeItemCapability {
-		// Immediately invalidate if we're an Unknown Module
-		if (item.type === ScopeType.MODULE && item.name === 'Unknown Module') {
-			item.isInvalidated = true;
-		}
-
 		// Set the parent for the item.
 		item.parent = this; // getParent(item);
 		item.parent.isDirty = true;
@@ -868,18 +783,74 @@ export class ScopeItemCapability {
 		return item;
 	}
 
-	invalidateModule(uri: string): void {
-		const module = this.findModuleByUri(uri);
-		module?.invalidate();
-	}
+	/**
+	 * Recursively removes all scopes with the passed in uri and
+	 * within the range bounds, including where it is linked.
+	 */
+	invalidate(uri: string, range: Range): void {
+		const isInvalidScope = (scope: ScopeItemCapability) =>
+			scope.locationUri === uri
+			&& scope.element?.context.range
+			&& isRangeInsideRange(scope.element.context.range, range);
 
-	invalidate(): void {
-		this.isInvalidated = true;
-		this.maps.forEach(
-			map => map.forEach(
-				scopes => scopes.forEach(
-					scope => scope.invalidate()
-				)));
+		const cleanScopes = (scopes?: ScopeItemCapability[]) => {
+			if (scopes === undefined) {
+				return undefined;
+			}
+
+			const result: ScopeItemCapability[] = [];
+			scopes.forEach(scope => {
+				if (isInvalidScope(scope)) {
+					Services.logger.debug(`Invalidating ${scope.name}`);
+
+					// Clean the backlinks on the linked item if we have one.
+					if (scope.link) scope.link.backlinks = cleanScopes(
+						scope.link.backlinks);
+
+					// Clean the invaludated scope.
+					scope.invalidate(uri, range);
+					
+					return;
+				}
+				result.push(scope);
+			});
+			return result;
+		};
+
+		const cleanMap = (map?: Map<string, ScopeItemCapability[]>) => {
+			if (map === undefined) {
+				return undefined;
+			}
+
+			const result = new Map<string, ScopeItemCapability[]>();
+			for (const [name, scopes] of map) {
+				const cleanedScopes = cleanScopes(scopes);
+				if (cleanedScopes && cleanedScopes.length > 0) {
+					result.set(name, cleanedScopes);
+				}
+			}
+
+			if (result.size > 0) {
+				return result;
+			}
+		};
+
+		this.types = cleanMap(this.types);
+		this.modules = cleanMap(this.modules);
+		this.functions = cleanMap(this.functions);
+		this.subroutines = cleanMap(this.subroutines);
+		if (this.properties) {
+			this.properties.getters = cleanMap(this.properties.getters);
+			this.properties.letters = cleanMap(this.properties.letters);
+			this.properties.setters = cleanMap(this.properties.setters);
+		}
+		this.parameters = cleanMap(this.parameters);
+		this.implicitDeclarations = cleanMap(this.implicitDeclarations);
+
+		// Do a basic clean on backlinks that doesn't trigger recursion.
+		if (this.backlinks) {
+			this.backlinks = this.backlinks.filter(scope => !isInvalidScope(scope));
+		}
 	}
 
 	/** Returns true for public and false for private */

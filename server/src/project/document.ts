@@ -77,6 +77,18 @@ export abstract class BaseProjectDocument {
 		return this.subtractTextFromRanges(this.redactedElements.map(x => x.context.range));
 	}
 
+	get uri(): string {
+		return this.textDocument.uri;
+	}
+
+	get range(): Range {
+		const size = this.textDocument.getText().length - 1;
+		return {
+			start: { line: 0, character: 0 },
+			end: this.textDocument.positionAt(size)
+		};
+	}
+
 	constructor(name: string, document: TextDocument) {
 		this.textDocument = document;
 		this.workspace = Services.workspace;
@@ -167,7 +179,6 @@ export abstract class BaseProjectDocument {
 		await (new SyntaxParser(Services.logger)).parse(token, this);
 		const projectScope = this.currentScope.project;
 		const buildScope = projectScope?.isDirty ? projectScope : this.currentScope;
-		projectScope?.clean();
 		buildScope.build();
 		buildScope.resolveUnused();
 

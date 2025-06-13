@@ -147,10 +147,16 @@ export class Workspace implements IWorkspace {
 		// Services.projectScope.printToDebug();
 	}
 
-	async parseDocument(document: BaseProjectDocument) {
-		// this.activateDocument(document);
+	async parseDocument(document: BaseProjectDocument, previousDocument?: BaseProjectDocument) {
 		this.parseCancellationTokenSource?.cancel();
 		this.parseCancellationTokenSource = new CancellationTokenSource();
+
+		if (previousDocument) {
+			Services.projectScope.invalidate(
+				previousDocument.uri,
+				previousDocument.range
+			);
+		}
 
 		// Exceptions thrown by the parser should be ignored.
 		try {
@@ -195,7 +201,8 @@ export class Workspace implements IWorkspace {
 		if (projectDocument) {
 			projectDocument.open();
 			if (document.version > projectDocument.version) {
-				this.parseDocument(projectDocument);
+				const newDocument = BaseProjectDocument.create(document);
+				this.parseDocument(newDocument, projectDocument);
 			}
 			this.connection.sendDiagnostics(projectDocument.languageServerDiagnostics());
 		}
@@ -576,8 +583,7 @@ class WorkspaceEvents {
 		// The document is new or a new version that we should parse.
 		const projectDocument = BaseProjectDocument.create(document);
 		this.projectDocuments.set(normalisedUri, projectDocument);
-		Services.projectScope.invalidateModule(normalisedUri);
-		Services.workspace.parseDocument(projectDocument);
+		Services.workspace.parseDocument(projectDocument, existingDocument);
 	}
 
 	/**
