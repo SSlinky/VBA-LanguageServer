@@ -96,6 +96,14 @@ export class AmbiguousNameDiagnostic extends BaseDiagnostic {
 	}
 }
 
+// test
+export class CannotEvaluateExpressionDiagnostic extends BaseDiagnostic {
+	severity = DiagnosticSeverity.Error;
+	constructor(range: Range, message: string) {
+		super(range);
+		this.message = `Cannot evaluate expression: '${message}'.`;
+	}
+}
 
 // test
 export class ShadowDeclarationDiagnostic extends BaseDiagnostic {
