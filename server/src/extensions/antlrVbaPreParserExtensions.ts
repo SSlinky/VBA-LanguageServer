@@ -17,9 +17,9 @@ CompilerConditionalStatementContext.prototype.vbaExpression = function (): strin
     return (this.compilerIfStatement() ?? this.compilerElseIfStatement())!
         .booleanExpression()
         .getText()
-        .toLowerCase();
+        .toUpperCase();
 };
 
 DirectiveExpressionContext.prototype.vbaExpression = function (): string {
-    return this.getText().toLowerCase();
+    return this.getText().toUpperCase();
 };
