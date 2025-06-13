@@ -41,7 +41,7 @@ export interface ILanguageServer {
 export interface IWorkspace {
 	clearDocumentsConfiguration(): void
 	formatParseDocument(document: TextDocument, token: CancellationToken): Promise<VbaFmtListener | undefined>;
-	parseDocument(projectDocument: BaseProjectDocument): Promise<void>;
+	parseDocument(projectDocument: BaseProjectDocument, previousDocument?: BaseProjectDocument): Promise<void>;
 	openDocument(document: TextDocument): void;
 	closeDocument(document: TextDocument): void;
 	addWorkspaceFolder(params: WorkspaceFolder): void;
