@@ -287,7 +287,6 @@ export class ScopeItemCapability {
 		if (this.type === ScopeType.REFERENCE) {
 			// Link to declaration if it exists.
 			this.resolveLinks();
-			const abc = 0;
 			if (!this.link) {
 				// TODO:
 				// References to variables should get a diagnostic if they aren't declared.
@@ -593,30 +592,18 @@ export class ScopeItemCapability {
 		return false;
 	}
 
-	/** Get accessible declarations */
+	/** Get accessible declarations matching name. */
 	getAccessibleScopes(identifier: string, results: ScopeItemCapability[] = []): ScopeItemCapability[] {
-		// Add any non-public items we find at this level.
-		this.maps.forEach(map => {
-			map.get(identifier)?.forEach(item => {
-				if (!item.isPublicScope) {
-					results.push(item);
-				}
-			});
-		});
-
-		// Get all public scope types if we're at the project level.
-		// if (this.type === ScopeType.PROJECT) {
-		// 	this.modules?.forEach(modules => modules.forEach(
-		// 		module => module.maps.forEach(map => {
-		// 			map.get(identifier)?.forEach(item => {
-		// 				if (item.isPublicScope) {
-		// 					results.push(item);
-		// 				}
-		// 			});
-		// 		})
-		// 	));
-		// }
-
+		this.types?.get(identifier)?.forEach(scope => results.push(scope));
+		this.modules?.get(identifier)?.forEach(scope => results.push(scope));
+		this.functions?.get(identifier)?.forEach(scope => results.push(scope));
+		this.subroutines?.get(identifier)?.forEach(scope => results.push(scope));
+		if (this.properties) {
+			this.properties.getters?.get(identifier)?.forEach(scope => results.push(scope));
+			this.properties.letters?.get(identifier)?.forEach(scope => results.push(scope));
+			this.properties.setters?.get(identifier)?.forEach(scope => results.push(scope));
+		}
+		this.parameters?.get(identifier)?.forEach(scope => results.push(scope));
 		return this.parent?.getAccessibleScopes(identifier, results) ?? results;
 	}
 
