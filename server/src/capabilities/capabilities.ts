@@ -287,24 +287,7 @@ export class ScopeItemCapability {
 		if (this.type === ScopeType.REFERENCE) {
 			// Link to declaration if it exists.
 			this.resolveLinks();
-			if (!this.link) {
-				// TODO:
-				// References to variables should get a diagnostic if they aren't declared.
-				//  -- No option explicit: Hint with code action to declare.
-				//						   GET before declared gets a warning.
-				//  -- Option explicit: Error with code action to declare.
-				//  -- Subsequent explicit declaration should raise duplicate declaration (current bahaviour).
-				// 	-- All declarations with no GET references get a warning.
-				// References to function or sub calls should raise an error if they aren't declared.
-				//	-- Must always throw even when option explicit not present.
-				//	-- Nothing required on first reference as declaration may come later.
-				const severity = this.isOptionExplicitScope
-					? DiagnosticSeverity.Error
-					: DiagnosticSeverity.Hint;
-				const _ = this.assignmentType & AssignmentType.CALL
-					? this.pushDiagnostic(SubOrFunctionNotDefinedDiagnostic, this, this.name)
-					: this.pushDiagnostic(VariableNotDefinedDiagnostic, this, this.name, severity);
-			}
+			this.validateLink();
 		} else {
 			// Diagnostic checks on declarations.
 			const ancestors = this.getParentChain();
@@ -544,6 +527,27 @@ export class ScopeItemCapability {
 
 		// If we get here, we have resolved the member access name.
 		this.linkThisToItem(foundDeclarations[0]);
+	}
+
+	private validateLink() {
+		if (!this.link) {
+			// TODO:
+			// References to variables should get a diagnostic if they aren't declared.
+			//  -- No option explicit: Hint with code action to declare.
+			//						   GET before declared gets a warning.
+			//  -- Option explicit: Error with code action to declare.
+			//  -- Subsequent explicit declaration should raise duplicate declaration (current bahaviour).
+			// 	-- All declarations with no GET references get a warning.
+			// References to function or sub calls should raise an error if they aren't declared.
+			//	-- Must always throw even when option explicit not present.
+			//	-- Nothing required on first reference as declaration may come later.
+			const severity = this.isOptionExplicitScope
+				? DiagnosticSeverity.Error
+				: DiagnosticSeverity.Hint;
+			const _ = this.assignmentType & AssignmentType.CALL
+				? this.pushDiagnostic(SubOrFunctionNotDefinedDiagnostic, this, this.name)
+				: this.pushDiagnostic(VariableNotDefinedDiagnostic, this, this.name, severity);
+		}
 	}
 
 	private linkThisToItem(linkItem?: ScopeItemCapability): void {
