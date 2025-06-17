@@ -266,6 +266,10 @@ export class ScopeItemCapability {
 		return result === '' ? 'NONE' : result;
 	}
 
+	get range(): Range | undefined {
+		return this.element?.context.range;
+	}
+
 	// Item Properties
 	locationUri?: string;
 	isPublicScope?: boolean;
@@ -904,7 +908,7 @@ export class ScopeItemCapability {
 
 			// Check all items for whether they have a name overlap or a scope overlap.
 			scope?.maps.forEach(map => map.forEach(items => items.forEach(item => {
-				const elementRange = item.element?.context.range;
+				const elementRange = item.range;
 				const identifierRange = item.element?.identifierCapability?.range;
 				if (identifierRange && isPositionInsideRange(position, identifierRange)) {
 					// Position is inside the identifier, push to results.
@@ -976,7 +980,7 @@ export class ScopeItemCapability {
 			link.locationUri,
 			link.element.context.range,
 			link.element.identifierCapability.range,
-			this.element?.context.range
+			this.range
 		);
 	}
 
@@ -1049,7 +1053,7 @@ export class ScopeItemCapability {
 		};
 
 		const m = new Map<string, ScopeItemCapability>();
-		results.forEach(s => m.set(rangeString(s.element?.context.range), s));
+		results.forEach(s => m.set(rangeString(s.range), s));
 		return Array.from(m.values());
 	}
 }
