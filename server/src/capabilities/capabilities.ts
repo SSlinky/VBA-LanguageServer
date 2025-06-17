@@ -17,7 +17,7 @@ import { FoldingRange, FoldingRangeKind } from '../capabilities/folding';
 import { SemanticToken, SemanticTokenModifiers, SemanticTokenTypes } from '../capabilities/semanticTokens';
 import { BaseRuleSyntaxElement, BaseIdentifyableSyntaxElement, BaseSyntaxElement, Context, HasSemanticTokenCapability } from '../project/elements/base';
 import { AmbiguousNameDiagnostic, BaseDiagnostic, DuplicateDeclarationDiagnostic, ShadowDeclarationDiagnostic, SubOrFunctionNotDefinedDiagnostic, UnusedDiagnostic, VariableNotDefinedDiagnostic } from './diagnostics';
-import { isPositionInsideRange, isRangeInsideRange } from '../utils/helpers';
+import { isPositionInsideRange, isRangeInsideRange, rangeEquals } from '../utils/helpers';
 
 
 abstract class BaseCapability {
@@ -266,6 +266,10 @@ export class ScopeItemCapability {
 		return result === '' ? 'NONE' : result;
 	}
 
+	get range(): Range | undefined {
+		return this.element?.context.range;
+	}
+
 	// Item Properties
 	locationUri?: string;
 	isPublicScope?: boolean;
@@ -287,24 +291,7 @@ export class ScopeItemCapability {
 		if (this.type === ScopeType.REFERENCE) {
 			// Link to declaration if it exists.
 			this.resolveLinks();
-			if (!this.link) {
-				// TODO:
-				// References to variables should get a diagnostic if they aren't declared.
-				//  -- No option explicit: Hint with code action to declare.
-				//						   GET before declared gets a warning.
-				//  -- Option explicit: Error with code action to declare.
-				//  -- Subsequent explicit declaration should raise duplicate declaration (current bahaviour).
-				// 	-- All declarations with no GET references get a warning.
-				// References to function or sub calls should raise an error if they aren't declared.
-				//	-- Must always throw even when option explicit not present.
-				//	-- Nothing required on first reference as declaration may come later.
-				const severity = this.isOptionExplicitScope
-					? DiagnosticSeverity.Error
-					: DiagnosticSeverity.Hint;
-				const _ = this.assignmentType & AssignmentType.CALL
-					? this.pushDiagnostic(SubOrFunctionNotDefinedDiagnostic, this, this.name)
-					: this.pushDiagnostic(VariableNotDefinedDiagnostic, this, this.name, severity);
-			}
+			this.validateLink();
 		} else {
 			// Diagnostic checks on declarations.
 			const ancestors = this.getParentChain();
@@ -544,6 +531,27 @@ export class ScopeItemCapability {
 
 		// If we get here, we have resolved the member access name.
 		this.linkThisToItem(foundDeclarations[0]);
+	}
+
+	private validateLink() {
+		if (!this.link) {
+			// TODO:
+			// References to variables should get a diagnostic if they aren't declared.
+			//  -- No option explicit: Hint with code action to declare.
+			//						   GET before declared gets a warning.
+			//  -- Option explicit: Error with code action to declare.
+			//  -- Subsequent explicit declaration should raise duplicate declaration (current bahaviour).
+			// 	-- All declarations with no GET references get a warning.
+			// References to function or sub calls should raise an error if they aren't declared.
+			//	-- Must always throw even when option explicit not present.
+			//	-- Nothing required on first reference as declaration may come later.
+			const severity = this.isOptionExplicitScope
+				? DiagnosticSeverity.Error
+				: DiagnosticSeverity.Hint;
+			const _ = this.assignmentType & AssignmentType.CALL
+				? this.pushDiagnostic(SubOrFunctionNotDefinedDiagnostic, this, this.name)
+				: this.pushDiagnostic(VariableNotDefinedDiagnostic, this, this.name, severity);
+		}
 	}
 
 	private linkThisToItem(linkItem?: ScopeItemCapability): void {
@@ -787,12 +795,7 @@ export class ScopeItemCapability {
 	 * Recursively removes all scopes with the passed in uri and
 	 * within the range bounds, including where it is linked.
 	 */
-	invalidate(uri: string, range: Range): void {
-		const isInvalidScope = (scope: ScopeItemCapability) =>
-			scope.locationUri === uri
-			&& scope.element?.context.range
-			&& isRangeInsideRange(scope.element.context.range, range);
-
+	invalidate(uri: string, range?: Range): void {
 		const cleanScopes = (scopes?: ScopeItemCapability[]) => {
 			if (scopes === undefined) {
 				return undefined;
@@ -800,7 +803,7 @@ export class ScopeItemCapability {
 
 			const result: ScopeItemCapability[] = [];
 			scopes.forEach(scope => {
-				if (isInvalidScope(scope)) {
+				if (scope.isLocatedAt(uri, range)) {
 					Services.logger.debug(`Invalidating ${scope.name}`);
 
 					// Clean the backlinks on the linked item if we have one.
@@ -808,7 +811,7 @@ export class ScopeItemCapability {
 						scope.link.backlinks);
 
 					// Clean the invaludated scope.
-					scope.invalidate(uri, range);
+					scope.invalidate(uri, scope.range);
 					
 					return;
 				}
@@ -849,8 +852,22 @@ export class ScopeItemCapability {
 
 		// Do a basic clean on backlinks that doesn't trigger recursion.
 		if (this.backlinks) {
-			this.backlinks = this.backlinks.filter(scope => !isInvalidScope(scope));
+			this.backlinks = this.backlinks
+				.filter(scope => !scope.isLocatedAt(uri, range));
 		}
+	}
+
+	/** Returns true if the uri matches and, if passed, range is fully inside range. */
+	isLocatedAt(uri: string, range?: Range): boolean {
+		if (uri !== this.locationUri) {
+			return false;
+		}
+
+		if (!range) {
+			return true;
+		}
+
+		return isRangeInsideRange(this.range, range);
 	}
 
 	/** Returns true for public and false for private */
@@ -900,7 +917,7 @@ export class ScopeItemCapability {
 
 			// Check all items for whether they have a name overlap or a scope overlap.
 			scope?.maps.forEach(map => map.forEach(items => items.forEach(item => {
-				const elementRange = item.element?.context.range;
+				const elementRange = item.range;
 				const identifierRange = item.element?.identifierCapability?.range;
 				if (identifierRange && isPositionInsideRange(position, identifierRange)) {
 					// Position is inside the identifier, push to results.
@@ -972,7 +989,7 @@ export class ScopeItemCapability {
 			link.locationUri,
 			link.element.context.range,
 			link.element.identifierCapability.range,
-			this.element?.context.range
+			this.range
 		);
 	}
 
@@ -1045,7 +1062,7 @@ export class ScopeItemCapability {
 		};
 
 		const m = new Map<string, ScopeItemCapability>();
-		results.forEach(s => m.set(rangeString(s.element?.context.range), s));
+		results.forEach(s => m.set(rangeString(s.range), s));
 		return Array.from(m.values());
 	}
 }
