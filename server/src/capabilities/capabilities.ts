@@ -1008,10 +1008,16 @@ export class ScopeItemCapability {
 
 	private getItemsIdentifiedAtPosition(position: Position, results: ScopeItemCapability[] = [], searchItems: ScopeItemCapability[] = []): void {
 		while (searchItems.length > 0) {
+			// Get the next scope to search.
 			const scope = searchItems.pop();
+			if (scope === undefined) continue;
+
+			// Get the standard maps and add attributes to them if they exist.
+			const scopeMaps = scope.maps ?? [];
+			if (scope.attributes) scopeMaps.push(scope.attributes);
 
 			// Check all items for whether they have a name overlap or a scope overlap.
-			scope?.maps.forEach(map => map.forEach(items => items.forEach(item => {
+			scopeMaps.forEach(map => map.forEach(items => items.forEach(item => {
 				const elementRange = item.range;
 				const identifierRange = item.element?.identifierCapability?.range;
 				if (identifierRange && isPositionInsideRange(position, identifierRange)) {
@@ -1026,13 +1032,13 @@ export class ScopeItemCapability {
 	}
 
 	getRenameItems(uri: string, position: Position): ScopeItemCapability[] {
-		const module = this.findModuleByUri(uri);
-		if (!module) {
+		const moduleScope = this.findModuleByUri(uri);
+		if (!moduleScope) {
 			return [];
 		}
 
 		const itemsAtPosition: ScopeItemCapability[] = [];
-		this.getItemsIdentifiedAtPosition(position, itemsAtPosition, [module]);
+		this.getItemsIdentifiedAtPosition(position, itemsAtPosition, [moduleScope]);
 		if (itemsAtPosition.length === 0) {
 			Services.logger.warn(`Nothing to rename.`);
 			return [];
@@ -1051,14 +1057,15 @@ export class ScopeItemCapability {
 					item.parent.properties.letters?.get(item.identifier)
 				]
 				: item
-		).flat().flat().flat().filter(x => !!x);
+		).flat(2).filter(x => !!x);
 
-		// Add backlinks for each item.
-		const addedBacklinks = propertyIncludedItems.map(item =>
-			item.backlinks ? [item, ...item.backlinks] : item
-		).flat().flat();
+		// Add backlinks and attributes for each item.
+		const addedReferences = propertyIncludedItems.map(item => [
+			item.backlinks ? [item, ...item.backlinks] : item,
+			item.attributes?.get(item.name) ? [item, ...item.attributes.get(item.name)!] : item
+		]).flat(2);
 
-		const uniqueItemsAtPosition = this.removeDuplicatesByRange(addedBacklinks);
+		const uniqueItemsAtPosition = this.removeDuplicatesByRange(addedReferences);
 		return uniqueItemsAtPosition;
 	}
 
