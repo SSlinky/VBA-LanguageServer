@@ -153,8 +153,7 @@ export class Workspace implements IWorkspace {
 
 		if (previousDocument) {
 			Services.projectScope.invalidate(
-				previousDocument.uri,
-				previousDocument.range
+				previousDocument.uri
 			);
 		}
 

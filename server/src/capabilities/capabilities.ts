@@ -17,7 +17,7 @@ import { FoldingRange, FoldingRangeKind } from '../capabilities/folding';
 import { SemanticToken, SemanticTokenModifiers, SemanticTokenTypes } from '../capabilities/semanticTokens';
 import { BaseRuleSyntaxElement, BaseIdentifyableSyntaxElement, BaseSyntaxElement, Context, HasSemanticTokenCapability } from '../project/elements/base';
 import { AmbiguousNameDiagnostic, BaseDiagnostic, DuplicateDeclarationDiagnostic, ShadowDeclarationDiagnostic, SubOrFunctionNotDefinedDiagnostic, UnusedDiagnostic, VariableNotDefinedDiagnostic } from './diagnostics';
-import { isPositionInsideRange, isRangeInsideRange } from '../utils/helpers';
+import { isPositionInsideRange, isRangeInsideRange, rangeEquals } from '../utils/helpers';
 
 
 abstract class BaseCapability {
@@ -795,12 +795,7 @@ export class ScopeItemCapability {
 	 * Recursively removes all scopes with the passed in uri and
 	 * within the range bounds, including where it is linked.
 	 */
-	invalidate(uri: string, range: Range): void {
-		const isInvalidScope = (scope: ScopeItemCapability) =>
-			scope.locationUri === uri
-			&& scope.element?.context.range
-			&& isRangeInsideRange(scope.element.context.range, range);
-
+	invalidate(uri: string, range?: Range): void {
 		const cleanScopes = (scopes?: ScopeItemCapability[]) => {
 			if (scopes === undefined) {
 				return undefined;
@@ -808,7 +803,7 @@ export class ScopeItemCapability {
 
 			const result: ScopeItemCapability[] = [];
 			scopes.forEach(scope => {
-				if (isInvalidScope(scope)) {
+				if (scope.isLocatedAt(uri, range)) {
 					Services.logger.debug(`Invalidating ${scope.name}`);
 
 					// Clean the backlinks on the linked item if we have one.
@@ -816,7 +811,7 @@ export class ScopeItemCapability {
 						scope.link.backlinks);
 
 					// Clean the invaludated scope.
-					scope.invalidate(uri, range);
+					scope.invalidate(uri, scope.range);
 					
 					return;
 				}
@@ -857,8 +852,22 @@ export class ScopeItemCapability {
 
 		// Do a basic clean on backlinks that doesn't trigger recursion.
 		if (this.backlinks) {
-			this.backlinks = this.backlinks.filter(scope => !isInvalidScope(scope));
+			this.backlinks = this.backlinks
+				.filter(scope => !scope.isLocatedAt(uri, range));
 		}
+	}
+
+	/** Returns true if the uri matches and, if passed, range is fully inside range. */
+	isLocatedAt(uri: string, range?: Range): boolean {
+		if (uri !== this.locationUri) {
+			return false;
+		}
+
+		if (!range) {
+			return true;
+		}
+
+		return isRangeInsideRange(this.range, range);
 	}
 
 	/** Returns true for public and false for private */
