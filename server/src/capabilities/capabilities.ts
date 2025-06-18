@@ -185,8 +185,10 @@ export enum ScopeType {
 	VARIABLE,
 	/** A variable declaration in a signature */
 	PARAMETER,
-	/** Any reference type that isn't a declaration. */
-	REFERENCE
+	/** A reference to some type of declaration. */
+	REFERENCE,
+	/** A special reference type. */
+	ATTRIBUTE
 }
 
 export enum AssignmentType {
@@ -211,6 +213,7 @@ export class ScopeItemCapability {
 	};
 	parameters?: Map<string, ScopeItemCapability[]>;
 	references?: Map<string, ScopeItemCapability[]>;
+	attributes?: Map<string, ScopeItemCapability[]>;
 
 	// Special scope references for easier resolution of names.
 	implicitDeclarations?: Map<string, ScopeItemCapability[]>;
@@ -288,8 +291,10 @@ export class ScopeItemCapability {
 	 * Recursively build from this node down.
 	 */
 	build(): void {
-		if (this.type === ScopeType.REFERENCE) {
-			// Link to declaration if it exists.
+		if (this.type === ScopeType.ATTRIBUTE) {
+			this.resolveAttribute();
+			this.validateAttributes();
+		} else if (this.type === ScopeType.REFERENCE) {
 			this.resolveLinks();
 			this.validateLink();
 		} else {
@@ -308,6 +313,7 @@ export class ScopeItemCapability {
 		this.properties?.letters?.forEach(items => items.forEach(item => item.build()));
 		this.properties?.setters?.forEach(items => items.forEach(item => item.build()));
 		this.references?.forEach(items => items.forEach(item => item.build()));
+		this.attributes?.forEach(items => items.forEach(item => item.build()));
 
 		this.isDirty = false;
 	}
@@ -458,6 +464,88 @@ export class ScopeItemCapability {
 				shadowing.forEach(item => this.addDiagnosticReference(diagnostic, item));
 			}
 		}
+	}
+
+	private resolveAttribute() {
+		/**
+		 * Most attributes will be belong to the parent. Variable attributes
+		 * will belong to the same scope as the item they refer to.
+		 * 
+		 * We set one way links here to facilitate renaming.
+		 * Setting an attribute as a back link will impact unused diagnostics.
+		*/
+
+		if (!this.parent) {
+			Services.logger.error(`Expected parent for attribute ${this.name}`);
+			throw new Error("Attribute scope item has no parent.");
+		}
+
+		// The immediate parent is probably the linked item.
+		if (this.name === this.parent.name) {
+			this.link = this.parent;
+			return;
+		}
+
+		// If not, we may be a variable attribute (shared parent).
+		const declarations = this.parent.properties?.getters?.get(this.name);
+		if (!declarations) {
+			return;
+		}
+
+		// Handle a single declaration found.
+		if (declarations.length === 1) {
+			this.link = declarations[0];
+			this.parent.moveAttribute(this, declarations[0]);
+			return;
+		}
+
+		// Handle duplicate declarations by attaching to the closest above.
+		const targetRow = this.range?.start.line ?? 0;
+		let closestDeclaration: ScopeItemCapability | undefined;
+		for (const declaration of declarations) {
+			const declarationRow = declaration?.range?.start.line ?? 0;
+			if (declarationRow === 0 || declarationRow >= targetRow) {
+				return;
+			}
+
+			if (!closestDeclaration) {
+				closestDeclaration = declaration;
+				return;
+			}
+
+			const closestRow = closestDeclaration.range?.start.line ?? 0;
+			if (targetRow > declarationRow && declarationRow > closestRow) {
+				closestDeclaration = declaration;
+			}
+		}
+
+		if (closestDeclaration) {
+			this.link = closestDeclaration;
+			this.parent.moveAttribute(this, closestDeclaration);
+		}
+	}
+
+	moveAttribute(attr: ScopeItemCapability, destination: ScopeItemCapability) {
+		const items = this.attributes?.get(attr.name);
+		if (!items || items.length === 0) {
+			return;
+		}
+
+		const unmoved: ScopeItemCapability[] = [];
+		items.forEach(item => {
+			const isLocMatch = item.locationUri === attr.locationUri;
+			const isRangeMatch = rangeEquals(item.element?.context.range, attr.range);
+			if (isLocMatch && isRangeMatch) {
+				destination.attributes ??= new Map();
+				destination.addItem(destination.attributes, item);
+			} else {
+				unmoved.push(item);
+			}
+		});
+	}
+
+	private validateAttributes() {
+		// Attributes must be in specific locations to work.
 	}
 
 	private resolveLinks() {
@@ -726,6 +814,13 @@ export class ScopeItemCapability {
 			return this;
 		}
 
+		// Register attributes
+		if (item.type === ScopeType.ATTRIBUTE) {
+			item.parent.attributes ??= new Map();
+			item.parent.addItem(item.parent.attributes, item);
+			return this;
+		}
+
 		// Add implicitly accessible names to the project scope.
 		if (item.isPublicScope && this.project && this !== this.project) {
 			this.project.implicitDeclarations ??= new Map();
@@ -913,10 +1008,16 @@ export class ScopeItemCapability {
 
 	private getItemsIdentifiedAtPosition(position: Position, results: ScopeItemCapability[] = [], searchItems: ScopeItemCapability[] = []): void {
 		while (searchItems.length > 0) {
+			// Get the next scope to search.
 			const scope = searchItems.pop();
+			if (scope === undefined) continue;
+
+			// Get the standard maps and add attributes to them if they exist.
+			const scopeMaps = scope.maps ?? [];
+			if (scope.attributes) scopeMaps.push(scope.attributes);
 
 			// Check all items for whether they have a name overlap or a scope overlap.
-			scope?.maps.forEach(map => map.forEach(items => items.forEach(item => {
+			scopeMaps.forEach(map => map.forEach(items => items.forEach(item => {
 				const elementRange = item.range;
 				const identifierRange = item.element?.identifierCapability?.range;
 				if (identifierRange && isPositionInsideRange(position, identifierRange)) {
@@ -931,13 +1032,13 @@ export class ScopeItemCapability {
 	}
 
 	getRenameItems(uri: string, position: Position): ScopeItemCapability[] {
-		const module = this.findModuleByUri(uri);
-		if (!module) {
+		const moduleScope = this.findModuleByUri(uri);
+		if (!moduleScope) {
 			return [];
 		}
 
 		const itemsAtPosition: ScopeItemCapability[] = [];
-		this.getItemsIdentifiedAtPosition(position, itemsAtPosition, [module]);
+		this.getItemsIdentifiedAtPosition(position, itemsAtPosition, [moduleScope]);
 		if (itemsAtPosition.length === 0) {
 			Services.logger.warn(`Nothing to rename.`);
 			return [];
@@ -956,14 +1057,15 @@ export class ScopeItemCapability {
 					item.parent.properties.letters?.get(item.identifier)
 				]
 				: item
-		).flat().flat().flat().filter(x => !!x);
+		).flat(2).filter(x => !!x);
 
-		// Add backlinks for each item.
-		const addedBacklinks = propertyIncludedItems.map(item =>
-			item.backlinks ? [item, ...item.backlinks] : item
-		).flat().flat();
+		// Add backlinks and attributes for each item.
+		const addedReferences = propertyIncludedItems.map(item => [
+			item.backlinks ? [item, ...item.backlinks] : item,
+			item.attributes?.get(item.name) ? [item, ...item.attributes.get(item.name)!] : item
+		]).flat(2);
 
-		const uniqueItemsAtPosition = this.removeDuplicatesByRange(addedBacklinks);
+		const uniqueItemsAtPosition = this.removeDuplicatesByRange(addedReferences);
 		return uniqueItemsAtPosition;
 	}
 

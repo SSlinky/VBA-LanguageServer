@@ -11,6 +11,7 @@ import {
     AmbiguousIdentifierContext,
     AnyOperatorContext,
     ArgumentListContext,
+    AttributeStatementContext,
     CallStatementContext,
     ClassModuleContext,
     DictionaryAccessExpressionContext,
@@ -44,7 +45,7 @@ import {
     WithStatementContext
 } from '../../antlr/out/vbaParser';
 import {
-    AttributeStatementContext,
+    AttributeStatementContext as FmtAttributeStatementContext,
     BasicStatementContext,
     BlockContext,
     CaseDefaultStatementContext,
@@ -88,6 +89,7 @@ import {
     PropertyLetDeclarationElement,
     PropertySetDeclarationElement,
 } from '../elements/procedure';
+import { AttributeElement } from '../elements/attributes';
 
 
 enum ParserAssignmentState {
@@ -178,6 +180,11 @@ export class VbaListener extends vbaListener {
 
     enterAnyOperator = (ctx: AnyOperatorContext) => {
         const element = new DuplicateOperatorElement(ctx, this.document.textDocument);
+        this.document.registerElement(element);
+    };
+
+    enterAttributeStatement = (ctx: AttributeStatementContext) => {
+        const element = new AttributeElement(ctx, this.document.textDocument);
         this.document.registerElement(element);
     };
 
@@ -613,7 +620,7 @@ export class VbaFmtListener extends vbafmtListener {
     }
 
     // Attributes are always zero indented.
-    enterAttributeStatement = (ctx: AttributeStatementContext) => {
+    enterAttributeStatement = (ctx: FmtAttributeStatementContext) => {
         const range = this.getCtxRange(ctx);
         const offset = ctx.endsWithLineEnding ? 0 : 1;
 
